@@ -1,0 +1,15 @@
+{
+  "name": "Dijital Kurye – Dağıtım Günü",
+  "short_name": "Dağıtım Günü",
+  "description": "Mahalle ve açık adrese göre en erken dağıtım gününü sorgular.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#5b4cf0",
+  "lang": "tr",
+  "icons": [
+    {"src":"icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
