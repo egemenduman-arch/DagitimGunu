@@ -112,7 +112,7 @@ async function loadWeather(il,ilce){
   const firstDate=String(val(rows[0],['tarih','date'])).slice(0,10);
   let notice='';
   if(selected && firstDate && selected < firstDate){
-    notice='<div class="weatherNotice"><strong>Bugünün hava durumu</strong>MGM 5 günlük tahmin servisi günlük tabloyu '+weatherEsc(firstDate.split('-').reverse().join('.'))+' tarihinden başlatıyor. Bu nedenle seçilen '+weatherEsc(selected.split('-').reverse().join('.'))+' günü bu 5 günlük tabloda yer almıyor.</div>';
+    notice='';
   }
 
   // Warning for the queried location based on the forecast conditions returned by MGM.
