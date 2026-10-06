@@ -484,10 +484,31 @@ document.getElementById('feedbackLaunch').addEventListener('click',()=>{
  s.scrollIntoView({behavior:'smooth',block:'start'});
 });
 document.getElementById('feedbackClose').addEventListener('click',()=>setAccordion(document.getElementById('feedbackSection'),false));
-document.getElementById('feedbackForm').addEventListener('submit',e=>{
+document.getElementById('feedbackForm').addEventListener('submit',async e=>{
  e.preventDefault();
- const st=document.getElementById('feedbackStatus');st.style.display='block';
- st.textContent='Form hazır. Size otomatik ulaşması için gönderim servisini bağlamamız gerekiyor.';
+ const form=e.currentTarget;
+ const st=document.getElementById('feedbackStatus');
+ const btn=form.querySelector('.feedbackSend');
+ const payload={
+   ad_soyad:document.getElementById('fbName').value.trim(),
+   gsm:document.getElementById('fbPhone').value.trim(),
+   email:document.getElementById('fbEmail').value.trim(),
+   aciklama:document.getElementById('fbMessage').value.trim()
+ };
+ st.style.display='block';st.textContent='Gönderiliyor…';btn.disabled=true;
+ try{
+   const r=await fetch(DATA_API+'/api/oneri',{
+     method:'POST',
+     headers:{'Content-Type':'application/json'},
+     body:JSON.stringify(payload)
+   });
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
+   st.textContent='✓ Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.';
+   form.reset();
+ }catch(err){
+   st.textContent='Gönderilemedi: '+err.message;
+ }finally{btn.disabled=false;}
 });
 </script>
 
