@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dağıtım Verisi Yönetimi</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:Arial,sans-serif}
+.wrap{max-width:720px;margin:40px auto;padding:16px}.card{background:#fff;border:1px solid #e1e7ef;border-radius:18px;padding:24px;box-shadow:0 8px 30px #18243a12}
+h1{margin:0 0 8px;font-size:28px}p{color:#68758a}label{display:block;font-weight:700;margin:16px 0 6px}
+input,button{width:100%;min-height:48px;border-radius:11px;font-size:16px}input{border:1px solid #d6deea;padding:10px 12px}
+button{border:0;background:#5b43f2;color:#fff;font-weight:800;margin-top:14px;cursor:pointer}button:disabled{opacity:.5}
+.status{margin-top:16px;padding:12px;border-radius:11px;background:#eef4ff;line-height:1.5}.ok{background:#eafaf3;color:#087c52}.err{background:#fff0f0;color:#a61b1b}
+progress{width:100%;height:18px;margin-top:12px}
+.small{font-size:12px;color:#718096;margin-top:8px}
+</style></head><body><div class="wrap"><div class="card">
+<h1>Dağıtım Verisi Yönetimi</h1><p>Bu ekran yalnızca yetkili veri güncellemesi içindir.</p>
+<label>Admin şifresi</label><input id="pw" type="password" autocomplete="current-password">
+<label>Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
+<button id="upload">Veriyi Güncelle</button>
+<progress id="prog" value="0" max="100" style="display:none"></progress>
+<div id="status" class="status">Dosya seçip şifrenizi girdikten sonra güncellemeyi başlatın.</div>
+<div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
+</div></div>
+<script>
+const API="https://dagitimveri.egemenduman.workers.dev";
+const norm=s=>String(s??'').trim().toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();
+const dayOpen=v=>{const x=norm(v);return ['1','evet','e','var','acik','aktif','x','yes','true'].includes(x)||Number(v)===1?1:0};
+function parseRows(rows){
+ if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');
+ const h=rows[0].map(x=>norm(x)); const find=a=>h.findIndex(x=>a.includes(x));
+ const ci=find(['il']),cj=find(['ilce']),cm=find(['mahalle','mahalle koy','mahallekoy']);
+ const dayAlts=[['pzt','pazartesi'],['sal','sali'],['crs','carsamba'],['prs','persembe'],['cum','cuma'],['cts','cumartesi'],['pzr','pazar']];
+ const di=dayAlts.map(find);
+ if(ci<0||cj<0||cm<0||di.some(x=>x<0))throw new Error('Beklenen sütunlar bulunamadı.');
+ const out=[];
+ for(let n=1;n<rows.length;n++){const r=rows[n],il=String(r[ci]??'').trim(),ilce=String(r[cj]??'').trim(),mah=String(r[cm]??'').trim();if(il&&ilce&&mah)out.push([il,ilce,mah,di.map(i=>dayOpen(r[i]))]);}
+ if(!out.length)throw new Error('Geçerli veri satırı bulunamadı.'); return out;
+}
+async function call(path,pw,body){
+ const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:body?JSON.stringify(body):undefined});
+ const j=await r.json().catch(()=>({})); if(!r.ok)throw new Error(j.error||('HTTP '+r.status)); return j;
+}
+const st=(m,c='')=>{const x=document.getElementById('status');x.className='status '+c;x.textContent=m};
+document.getElementById('upload').onclick=async()=>{
+ const btn=document.getElementById('upload'),pw=document.getElementById('pw').value,file=document.getElementById('file').files[0],prog=document.getElementById('prog');
+ if(!pw)return st('Admin şifresini girin.','err'); if(!file)return st('Excel veya CSV dosyası seçin.','err');
+ btn.disabled=true; prog.style.display='block'; prog.value=0;
+ try{
+   st('Dosya okunuyor…');
+   let rows;
+   if(file.name.toLowerCase().endsWith('.csv')){const t=await file.text();const wb=XLSX.read(t,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+   else{const b=await file.arrayBuffer();const wb=XLSX.read(b,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+   const data=parseRows(rows); st(data.length.toLocaleString('tr-TR')+' kayıt hazırlandı. Yetki kontrol ediliyor…');
+   await call('/admin/check',pw); await call('/admin/start',pw);
+   const size=200;
+   for(let i=0;i<data.length;i+=size){
+     await call('/admin/chunk',pw,{rows:data.slice(i,i+size)});
+     prog.value=Math.round(Math.min(99,(i+size)/data.length*100));
+     st('Yükleniyor… '+Math.min(i+size,data.length).toLocaleString('tr-TR')+' / '+data.length.toLocaleString('tr-TR'));
+   }
+   const done=await call('/admin/finish',pw); prog.value=100;
+   st('Güncelleme tamamlandı • '+done.count.toLocaleString('tr-TR')+' kayıt • '+new Date(done.updated).toLocaleString('tr-TR'),'ok');
+ }catch(e){st('Güncelleme başarısız: '+e.message,'err')}
+ finally{btn.disabled=false}
+};
+</script></body></html>
