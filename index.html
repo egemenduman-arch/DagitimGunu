@@ -31,6 +31,49 @@
 .weatherTodayDesc{font-size:13px;color:#5e6b7f;margin-top:2px}.weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .weatherMetric{background:#fff;border:1px solid #e6eaf1;border-radius:10px;padding:9px}.weatherMetric span{display:block;font-size:11px;color:#6b778c}.weatherMetric b{font-size:14px}
 @media(max-width:700px){.weatherTodayGrid{grid-template-columns:repeat(2,1fr)}}
+
+/* Mobile responsive improvements */
+@media (max-width:700px){
+ body{padding:10px 6px!important}
+ .wrap,.container,main{width:100%!important;max-width:100%!important;margin:0 auto!important}
+ h1{font-size:27px!important;line-height:1.12!important;margin-bottom:8px!important}
+ input,select,button{min-height:48px!important;font-size:16px!important}
+ .searchRow,.search-row,.topRow,.top-row{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+ .searchRow button,.search-row button,.topRow button,.top-row button{width:100%!important}
+ .filters,.filterRow,.filter-row{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
+ .weatherPanel{padding:14px!important}
+ .weatherTitle{font-size:19px!important}
+ .weatherSub{font-size:12px!important}
+ .weatherScroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+ .weatherTable{min-width:700px!important;font-size:12px!important}
+ .weatherTodayGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .weatherToday{padding:12px!important}
+ .weatherTodayHead{align-items:flex-start!important}
+ .weatherNotice{font-size:12px!important}
+ .opsPanel{padding:13px!important}
+}
+@media (max-width:420px){
+ h1{font-size:24px!important}
+ .weatherMetric{padding:8px!important}
+}
+
+
+/* Mobile app-style weather cards */
+.weatherMobileCards{display:none}
+@media(max-width:700px){
+ .weatherScroll{display:none!important}
+ .weatherMobileCards{display:grid!important;grid-template-columns:1fr!important;gap:9px;margin-top:10px}
+ .weatherDayCard{border:1px solid #e3e9f2;border-radius:14px;background:#fff;padding:12px}
+ .weatherDayTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+ .weatherDayDate{font-size:13px;font-weight:800;color:#172033}
+ .weatherDayCondition{display:flex;align-items:center;gap:8px;text-align:right;font-size:12px;font-weight:700}
+ .weatherDayCondition img{width:34px;height:34px;object-fit:contain}
+ .weatherDayStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
+ .weatherDayStat{background:#f7f9fc;border-radius:10px;padding:8px;text-align:center}
+ .weatherDayStat span{display:block;font-size:10px;color:#718096;margin-bottom:3px}
+ .weatherDayStat b{font-size:12px;color:#172033}
+}
+
 </style><!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
 <script>
@@ -142,7 +185,7 @@ async function loadWeather(il,ilce){
     return '<tr><td>'+weatherEsc(dateText)+'</td><td>'+icon+'<strong>'+weatherEsc(weatherName(had))+'</strong><br><small>'+weatherEsc(had)+'</small></td><td class="weatherTempMin">'+weatherEsc(min)+'</td><td class="weatherTempMax">'+weatherEsc(max)+'</td><td>'+weatherEsc(nmin)+'</td><td>'+weatherEsc(nmax)+'</td><td>'+weatherEsc(yon)+'</td><td>'+weatherEsc(hiz)+'</td></tr>';
   }).join('');
 
-  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • Meteoroloji Genel Müdürlüğü</div>'+todayCard+notice+'<div class="weatherScroll"><table class="weatherTable"><thead><tr><th rowspan="2">Tarih</th><th rowspan="2">Hadise</th><th colspan="2">Sıcaklık (°C)</th><th colspan="2">Nem (%)</th><th colspan="2">Rüzgâr (km/sa)</th></tr><tr><th>En Düşük</th><th>En Yüksek</th><th>En Düşük</th><th>En Yüksek</th><th>Yön</th><th>Hız</th></tr></thead><tbody>'+body+'</tbody></table></div></div>';
+  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • Meteoroloji Genel Müdürlüğü</div>'+todayCard+notice+'<div class="weatherScroll"><table class="weatherTable"><thead><tr><th rowspan="2">Tarih</th><th rowspan="2">Hadise</th><th colspan="2">Sıcaklık (°C)</th><th colspan="2">Nem (%)</th><th colspan="2">Rüzgâr (km/sa)</th></tr><tr><th>En Düşük</th><th>En Yüksek</th><th>En Düşük</th><th>En Yüksek</th><th>Yön</th><th>Hız</th></tr></thead><tbody>'+body+'</tbody></table></div><div class="weatherMobileCards">'+rows.slice(0,5).map((r,i)=>{const n=i+1;const raw=String(val(r,['tarih','date','tarihGun'+n]));const dt=raw.slice(0,10);const d=/^\d{4}-\d{2}-\d{2}$/.test(dt)?dt.split('-').reverse().join('.'):raw;const had=val(r,['hadise','hadiseKodu','weather','hadiseGun'+n,'hadise'+n]);const code=String(had||'').replace(/[^A-Za-z0-9_-]/g,'');const icon=code&&code!=='—'?'<img alt="" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(code)+'.svg">':'';const min=val(r,['enDusukGun'+n,'enDusuk','minSicaklik','min']);const max=val(r,['enYuksekGun'+n,'enYuksek','maxSicaklik','max']);const nemMin=val(r,['enDusukNemGun'+n,'enDusukNem','minNem']);const nemMax=val(r,['enYuksekNemGun'+n,'enYuksekNem','maxNem']);const hiz=val(r,['ruzgarHizGun'+n,'ruzgarHiz','ruzgarHizi']);return '<div class="weatherDayCard"><div class="weatherDayTop"><div class="weatherDayDate">'+weatherEsc(d)+'</div><div class="weatherDayCondition">'+icon+'<div>'+weatherEsc(weatherName(had))+'</div></div></div><div class="weatherDayStats"><div class="weatherDayStat"><span>Sıcaklık</span><b>'+weatherEsc(min)+'° / '+weatherEsc(max)+'°</b></div><div class="weatherDayStat"><span>Nem</span><b>%'+weatherEsc(nemMin)+'–%'+weatherEsc(nemMax)+'</b></div><div class="weatherDayStat"><span>Rüzgâr</span><b>'+weatherEsc(hiz)+' km/sa</b></div></div></div>'}).join('')+'</div></div>';
  }catch(e){
   if(req===weatherRequestNo){
    box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü ve operasyon sorgusu çalışmaya devam ediyor.</div></div>';
