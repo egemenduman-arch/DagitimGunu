@@ -87,6 +87,49 @@
  .queryControls{margin-top:10px}
 }
 
+
+/* Mobile stable accordion layout */
+.accordion{margin-top:12px;border:1px solid #dfe5ee;border-radius:16px;background:#fff;overflow:visible}
+.accHead{width:100%;min-height:52px;border:0;background:#fff;color:#172033;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:800;text-align:left;cursor:pointer}
+.accHead .accMeta{font-size:12px;font-weight:600;color:#687386;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.accChevron{font-size:18px;transition:transform .2s ease;flex:0 0 auto}
+.accordion.open>.accHead .accChevron{transform:rotate(180deg)}
+.accBody{display:none;border-top:1px solid #edf0f5;padding:14px}
+.accordion.open>.accBody{display:block}
+#querySection{margin-top:0}
+#querySection .accBody{position:relative}
+#querySection .grid{margin-top:0}
+#querySection .filters{margin-top:14px}
+#deliverySection,#weatherSection,#opsSection{display:none}
+#deliverySection.hasContent,#weatherSection.hasContent,#opsSection.hasContent{display:block}
+#deliveryContent .results,#weatherContent .weatherBox,#opsContent .opsBox{margin-top:0}
+#deliveryContent .result:first-child,#weatherContent .weatherPanel:first-child,#opsContent .opsPanel:first-child{margin-top:0}
+.feedbackLaunch{width:100%;min-height:50px;margin-top:14px;border:1px solid #d9dff0;border-radius:14px;background:#fff;color:#5b4cf0;font-weight:800;font-size:15px;cursor:pointer}
+.feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.feedbackGrid .full{grid-column:1/-1}
+.feedbackGrid label{display:block;font-size:12px;font-weight:800;color:#5f6c80;margin-bottom:5px}
+.feedbackGrid input,.feedbackGrid textarea{width:100%;border:1px solid #d7deea;border-radius:11px;padding:11px 12px;font:inherit;background:#fff;color:#172033}
+.feedbackGrid textarea{min-height:110px;resize:vertical}
+.feedbackActions{display:flex;gap:8px;margin-top:12px}
+.feedbackActions button{flex:1;min-height:46px;border-radius:11px;border:0;font-weight:800;cursor:pointer}
+.feedbackSend{background:#5b4cf0;color:#fff}.feedbackClose{background:#eef1f6;color:#273247}
+.feedbackNote{font-size:12px;color:#687386;line-height:1.45;margin-top:10px}
+.feedbackStatus{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#eef4ff;font-size:13px}
+@media(max-width:700px){
+ body{overflow-x:hidden}.wrap{padding-left:10px;padding-right:10px}
+ .hero{margin-bottom:12px}.hero h1{font-size:25px}
+ .card{padding:10px;border-radius:18px}
+ .accordion{border-radius:14px;margin-top:10px}
+ .accHead{min-height:54px;padding:13px 14px;font-size:15px}
+ .accBody{padding:12px}
+ #querySection .grid{display:grid;grid-template-columns:1fr;gap:9px}
+ #querySection .grid>*{width:100%;min-width:0}
+ #querySection input,#querySection select,#querySection button{min-height:48px;font-size:16px}
+ #querySection .filters{display:grid;grid-template-columns:1fr;gap:9px}
+ .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
+ .accHead .accMeta{max-width:45%}
+}
+
 </style><!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
 <script>
@@ -107,7 +150,58 @@ gtag('config', 'G-PV9GWK34V8');
 .weatherFallback{font-size:13px;line-height:1.5;color:#687386}.weatherFallback a{font-weight:700;color:#5b4cf0}
 @media(max-width:700px){.weatherPanel{padding:12px}.weatherTitle{font-size:15px}}
 </style>
-</head><body><div class="wrap"><div class="hero"><h1>Dağıtım Günü Sorgulama</h1><p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p></div><div class="card"><div class="grid"><div class="searchwrap"><input id="q" style="width:100%" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın"><div id="suggestions" class="suggestions"></div></div><input id="date" type="date"><button id="btn">Sorgula</button></div><div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Açık adresi doğrudan yapıştırabilir veya aşağıdaki İl / İlçe / Mahalle filtrelerini kullanabilirsiniz.</div><div class="dataBar"><div id="dataInfo" class="dataInfo">Merkezi veri yükleniyor…</div></div><div class="filters"><div class="field"><label>İl</label><select id="il"><option value="">Tüm iller</option></select></div><div class="field"><label>İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div><div class="field"><label>Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div></div><div id="results" class="results"></div><div id="opsBox" class="opsBox" style="display:none"></div><div id="weatherBox" class="weatherBox" style="display:none"></div></div></div><script>
+</head><body><div class="wrap"><div class="hero"><h1>Dağıtım Günü Sorgulama</h1><p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p></div><div class="card">
+  <section id="querySection" class="accordion open">
+    <button type="button" class="accHead" aria-expanded="true"><span>🔎 Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span><span class="accChevron">⌃</span></button>
+    <div class="accBody">
+      <div class="grid">
+        <div class="searchwrap"><input id="q" style="width:100%" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın"><div id="suggestions" class="suggestions"></div></div>
+        <input id="date" type="date">
+        <button id="btn">Sorgula</button>
+      </div>
+      <div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Adres araması ile İl / İlçe / Mahalle seçimleri aynı sorgu alanındadır.</div>
+      <div class="dataBar"><div id="dataInfo" class="dataInfo">Merkezi veriye bağlanılıyor…</div></div>
+      <div class="filters">
+        <div class="field"><label>İl</label><select id="il"><option value="">Tüm iller</option></select></div>
+        <div class="field"><label>İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
+        <div class="field"><label>Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="deliverySection" class="accordion">
+    <button type="button" class="accHead" aria-expanded="false"><span>📦 Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><span class="accChevron">⌃</span></button>
+    <div class="accBody" id="deliveryContent"><div id="results" class="results"></div></div>
+  </section>
+
+  <section id="opsSection" class="accordion">
+    <button type="button" class="accHead" aria-expanded="false"><span>🚚 Operasyon Durumu</span><span class="accChevron">⌃</span></button>
+    <div class="accBody" id="opsContent"><div id="opsBox" class="opsBox" style="display:none"></div></div>
+  </section>
+
+  <section id="weatherSection" class="accordion">
+    <button type="button" class="accHead" aria-expanded="false"><span>🌤️ Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><span class="accChevron">⌃</span></button>
+    <div class="accBody" id="weatherContent"><div id="weatherBox" class="weatherBox" style="display:none"></div></div>
+  </section>
+
+  <button type="button" id="feedbackLaunch" class="feedbackLaunch">💬 Öneri / Talep Gönder</button>
+  <section id="feedbackSection" class="accordion">
+    <button type="button" class="accHead" aria-expanded="false"><span>Öneri / Talep Formu</span><span class="accChevron">⌃</span></button>
+    <div class="accBody">
+      <form id="feedbackForm">
+        <div class="feedbackGrid">
+          <div><label for="fbName">Ad Soyad</label><input id="fbName" name="name" autocomplete="name" required></div>
+          <div><label for="fbPhone">GSM</label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="05xx xxx xx xx" required></div>
+          <div class="full"><label for="fbEmail">E-posta</label><input id="fbEmail" name="email" type="email" autocomplete="email" required></div>
+          <div class="full"><label for="fbMessage">Açıklama</label><textarea id="fbMessage" name="message" placeholder="Öneri veya talebinizi yazın" required></textarea></div>
+        </div>
+        <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
+        <div id="feedbackStatus" class="feedbackStatus"></div>
+        <div class="feedbackNote">Formun doğrudan size ulaşması için bir sonraki adımda güvenli kayıt/gönderim servisini bağlayacağız. Kişisel bilgiler tarayıcıda kalıcı olarak saklanmaz.</div>
+      </form>
+    </div>
+  </section>
+</div></div><script>
 
 
 const MGM_BASE='https://servis.mgm.gov.tr/web';
@@ -122,6 +216,7 @@ function weatherFallback(box,il,ilce,msg){
 async function loadWeather(il,ilce){
  const box=document.getElementById('weatherBox'); if(!box||!il||!ilce)return;
  const req=++weatherRequestNo; box.style.display='block';
+ const ws=document.getElementById('weatherSection');if(ws){ws.classList.add('hasContent');}
  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • MGM verisi yükleniyor…</div></div>';
  try{
   const wr=await fetch('https://dagitimuyari.egemenduman.workers.dev/weather?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),{cache:'no-store'});
@@ -211,6 +306,7 @@ function opsEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':
 function hideOperationalAlerts(){const b=document.getElementById('opsBox');if(b){b.style.display='none';b.innerHTML=''}}
 async function loadOperationalAlerts(il,ilce){
  const box=document.getElementById('opsBox');if(!box||!il)return;const req=++opsRequestNo;
+ const os=document.getElementById('opsSection');if(os){os.classList.add('hasContent');}
  box.style.display='block';box.innerHTML='<div class="opsPanel opsNeutral"><div class="opsTitle">Operasyon Durumu</div><div class="opsText">Resmî kaynak uyarıları kontrol ediliyor…</div></div>';
  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7000);
  try{
@@ -247,7 +343,14 @@ function score(x,q){
 function nextOpen(days,date){let d=new Date(date+'T12:00:00'); for(let add=0;add<14;add++){let x=new Date(d);x.setDate(d.getDate()+add);let idx=(x.getDay()+6)%7;if(days[idx])return {add,date:x,idx}}return null}
 function fmt(d){return d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
 function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function renderRows(indices){const date=document.getElementById('date').value,box=document.getElementById('results');if(!indices.length){box.innerHTML='<div class="empty">Eşleşen mahalle bulunamadı.</div>';hideOperationalAlerts();return}box.innerHTML=indices.slice(0,30).map(i=>{const r=DATA[i],n=nextOpen(r[3],date),badge=n?(n.add===0?'Bugün dağıtım var':n.add+' gün sonra'):'Dağıtım günü yok';return `<div class="result"><div class="top"><div><div class="place">${esc(r[2])}</div><div class="small">${esc(r[1])} / ${esc(r[0])}</div></div><div class="badge ${n?'':'closed'}">${badge}</div></div>${n?`<div class="small"><b>İlk uygun gün:</b> ${fmt(n.date)}</div>`:''}<div class="days">${DN.map((d,j)=>`<span class="day ${r[3][j]?'on':''}">${d.slice(0,3)}</span>`).join('')}</div></div>`}).join('');const first=DATA[indices[0]];if(first){loadOperationalAlerts(first[0],first[1]);loadWeather(first[0],first[1]);}}
+function renderRows(indices){const date=document.getElementById('date').value,box=document.getElementById('results');
+const ds=document.getElementById('deliverySection');if(ds){ds.classList.add('hasContent');}if(!indices.length){box.innerHTML='<div class="empty">Eşleşen mahalle bulunamadı.</div>';hideOperationalAlerts();return}box.innerHTML=indices.slice(0,30).map(i=>{const r=DATA[i],n=nextOpen(r[3],date),badge=n?(n.add===0?'Bugün dağıtım var':n.add+' gün sonra'):'Dağıtım günü yok';return `<div class="result"><div class="top"><div><div class="place">${esc(r[2])}</div><div class="small">${esc(r[1])} / ${esc(r[0])}</div></div><div class="badge ${n?'':'closed'}">${badge}</div></div>${n?`<div class="small"><b>İlk uygun gün:</b> ${fmt(n.date)}</div>`:''}<div class="days">${DN.map((d,j)=>`<span class="day ${r[3][j]?'on':''}">${d.slice(0,3)}</span>`).join('')}</div></div>`}).join('');const first=DATA[indices[0]];if(first){
+ const ds=document.getElementById('deliverySection');if(ds){setAccordion(ds,true);}
+ const qs=document.getElementById('querySection');if(qs){setAccordion(qs,false);}
+ const qm=document.getElementById('queryMeta');if(qm)qm.textContent=first[2]+' • '+first[1];
+ const dm=document.getElementById('deliveryMeta');if(dm)dm.textContent=first[2];
+ loadOperationalAlerts(first[0],first[1]);loadWeather(first[0],first[1]);
+}}
 function filteredIndices(){const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;return DATA.map((r,i)=>[r,i]).filter(([r])=>(!il||r[0]===il)&&(!ic||r[1]===ic)&&(!m||r[2]===m)).map(x=>x[1])}
 function run(){const raw=document.getElementById('q').value.trim(),q=norm(raw);if(!q){renderRows(filteredIndices());return}let hits=IDX.map(x=>[score(x,q),x.i]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]);const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;hits=hits.filter(([s,i])=>(!il||DATA[i][0]===il)&&(!ic||DATA[i][1]===ic)&&(!m||DATA[i][2]===m));const top=hits.length?hits[0][0]:0;renderRows(hits.filter(x=>x[0]>=Math.max(1,top-250)).slice(0,30).map(x=>x[1]))}
 function uniq(a){return [...new Set(a)].sort((a,b)=>a.localeCompare(b,'tr'))}
@@ -363,78 +466,29 @@ function initFilters(){
 document.getElementById('btn').onclick=run;
 initFilters(); loadProvinceList();
 </script>
+
+
+
 <script>
-(function(){
-  function initCollapsibleQuery(){
-    if(window.innerWidth>700) return;
-    const search=document.getElementById('search') || document.querySelector('input[type="text"]');
-    if(!search) return;
-
-    // Find the main white query card containing the search field.
-    let card=search.parentElement;
-    while(card && card!==document.body && !(card.querySelector && card.querySelector('select') && card.querySelector('button'))){
-      card=card.parentElement;
-    }
-    if(!card || card===document.body) return;
-
-    // Everything before the first result card belongs to the query controls.
-    const result=document.getElementById('results') || document.querySelector('.results');
-    const toggle=document.createElement('button');
-    toggle.type='button';
-    toggle.className='queryToggle';
-    toggle.setAttribute('aria-expanded','true');
-    toggle.innerHTML='<span>🔎 Sorgu Alanı <span class="querySummary"></span></span><span class="qtChevron">⌃</span>';
-
-    // Wrap only the direct children that are above the result container when possible.
-    const controls=document.createElement('div');
-    controls.className='queryControls';
-    const children=[...card.children];
-    const resultAncestor=children.find(ch=>ch===result || (ch.contains && result && ch.contains(result)));
-    for(const ch of children){
-      if(ch===resultAncestor) break;
-      controls.appendChild(ch);
-    }
-    card.insertBefore(toggle, card.firstChild);
-    card.insertBefore(controls, resultAncestor || null);
-
-    function summary(){
-      const il=document.getElementById('il') || document.querySelector('select');
-      const selects=[...card.querySelectorAll('select')];
-      const vals=selects.map(x=>x.options[x.selectedIndex]?.text).filter(x=>x && !/seç/i.test(x));
-      const q=search.value.trim();
-      toggle.querySelector('.querySummary').textContent=(q || vals.join(' / ')) ? '• '+(q || vals.join(' / ')) : '';
-    }
-    function setOpen(open){
-      document.body.classList.toggle('queryCollapsed',!open);
-      toggle.setAttribute('aria-expanded',open?'true':'false');
-      toggle.querySelector('.qtChevron').textContent=open?'⌃':'⌄';
-      summary();
-      if(open) setTimeout(()=>search.focus({preventScroll:true}),50);
-    }
-    toggle.addEventListener('click',()=>setOpen(toggle.getAttribute('aria-expanded')!=='true'));
-
-    // Collapse automatically after a successful user query/result is shown.
-    const observer=new MutationObserver(()=>{
-      const visibleResult=(document.getElementById('results') || document.querySelector('.results'));
-      if(visibleResult && visibleResult.textContent.trim().length>10){
-        summary();
-        setOpen(false);
-      }
-    });
-    if(result) observer.observe(result,{childList:true,subtree:true,characterData:true});
-
-    // Also catch the Sorgula button after its handler completes.
-    const btn=[...card.querySelectorAll('button')].find(b=>/sorgula/i.test(b.textContent));
-    if(btn) btn.addEventListener('click',()=>setTimeout(()=>{
-      const r=document.getElementById('results') || document.querySelector('.results');
-      if(r && r.textContent.trim().length>10) setOpen(false);
-    },250),true);
-
-    summary();
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initCollapsibleQuery);
-  else initCollapsibleQuery();
-})();
+function setAccordion(section,open){
+ if(!section)return;
+ section.classList.toggle('open',!!open);
+ const b=section.querySelector(':scope > .accHead');
+ if(b){b.setAttribute('aria-expanded',open?'true':'false');const c=b.querySelector('.accChevron');if(c)c.textContent=open?'⌃':'⌄';}
+}
+document.querySelectorAll('.accordion > .accHead').forEach(b=>{
+ b.addEventListener('click',()=>setAccordion(b.parentElement,!b.parentElement.classList.contains('open')));
+});
+document.getElementById('feedbackLaunch').addEventListener('click',()=>{
+ const s=document.getElementById('feedbackSection');s.style.display='block';setAccordion(s,true);
+ s.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.getElementById('feedbackClose').addEventListener('click',()=>setAccordion(document.getElementById('feedbackSection'),false));
+document.getElementById('feedbackForm').addEventListener('submit',e=>{
+ e.preventDefault();
+ const st=document.getElementById('feedbackStatus');st.style.display='block';
+ st.textContent='Form hazır. Size otomatik ulaşması için gönderim servisini bağlamamız gerekiyor.';
+});
 </script>
 
 </body></html>
