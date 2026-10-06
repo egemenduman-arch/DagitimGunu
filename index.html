@@ -266,57 +266,101 @@ function dayOpen(v){const x=norm(String(v??''));return ['acik','açık','1','tru
 function parseRows(rows){if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');const h=rows[0].map(x=>norm(String(x??'')));const find=(alts)=>h.findIndex(x=>alts.includes(x));const ci=find(['il']), cj=find(['ilce']), cm=find(['mahalle','mahalle koy','mahallekoy']);const dayAlts=[['pzt','pazartesi'],['sal','sali'],['crs','carsamba'],['prs','persembe'],['cum','cuma'],['cts','cumartesi'],['pzr','pazar']];const di=dayAlts.map(find);if(ci<0||cj<0||cm<0||di.some(x=>x<0))throw new Error('Beklenen sütunlar bulunamadı: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR');const out=[];for(let n=1;n<rows.length;n++){const r=rows[n];const il=String(r[ci]??'').trim(),ilce=String(r[cj]??'').trim(),mah=String(r[cm]??'').trim();if(!il||!ilce||!mah)continue;out.push([il,ilce,mah,di.map(i=>dayOpen(r[i]))])}if(!out.length)throw new Error('Geçerli veri satırı bulunamadı.');return out}
 async function importFile(file){try{setInfo('Excel okunuyor…');let rows;if(file.name.toLowerCase().endsWith('.csv')){const text=await file.text();const wb=XLSX.read(text,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}else{if(typeof XLSX==='undefined')throw new Error('Excel okuyucu yüklenemedi. İnternet bağlantısını kontrol edin veya CSV kullanın.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}const fresh=parseRows(rows);DATA=fresh;rebuildIndex();initFilters();document.getElementById('q').value='';document.getElementById('results').innerHTML='';const meta={name:file.name,count:DATA.length,updated:new Date().toISOString()};await dbSet('data',DATA);await dbSet('meta',meta);setInfo(`${file.name} yüklendi • ${DATA.length.toLocaleString('tr-TR')} kayıt • ${new Date(meta.updated).toLocaleString('tr-TR')}`)}catch(e){setInfo('Güncelleme başarısız: '+e.message,false)}}
 const DATA_API='https://dagitimveri.egemenduman.workers.dev';
-let centralLoaded=false, centralLoading=null;
+let SUGGESTIONS=[];
 function apiRows(j){return Array.isArray(j)?j:(Array.isArray(j?.rows)?j.rows:(Array.isArray(j?.data)?j.data:[]))}
 function rowToData(x){
  if(Array.isArray(x)) return x;
  return [x.il,x.ilce,x.mahalle,[x.pazartesi,x.sali,x.carsamba,x.persembe,x.cuma,x.cumartesi,x.pazar].map(Number)];
 }
-async function ensureCentralData(){
- if(centralLoaded)return DATA;
- if(centralLoading)return centralLoading;
- centralLoading=(async()=>{
-   setInfo('Sorgu için merkezi veri hazırlanıyor…');
-   let all=[],offset=0,limit=5000,meta=null;
-   while(true){
-     const r=await fetch(DATA_API+'/data?offset='+offset+'&limit='+limit,{cache:'no-store'});
-     if(!r.ok)throw new Error('Merkezi veri HTTP '+r.status);
-     const j=await r.json(); if(!meta)meta=j.meta||null;
-     const rows=apiRows(j); all.push(...rows.map(rowToData));
-     if(!j.hasMore||!rows.length)break; offset+=rows.length;
-   }
-   DATA=all; rebuildIndex(); centralLoaded=true;
-   const upd=meta?.guncelleme_tarihi?new Date(meta.guncelleme_tarihi).toLocaleString('tr-TR'):'';
-   setInfo(`Merkezi veri hazır • ${DATA.length.toLocaleString('tr-TR')} kayıt${upd?' • son güncelleme '+upd:''}`);
-   return DATA;
- })().finally(()=>centralLoading=null);
- return centralLoading;
+async function apiJSON(path){
+ const r=await fetch(DATA_API+path,{cache:'no-store'});
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+ return j;
+}
+async function apiList(path,key){
+ const j=await apiJSON(path);
+ return uniq(apiRows(j).map(x=>typeof x==='string'?x:(x[key]||x.name||x.value)).filter(Boolean));
 }
 async function loadProvinceList(){
  try{
    setInfo('Merkezi veriye bağlanılıyor…');
-   const r=await fetch(DATA_API+'/api/iller',{cache:'no-store'});
-   if(!r.ok)throw new Error('HTTP '+r.status);
-   const j=await r.json(), items=apiRows(j).map(x=>typeof x==='string'?x:(x.il||x.name||x.value)).filter(Boolean);
-   fillSelect(document.getElementById('il'),uniq(items),'Tüm iller'); document.getElementById('il').disabled=false;
+   const items=await apiList('/api/iller','il');
+   fillSelect(document.getElementById('il'),items,'Tüm iller');
+   document.getElementById('il').disabled=false;
    setInfo('Merkezi veri bağlantısı hazır • '+items.length+' il');
- }catch(e){
-   setInfo('Merkezi bağlantı kurulamadı. İlk sorguda tekrar denenecek.',false);
- }
+ }catch(e){ setInfo('Merkezi bağlantı kurulamadı: '+e.message,false); }
 }
-// Filtrelerde il/ilçe seçildiğinde yalnız gerekli listeyi API'den al; endpoint yoksa güvenli biçimde tam veriye geri dön.
-async function apiList(path,key){
- const r=await fetch(DATA_API+path,{cache:'no-store'}); if(!r.ok)throw new Error('HTTP '+r.status);
- const j=await r.json(); return uniq(apiRows(j).map(x=>typeof x==='string'?x:(x[key]||x.name||x.value)).filter(Boolean));
+function renderApiRows(rows){
+ DATA=rows.map(rowToData);
+ rebuildIndex();
+ renderRows(DATA.map((_,i)=>i));
+}
+async function showSuggestions(){
+ const input=document.getElementById('q'),box=document.getElementById('suggestions');
+ const raw=input.value.trim(); activeSug=-1;
+ if(norm(raw).length<3){box.style.display='none';box.innerHTML='';return}
+ try{
+   const j=await apiJSON('/api/ara?q='+encodeURIComponent(raw));
+   SUGGESTIONS=apiRows(j).slice(0,10).map(rowToData);
+   if(!SUGGESTIONS.length){box.style.display='none';box.innerHTML='';return}
+   box.innerHTML=SUGGESTIONS.map((r,i)=>`<div class="suggestion" data-i="${i}"><b>${esc(r[2])}</b><span>${esc(r[1])} / ${esc(r[0])}</span></div>`).join('');
+   box.style.display='block';
+   box.querySelectorAll('.suggestion').forEach(el=>el.onmousedown=e=>{e.preventDefault();selectSuggestion(+el.dataset.i)});
+ }catch(e){box.style.display='none';}
+}
+async function selectSuggestion(i){
+ const r=SUGGESTIONS[i]; if(!r)return;
+ suggestionSelected=true; clearTimeout(suggestTimer);
+ const q=document.getElementById('q'),box=document.getElementById('suggestions');
+ const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');
+ box.style.display='none';box.innerHTML='';q.value=`${r[2]}, ${r[1]}, ${r[0]}`;
+ il.value=r[0];
+ try{
+   fillSelect(ic,await apiList('/api/ilceler?il='+encodeURIComponent(r[0]),'ilce'),'Tüm ilçeler');ic.value=r[1];
+   fillSelect(m,await apiList('/api/mahalleler?il='+encodeURIComponent(r[0])+'&ilce='+encodeURIComponent(r[1]),'mahalle'),'Tüm mahalleler');m.value=r[2];
+ }catch(e){}
+ renderApiRows([r]); q.blur();
+}
+async function run(){
+ const q=document.getElementById('q').value.trim();
+ const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;
+ const box=document.getElementById('results');
+ try{
+   if(il&&ic&&m){
+     const j=await apiJSON('/api/mahalle?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ic)+'&mahalle='+encodeURIComponent(m));
+     renderApiRows(j.row?[j.row]:apiRows(j)); return;
+   }
+   if(norm(q).length>=3){
+     box.innerHTML='<div class="loading">Adres aranıyor…</div>';
+     const j=await apiJSON('/api/ara?q='+encodeURIComponent(q));
+     renderApiRows(apiRows(j)); return;
+   }
+   box.innerHTML='<div class="empty">Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.</div>';
+ }catch(e){
+   box.innerHTML='<div class="error">Sorgu yapılamadı: '+esc(e.message)+'</div>';
+ }
 }
 function initFilters(){
  const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');
- il.onchange=async()=>{document.getElementById('results').innerHTML='';hideOperationalAlerts();document.getElementById('weatherBox').style.display='none';fillSelect(m,[],'Tüm mahalleler');if(!il.value){fillSelect(ic,[],'Tüm ilçeler');return}try{fillSelect(ic,await apiList('/api/ilceler?il='+encodeURIComponent(il.value),'ilce'),'Tüm ilçeler')}catch(e){await ensureCentralData();fillSelect(ic,uniq(DATA.filter(r=>r[0]===il.value).map(r=>r[1])),'Tüm ilçeler')}};
- ic.onchange=async()=>{document.getElementById('results').innerHTML='';hideOperationalAlerts();document.getElementById('weatherBox').style.display='none';if(!ic.value){fillSelect(m,[],'Tüm mahalleler');return}try{fillSelect(m,await apiList('/api/mahalleler?il='+encodeURIComponent(il.value)+'&ilce='+encodeURIComponent(ic.value),'mahalle'),'Tüm mahalleler')}catch(e){await ensureCentralData();fillSelect(m,uniq(DATA.filter(r=>r[0]===il.value&&r[1]===ic.value).map(r=>r[2])),'Tüm mahalleler')}};
- m.onchange=async()=>{if(!m.value)return;await ensureCentralData();run()};
+ il.onchange=async()=>{
+   document.getElementById('results').innerHTML='';hideOperationalAlerts();
+   const wb=document.getElementById('weatherBox');if(wb)wb.style.display='none';
+   fillSelect(m,[],'Tüm mahalleler');
+   if(!il.value){fillSelect(ic,[],'Tüm ilçeler');return}
+   try{fillSelect(ic,await apiList('/api/ilceler?il='+encodeURIComponent(il.value),'ilce'),'Tüm ilçeler')}
+   catch(e){setInfo('İlçe listesi alınamadı: '+e.message,false)}
+ };
+ ic.onchange=async()=>{
+   document.getElementById('results').innerHTML='';hideOperationalAlerts();
+   const wb=document.getElementById('weatherBox');if(wb)wb.style.display='none';
+   if(!ic.value){fillSelect(m,[],'Tüm mahalleler');return}
+   try{fillSelect(m,await apiList('/api/mahalleler?il='+encodeURIComponent(il.value)+'&ilce='+encodeURIComponent(ic.value),'mahalle'),'Tüm mahalleler')}
+   catch(e){setInfo('Mahalle listesi alınamadı: '+e.message,false)}
+ };
+ m.onchange=()=>{if(m.value)run()};
 }
-const oldRun=run; run=async function(){await ensureCentralData();return oldRun()};
-const oldShowSuggestions=showSuggestions; showSuggestions=async function(){await ensureCentralData();return oldShowSuggestions()};
+document.getElementById('btn').onclick=run;
 initFilters(); loadProvinceList();
 </script>
 <script>
