@@ -74,6 +74,19 @@
  .weatherDayStat b{font-size:12px;color:#172033}
 }
 
+
+/* Collapsible query panel */
+.queryToggle{display:none;width:100%;border:1px solid #dfe5ee;background:#fff;color:#172033;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;align-items:center;justify-content:space-between;gap:10px}
+.queryToggle .qtChevron{transition:transform .2s ease}
+.queryToggle[aria-expanded="true"] .qtChevron{transform:rotate(180deg)}
+.querySummary{font-weight:600;color:#5f6c80;font-size:12px;margin-left:6px}
+@media(max-width:700px){
+ .queryToggle{display:flex}
+ body.queryCollapsed .queryControls{display:none!important}
+ body.queryCollapsed .queryToggle{margin-bottom:0}
+ .queryControls{margin-top:10px}
+}
+
 </style><!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
 <script>
@@ -94,7 +107,7 @@ gtag('config', 'G-PV9GWK34V8');
 .weatherFallback{font-size:13px;line-height:1.5;color:#687386}.weatherFallback a{font-weight:700;color:#5b4cf0}
 @media(max-width:700px){.weatherPanel{padding:12px}.weatherTitle{font-size:15px}}
 </style>
-</head><body><div class="wrap"><div class="hero"><h1>Dağıtım Günü Sorgulama</h1><p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p></div><div class="card"><div class="grid"><div class="searchwrap"><input id="q" style="width:100%" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın"><div id="suggestions" class="suggestions"></div></div><input id="date" type="date"><button id="btn">Sorgula</button></div><div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Açık adresi doğrudan yapıştırabilir veya aşağıdaki İl / İlçe / Mahalle filtrelerini kullanabilirsiniz.</div><div class="dataBar"><button id="importBtn" class="importBtn">Excel Verisini Güncelle</button><input id="fileInput" type="file" accept=".xlsx,.xls,.csv" hidden><div id="dataInfo" class="dataInfo">Dahili veri kullanılıyor.</div></div><div class="filters"><div class="field"><label>İl</label><select id="il"><option value="">Tüm iller</option></select></div><div class="field"><label>İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div><div class="field"><label>Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div></div><div id="results" class="results"></div><div id="opsBox" class="opsBox" style="display:none"></div><div id="weatherBox" class="weatherBox" style="display:none"></div></div></div><script>
+</head><body><div class="wrap"><div class="hero"><h1>Dağıtım Günü Sorgulama</h1><p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p></div><div class="card"><div class="grid"><div class="searchwrap"><input id="q" style="width:100%" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın"><div id="suggestions" class="suggestions"></div></div><input id="date" type="date"><button id="btn">Sorgula</button></div><div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Açık adresi doğrudan yapıştırabilir veya aşağıdaki İl / İlçe / Mahalle filtrelerini kullanabilirsiniz.</div><div class="dataBar"><div id="dataInfo" class="dataInfo">Merkezi veri yükleniyor…</div></div><div class="filters"><div class="field"><label>İl</label><select id="il"><option value="">Tüm iller</option></select></div><div class="field"><label>İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div><div class="field"><label>Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div></div><div id="results" class="results"></div><div id="opsBox" class="opsBox" style="display:none"></div><div id="weatherBox" class="weatherBox" style="display:none"></div></div></div><script>
 
 
 const MGM_BASE='https://servis.mgm.gov.tr/web';
@@ -252,6 +265,107 @@ function setInfo(msg,ok=true){const e=document.getElementById('dataInfo');e.inne
 function dayOpen(v){const x=norm(String(v??''));return ['acik','açık','1','true','evet','yes','x'].includes(x)||v===1||v===true}
 function parseRows(rows){if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');const h=rows[0].map(x=>norm(String(x??'')));const find=(alts)=>h.findIndex(x=>alts.includes(x));const ci=find(['il']), cj=find(['ilce']), cm=find(['mahalle','mahalle koy','mahallekoy']);const dayAlts=[['pzt','pazartesi'],['sal','sali'],['crs','carsamba'],['prs','persembe'],['cum','cuma'],['cts','cumartesi'],['pzr','pazar']];const di=dayAlts.map(find);if(ci<0||cj<0||cm<0||di.some(x=>x<0))throw new Error('Beklenen sütunlar bulunamadı: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR');const out=[];for(let n=1;n<rows.length;n++){const r=rows[n];const il=String(r[ci]??'').trim(),ilce=String(r[cj]??'').trim(),mah=String(r[cm]??'').trim();if(!il||!ilce||!mah)continue;out.push([il,ilce,mah,di.map(i=>dayOpen(r[i]))])}if(!out.length)throw new Error('Geçerli veri satırı bulunamadı.');return out}
 async function importFile(file){try{setInfo('Excel okunuyor…');let rows;if(file.name.toLowerCase().endsWith('.csv')){const text=await file.text();const wb=XLSX.read(text,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}else{if(typeof XLSX==='undefined')throw new Error('Excel okuyucu yüklenemedi. İnternet bağlantısını kontrol edin veya CSV kullanın.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}const fresh=parseRows(rows);DATA=fresh;rebuildIndex();initFilters();document.getElementById('q').value='';document.getElementById('results').innerHTML='';const meta={name:file.name,count:DATA.length,updated:new Date().toISOString()};await dbSet('data',DATA);await dbSet('meta',meta);setInfo(`${file.name} yüklendi • ${DATA.length.toLocaleString('tr-TR')} kayıt • ${new Date(meta.updated).toLocaleString('tr-TR')}`)}catch(e){setInfo('Güncelleme başarısız: '+e.message,false)}}
-document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();document.getElementById('fileInput').onchange=e=>{const f=e.target.files[0];if(f)importFile(f);e.target.value=''};
-(async()=>{try{const saved=await dbGet('data'),meta=await dbGet('meta');if(saved&&saved.length){DATA=saved;rebuildIndex();initFilters();setInfo(`${meta?.name||'Kaydedilmiş Excel'} • ${DATA.length.toLocaleString('tr-TR')} kayıt • son güncelleme ${meta?.updated?new Date(meta.updated).toLocaleString('tr-TR'):'bilinmiyor'}`)}else{initFilters();setInfo(`Dahili veri • ${DATA.length.toLocaleString('tr-TR')} kayıt`)}}catch(e){initFilters();setInfo(`Dahili veri • ${DATA.length.toLocaleString('tr-TR')} kayıt`)}})();
-</script></body></html>
+if(f)importFile(f);e.target.value=''};
+(async()=>{
+  try{
+    setInfo('Merkezi veri yükleniyor…');
+    let all=[], offset=0, limit=5000, meta=null;
+    while(true){
+      const r=await fetch('https://dagitimveri.egemenduman.workers.dev/data?offset='+offset+'&limit='+limit,{cache:'no-store'});
+      if(!r.ok) throw new Error('Merkezi veri HTTP '+r.status);
+      const j=await r.json();
+      if(!meta) meta=j.meta||null;
+      const rows=Array.isArray(j.rows)?j.rows:[];
+      all.push(...rows.map(x=>[x.il,x.ilce,x.mahalle,[x.pazartesi,x.sali,x.carsamba,x.persembe,x.cuma,x.cumartesi,x.pazar].map(Number)]));
+      if(!j.hasMore) break;
+      offset += rows.length;
+      if(!rows.length) break;
+    }
+    if(all.length){
+      DATA=all; rebuildIndex(); initFilters();
+      const upd=meta?.guncelleme_tarihi?new Date(meta.guncelleme_tarihi).toLocaleString('tr-TR'):'bilinmiyor';
+      setInfo(`Merkezi veri • ${DATA.length.toLocaleString('tr-TR')} kayıt • son güncelleme ${upd}`);
+    }else{
+      initFilters(); setInfo(`Dahili yedek veri • ${DATA.length.toLocaleString('tr-TR')} kayıt`);
+    }
+  }catch(e){
+    initFilters();
+    setInfo(`Merkezi veri alınamadı; dahili yedek veri kullanılıyor • ${DATA.length.toLocaleString('tr-TR')} kayıt`,false);
+  }
+})();
+</script>
+<script>
+(function(){
+  function initCollapsibleQuery(){
+    if(window.innerWidth>700) return;
+    const search=document.getElementById('search') || document.querySelector('input[type="text"]');
+    if(!search) return;
+
+    // Find the main white query card containing the search field.
+    let card=search.parentElement;
+    while(card && card!==document.body && !(card.querySelector && card.querySelector('select') && card.querySelector('button'))){
+      card=card.parentElement;
+    }
+    if(!card || card===document.body) return;
+
+    // Everything before the first result card belongs to the query controls.
+    const result=document.getElementById('results') || document.querySelector('.results');
+    const toggle=document.createElement('button');
+    toggle.type='button';
+    toggle.className='queryToggle';
+    toggle.setAttribute('aria-expanded','true');
+    toggle.innerHTML='<span>🔎 Sorgu Alanı <span class="querySummary"></span></span><span class="qtChevron">⌃</span>';
+
+    // Wrap only the direct children that are above the result container when possible.
+    const controls=document.createElement('div');
+    controls.className='queryControls';
+    const children=[...card.children];
+    const resultAncestor=children.find(ch=>ch===result || (ch.contains && result && ch.contains(result)));
+    for(const ch of children){
+      if(ch===resultAncestor) break;
+      controls.appendChild(ch);
+    }
+    card.insertBefore(toggle, card.firstChild);
+    card.insertBefore(controls, resultAncestor || null);
+
+    function summary(){
+      const il=document.getElementById('il') || document.querySelector('select');
+      const selects=[...card.querySelectorAll('select')];
+      const vals=selects.map(x=>x.options[x.selectedIndex]?.text).filter(x=>x && !/seç/i.test(x));
+      const q=search.value.trim();
+      toggle.querySelector('.querySummary').textContent=(q || vals.join(' / ')) ? '• '+(q || vals.join(' / ')) : '';
+    }
+    function setOpen(open){
+      document.body.classList.toggle('queryCollapsed',!open);
+      toggle.setAttribute('aria-expanded',open?'true':'false');
+      toggle.querySelector('.qtChevron').textContent=open?'⌃':'⌄';
+      summary();
+      if(open) setTimeout(()=>search.focus({preventScroll:true}),50);
+    }
+    toggle.addEventListener('click',()=>setOpen(toggle.getAttribute('aria-expanded')!=='true'));
+
+    // Collapse automatically after a successful user query/result is shown.
+    const observer=new MutationObserver(()=>{
+      const visibleResult=(document.getElementById('results') || document.querySelector('.results'));
+      if(visibleResult && visibleResult.textContent.trim().length>10){
+        summary();
+        setOpen(false);
+      }
+    });
+    if(result) observer.observe(result,{childList:true,subtree:true,characterData:true});
+
+    // Also catch the Sorgula button after its handler completes.
+    const btn=[...card.querySelectorAll('button')].find(b=>/sorgula/i.test(b.textContent));
+    if(btn) btn.addEventListener('click',()=>setTimeout(()=>{
+      const r=document.getElementById('results') || document.querySelector('.results');
+      if(r && r.textContent.trim().length>10) setOpen(false);
+    },250),true);
+
+    summary();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initCollapsibleQuery);
+  else initCollapsibleQuery();
+})();
+</script>
+
+</body></html>
