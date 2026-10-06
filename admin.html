@@ -11,14 +11,29 @@ button{border:0;background:#5b43f2;color:#fff;font-weight:800;margin-top:14px;cu
 .status{margin-top:16px;padding:12px;border-radius:11px;background:#eef4ff;line-height:1.5}.ok{background:#eafaf3;color:#087c52}.err{background:#fff0f0;color:#a61b1b}
 progress{width:100%;height:18px;margin-top:12px}
 .small{font-size:12px;color:#718096;margin-top:8px}
+
+.tabs{display:flex;gap:8px;margin:18px 0 8px}.tabs button{margin:0;background:#eef1f7;color:#263247}.tabs button.active{background:#5b43f2;color:#fff}
+.panel{display:none}.panel.active{display:block}.req{border:1px solid #e1e7ef;border-radius:12px;padding:13px;margin-top:10px;background:#fff}
+.reqtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.badge{font-size:12px;font-weight:800;padding:5px 8px;border-radius:999px;background:#eef4ff}
+.reqmeta{font-size:12px;color:#68758a;line-height:1.6;margin-top:6px}.reqmsg{margin-top:9px;white-space:pre-wrap;line-height:1.45}
+.req select{width:100%;min-height:40px;border:1px solid #d6deea;border-radius:9px;padding:6px;margin-top:10px;background:#fff}
 </style></head><body><div class="wrap"><div class="card">
-<h1>Dağıtım Verisi Yönetimi</h1><p>Bu ekran yalnızca yetkili veri güncellemesi içindir.</p>
+<h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p>
+<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button></div>
+<div id="dataPanel" class="panel active">
 <label>Admin şifresi</label><input id="pw" type="password" autocomplete="current-password">
 <label>Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
 <button id="upload">Veriyi Güncelle</button>
 <progress id="prog" value="0" max="100" style="display:none"></progress>
 <div id="status" class="status">Dosya seçip şifrenizi girdikten sonra güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
+</div>
+<div id="reqPanel" class="panel">
+  <label>Admin şifresi</label><input id="reqPw" type="password" autocomplete="current-password">
+  <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
+  <div id="reqStatus" class="status">Şifrenizi girip talepleri getirin.</div>
+  <div id="reqList"></div>
+</div>
 </div></div>
 <script>
 const API="https://dagitimveri.egemenduman.workers.dev";
@@ -62,4 +77,35 @@ document.getElementById('upload').onclick=async()=>{
  }catch(e){st('Güncelleme başarısız: '+e.message,'err')}
  finally{btn.disabled=false}
 };
-</script></body></html>
+</script>
+<script>
+(()=>{
+ const td=document.getElementById('tabData'),tr=document.getElementById('tabReq'),dp=document.getElementById('dataPanel'),rp=document.getElementById('reqPanel');
+ function tab(which){const req=which==='req';td.classList.toggle('active',!req);tr.classList.toggle('active',req);dp.classList.toggle('active',!req);rp.classList.toggle('active',req)}
+ td.onclick=()=>tab('data');tr.onclick=()=>tab('req');
+ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ async function getReq(){
+   const pw=document.getElementById('reqPw').value,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
+   st.textContent='Yükleniyor…';list.innerHTML='';
+   try{
+     const r=await fetch(API+'/admin/oneriler',{headers:{'X-Admin-Password':pw}});
+     const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+     const rows=j.rows||[];st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz öneri / talep yok.';
+     list.innerHTML=rows.map(x=>`<div class="req">
+       <div class="reqtop"><b>${esc(x.ad_soyad)}</b><span class="badge">${esc(x.durum)}</span></div>
+       <div class="reqmeta">${esc(x.gsm)} • ${esc(x.email)}<br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
+       <div class="reqmsg">${esc(x.aciklama)}</div>
+       <select data-id="${x.id}">
+         ${['Yeni','İnceleniyor','Tamamlandı'].map(d=>`<option ${d===x.durum?'selected':''}>${d}</option>`).join('')}
+       </select>
+     </div>`).join('');
+     list.querySelectorAll('select[data-id]').forEach(sel=>sel.onchange=async()=>{
+       const rr=await fetch(API+'/admin/oneri-durum',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({id:Number(sel.dataset.id),durum:sel.value})});
+       const jj=await rr.json().catch(()=>({}));if(!rr.ok){alert(jj.error||'Durum güncellenemedi');return}getReq();
+     });
+   }catch(e){st.textContent='Hata: '+e.message;}
+ }
+ document.getElementById('loadReq').onclick=getReq;
+})();
+</script>
+</body></html>

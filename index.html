@@ -197,7 +197,7 @@ gtag('config', 'G-PV9GWK34V8');
         </div>
         <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
         <div id="feedbackStatus" class="feedbackStatus"></div>
-        <div class="feedbackNote">Formun doğrudan size ulaşması için bir sonraki adımda güvenli kayıt/gönderim servisini bağlayacağız. Kişisel bilgiler tarayıcıda kalıcı olarak saklanmaz.</div>
+        <div class="feedbackNote">Gönderdiğiniz bilgiler yalnızca öneri/talebinizin değerlendirilmesi ve gerektiğinde sizinle iletişim kurulması amacıyla kaydedilir.</div>
       </form>
     </div>
   </section>
@@ -507,7 +507,9 @@ document.getElementById('feedbackForm').addEventListener('submit',async e=>{
    st.textContent='✓ Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.';
    form.reset();
  }catch(err){
-   st.textContent='Gönderilemedi: '+err.message;
+   st.textContent=(String(err.message).includes("free tier daily row write limit"))
+ ? 'Bugünkü sistem güncelleme kotası dolduğu için talebiniz şu anda kaydedilemiyor. Lütfen daha sonra tekrar deneyin.'
+ : 'Gönderilemedi: '+err.message;
  }finally{btn.disabled=false;}
 });
 </script>
