@@ -130,6 +130,21 @@
  .accHead .accMeta{max-width:45%}
 }
 
+
+.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
+.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;background:#fff;font-size:13px}
+.weatherSimple th,.weatherSimple td{border:1px solid #d9e0ea;padding:9px 10px;text-align:center;vertical-align:middle}
+.weatherSimple th:first-child{width:90px;background:#f7f9fc;font-weight:800}
+.weatherSimple .dateCell{font-weight:700;white-space:nowrap}
+.weatherSimple .conditionCell{min-width:125px}
+.weatherSimple .conditionInner{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.weatherSimple .conditionInner img{width:30px;height:30px;object-fit:contain;flex:0 0 auto}
+.weatherSimple .conditionName{font-weight:700}
+@media(max-width:700px){
+ .weatherSimple{font-size:12px;min-width:590px}
+ .weatherSimple th,.weatherSimple td{padding:8px 7px}
+ .weatherSimple .conditionInner img{width:27px;height:27px}
+}
 </style><!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
 <script>
@@ -228,11 +243,11 @@ async function loadWeather(il,ilce){
   const val=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null)return o[k];return '—'};
   const WEATHER_NAMES={
     'A':'Açık','AB':'Az Bulutlu','PB':'Parçalı Bulutlu','CB':'Çok Bulutlu',
-    'HY':'Hafif Yağmurlu','Y':'Yağmurlu','KY':'Kuvvetli Yağmurlu',
+    'HY':'Hafif Yağmurlu','HHY':'Hafif Yağmurlu','Y':'Yağmurlu','KY':'Kuvvetli Yağmurlu',
     'HSY':'Hafif Sağanak Yağışlı','SY':'Sağanak Yağışlı','KSY':'Kuvvetli Sağanak Yağışlı',
-    'GSY':'Gök Gürültülü Sağanak Yağışlı','KGY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı',
-    'HKY':'Hafif Kar Yağışlı','K':'Kar Yağışlı','KKY':'Kuvvetli Kar Yağışlı',
-    'SIS':'Sisli','PUS':'Puslu','R':'Rüzgarlı'
+    'GSY':'Gök Gürültülü Sağanak Yağışlı','HGSY':'Hafif Gök Gürültülü Sağanak Yağışlı','KGY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı','KGSY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı',
+    'HKY':'Hafif Kar Yağışlı','K':'Kar Yağışlı','KKY':'Karla Karışık Yağmurlu','YKY':'Yoğun Kar Yağışlı',
+    'S':'Sisli','SIS':'Sisli','P':'Puslu','PUS':'Puslu','D':'Dumanlı','R':'Rüzgarlı','KF':'Kum Fırtınası','TF':'Toz veya Kum Fırtınası'
   };
   const weatherName=c=>WEATHER_NAMES[String(c||'').toUpperCase()]||String(c||'—');
   const risky=c=>/GSY|KGY|KSY|KY|KKY|K$|SY|Y$/.test(String(c||'').toUpperCase());
@@ -276,24 +291,22 @@ async function loadWeather(il,ilce){
     notice+='<div class="weatherNotice weatherRisk"><strong>⚠ Hava durumu uyarısı – '+weatherEsc(ilce+' / '+il)+'</strong>'+alerts.join('<br>')+'</div>';
   }
 
-  const body=rows.slice(0,5).map((r,i)=>{
+  const simpleRows=rows.slice(0,5).map((r,i)=>{
     const n=i+1;
     const rawDate=String(val(r,['tarih','date','tarihGun'+n]));
     const dt=rawDate.slice(0,10);
     const dateText=/^\d{4}-\d{2}-\d{2}$/.test(dt)?dt.split('-').reverse().join('.'):rawDate;
     const had=val(r,['hadise','hadiseKodu','weather','hadiseGun'+n,'hadise'+n]);
-    const min=val(r,['enDusukGun'+n,'enDusuk','minSicaklik','min']);
-    const max=val(r,['enYuksekGun'+n,'enYuksek','maxSicaklik','max']);
-    const nmin=val(r,['enDusukNemGun'+n,'enDusukNem','minNem']);
-    const nmax=val(r,['enYuksekNemGun'+n,'enYuksekNem','maxNem']);
-    const yon=val(r,['ruzgarYonGun'+n,'ruzgarYon','ruzgarYonu']);
-    const hiz=val(r,['ruzgarHizGun'+n,'ruzgarHiz','ruzgarHizi']);
     const code=String(had||'').replace(/[^A-Za-z0-9_-]/g,'');
-    const icon=code&&code!=='—'?'<img class="weatherIcon" alt="" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(code)+'.svg">':'';
-    return '<tr><td>'+weatherEsc(dateText)+'</td><td>'+icon+'<strong>'+weatherEsc(weatherName(had))+'</strong><br><small>'+weatherEsc(had)+'</small></td><td class="weatherTempMin">'+weatherEsc(min)+'</td><td class="weatherTempMax">'+weatherEsc(max)+'</td><td>'+weatherEsc(nmin)+'</td><td>'+weatherEsc(nmax)+'</td><td>'+weatherEsc(yon)+'</td><td>'+weatherEsc(hiz)+'</td></tr>';
-  }).join('');
+    const icon=code&&code!=='—'?'<img alt="'+weatherEsc(weatherName(had))+'" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(code)+'.svg">':'';
+    return {dateText,had,icon};
+  });
 
-  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • Meteoroloji Genel Müdürlüğü</div>'+todayCard+notice+'<div class="weatherScroll"><table class="weatherTable"><thead><tr><th rowspan="2">Tarih</th><th rowspan="2">Hadise</th><th colspan="2">Sıcaklık (°C)</th><th colspan="2">Nem (%)</th><th colspan="2">Rüzgâr (km/sa)</th></tr><tr><th>En Düşük</th><th>En Yüksek</th><th>En Düşük</th><th>En Yüksek</th><th>Yön</th><th>Hız</th></tr></thead><tbody>'+body+'</tbody></table></div><div class="weatherMobileCards">'+rows.slice(0,5).map((r,i)=>{const n=i+1;const raw=String(val(r,['tarih','date','tarihGun'+n]));const dt=raw.slice(0,10);const d=/^\d{4}-\d{2}-\d{2}$/.test(dt)?dt.split('-').reverse().join('.'):raw;const had=val(r,['hadise','hadiseKodu','weather','hadiseGun'+n,'hadise'+n]);const code=String(had||'').replace(/[^A-Za-z0-9_-]/g,'');const icon=code&&code!=='—'?'<img alt="" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(code)+'.svg">':'';const min=val(r,['enDusukGun'+n,'enDusuk','minSicaklik','min']);const max=val(r,['enYuksekGun'+n,'enYuksek','maxSicaklik','max']);const nemMin=val(r,['enDusukNemGun'+n,'enDusukNem','minNem']);const nemMax=val(r,['enYuksekNemGun'+n,'enYuksekNem','maxNem']);const hiz=val(r,['ruzgarHizGun'+n,'ruzgarHiz','ruzgarHizi']);return '<div class="weatherDayCard"><div class="weatherDayTop"><div class="weatherDayDate">'+weatherEsc(d)+'</div><div class="weatherDayCondition">'+icon+'<div>'+weatherEsc(weatherName(had))+'</div></div></div><div class="weatherDayStats"><div class="weatherDayStat"><span>Sıcaklık</span><b>'+weatherEsc(min)+'° / '+weatherEsc(max)+'°</b></div><div class="weatherDayStat"><span>Nem</span><b>%'+weatherEsc(nemMin)+'–%'+weatherEsc(nemMax)+'</b></div><div class="weatherDayStat"><span>Rüzgâr</span><b>'+weatherEsc(hiz)+' km/sa</b></div></div></div>'}).join('')+'</div></div>';
+  const dates=simpleRows.map(x=>'<td class="dateCell">'+weatherEsc(x.dateText)+'</td>').join('');
+  const conditions=simpleRows.map(x=>'<td class="conditionCell"><div class="conditionInner">'+x.icon+'<span class="conditionName">'+weatherEsc(weatherName(x.had))+'</span></div></td>').join('');
+
+  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • Meteoroloji Genel Müdürlüğü</div><div class="weatherSimpleWrap"><table class="weatherSimple"><tbody><tr><th>Tarih</th>'+dates+'</tr><tr><th>Durum</th>'+conditions+'</tr></tbody></table></div></div>';
+
  }catch(e){
   if(req===weatherRequestNo){
    box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü ve operasyon sorgusu çalışmaya devam ediyor.</div></div>';
