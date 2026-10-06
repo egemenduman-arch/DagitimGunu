@@ -17,26 +17,69 @@ progress{width:100%;height:18px;margin-top:12px}
 .reqtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.badge{font-size:12px;font-weight:800;padding:5px 8px;border-radius:999px;background:#eef4ff}
 .reqmeta{font-size:12px;color:#68758a;line-height:1.6;margin-top:6px}.reqmsg{margin-top:9px;white-space:pre-wrap;line-height:1.45}
 .req select{width:100%;min-height:40px;border:1px solid #d6deea;border-radius:9px;padding:6px;margin-top:10px;background:#fff}
-</style></head><body><div class="wrap"><div class="card">
-<h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p>
+
+.loginScreen{position:fixed;inset:0;background:#f4f7fb;z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.loginBox{width:min(420px,100%);background:#fff;border:1px solid #e1e7ef;border-radius:18px;padding:26px;box-shadow:0 10px 35px #18243a18}
+.loginBox h1{font-size:24px}.loginBox p{margin:6px 0 18px}.loginError{display:none;margin-top:12px;padding:10px;border-radius:10px;background:#fff0f0;color:#a61b1b}
+.adminApp{display:none}.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px}.logout{width:auto;min-height:38px;margin:0;padding:7px 12px;background:#eef1f7;color:#263247;font-size:13px}
+</style></head><body>
+<div id="loginScreen" class="loginScreen"><div class="loginBox">
+<h1>Admin Girişi</h1><p>Dağıtım yönetim paneline erişmek için admin şifrenizi girin.</p>
+<label>Admin şifresi</label><input id="loginPw" type="password" autocomplete="current-password">
+<button id="loginBtn" type="button">Giriş Yap</button>
+<div id="loginError" class="loginError"></div>
+</div></div>
+<div id="adminApp" class="adminApp"><div class="wrap"><div class="card">
+<div class="topbar"><div><h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
 <div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button></div>
 <div id="dataPanel" class="panel active">
-<label>Admin şifresi</label><input id="pw" type="password" autocomplete="current-password">
 <label>Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
 <button id="upload">Veriyi Güncelle</button>
 <progress id="prog" value="0" max="100" style="display:none"></progress>
-<div id="status" class="status">Dosya seçip şifrenizi girdikten sonra güncellemeyi başlatın.</div>
+<div id="status" class="status">Dosya seçip güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
 </div>
 <div id="reqPanel" class="panel">
-  <label>Admin şifresi</label><input id="reqPw" type="password" autocomplete="current-password">
   <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
-  <div id="reqStatus" class="status">Şifrenizi girip talepleri getirin.</div>
+  <div id="reqStatus" class="status">Talepleri görüntülemek için butona basın.</div>
   <div id="reqList"></div>
 </div>
-</div></div>
+</div></div></div>
 <script>
 const API="https://dagitimveri.egemenduman.workers.dev";
+let ADMIN_PW="";
+
+const loginScreen=document.getElementById('loginScreen');
+const adminApp=document.getElementById('adminApp');
+const loginPw=document.getElementById('loginPw');
+const loginBtn=document.getElementById('loginBtn');
+const loginError=document.getElementById('loginError');
+
+async function adminLogin(){
+ const pw=loginPw.value;
+ loginError.style.display='none';
+ if(!pw){loginError.textContent='Admin şifresini girin.';loginError.style.display='block';return;}
+ loginBtn.disabled=true;loginBtn.textContent='Kontrol ediliyor…';
+ try{
+   const r=await fetch(API+'/admin/check',{method:'POST',headers:{'X-Admin-Password':pw}});
+   const j=await r.json().catch(()=>({}));
+   if(!r.ok||!j.ok)throw new Error('Şifre hatalı.');
+   ADMIN_PW=pw;
+   loginPw.value='';
+   loginScreen.style.display='none';
+   adminApp.style.display='block';
+ }catch(e){
+   ADMIN_PW='';
+   loginError.textContent=e.message||'Giriş yapılamadı.';
+   loginError.style.display='block';
+ }finally{loginBtn.disabled=false;loginBtn.textContent='Giriş Yap';}
+}
+loginBtn.addEventListener('click',adminLogin);
+loginPw.addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
+document.getElementById('logoutBtn').addEventListener('click',()=>{
+ ADMIN_PW='';adminApp.style.display='none';loginScreen.style.display='flex';loginPw.focus();
+});
+
 const norm=s=>String(s??'').trim().toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();
 const dayOpen=v=>{const x=norm(v);return ['1','evet','e','var','acik','aktif','x','yes','true'].includes(x)||Number(v)===1?1:0};
 function parseRows(rows){
@@ -56,8 +99,8 @@ async function call(path,pw,body){
 }
 const st=(m,c='')=>{const x=document.getElementById('status');x.className='status '+c;x.textContent=m};
 document.getElementById('upload').onclick=async()=>{
- const btn=document.getElementById('upload'),pw=document.getElementById('pw').value,file=document.getElementById('file').files[0],prog=document.getElementById('prog');
- if(!pw)return st('Admin şifresini girin.','err'); if(!file)return st('Excel veya CSV dosyası seçin.','err');
+ const btn=document.getElementById('upload'),pw=ADMIN_PW,file=document.getElementById('file').files[0],prog=document.getElementById('prog');
+ if(!pw)return st('Oturum bulunamadı. Lütfen yeniden giriş yapın.','err'); if(!file)return st('Excel veya CSV dosyası seçin.','err');
  btn.disabled=true; prog.style.display='block'; prog.value=0;
  try{
    st('Dosya okunuyor…');
@@ -85,7 +128,7 @@ document.getElementById('upload').onclick=async()=>{
  td.onclick=()=>tab('data');tr.onclick=()=>tab('req');
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function getReq(){
-   const pw=document.getElementById('reqPw').value,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
+   const pw=ADMIN_PW,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
    st.textContent='Yükleniyor…';list.innerHTML='';
    try{
      const r=await fetch(API+'/admin/oneriler',{headers:{'X-Admin-Password':pw}});
