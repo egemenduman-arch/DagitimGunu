@@ -21,7 +21,8 @@ Gizli değişkenler (repoya yazılmaz):
 
 ```bash
 npx wrangler secret put ADMIN_PASSWORD
-npx wrangler secret put OPTYMUS_TOKEN
+npx wrangler secret put OPTYMUS_USERNAME
+npx wrangler secret put OPTYMUS_PASSWORD
 ```
 
 İlk istekte worker, `dagitim` tablosuna Türkçe karakter duyarsız arama için
@@ -44,8 +45,12 @@ kendiliğinden ekler.
 
 Kaynak: `docs/optymus-work-days.postman_collection.json`
 
-- `GET https://api.optymus.pro/api/app/work-zone/work-days-by-full-address?fullAddress=...`
-- `Authorization: Bearer <OPTYMUS_TOKEN>`
+- `GET https://api.optymus.tech/api/app/work-zone/work-days-by-full-address?fullAddress=...`
+  (dokümanda `api.optymus.pro` geçiyor; token'ı veren sunucu `api.optymus.tech`. Gerekirse `OPTYMUS_BASE` ile değiştirilir.)
+- `Authorization: Bearer <token>` — token worker tarafından
+  `POST /connect/token` (grant_type=password, client_id=DijitalKurye_App, scope=DijitalKurye offline_access)
+  ile `OPTYMUS_USERNAME` / `OPTYMUS_PASSWORD` secret'larından otomatik alınır ve yenilenir.
+  Alternatif: sabit `OPTYMUS_TOKEN` (30 günde dolar).
 - Yanıt: `{"days":[1,4],"errors":[]}` — `days`: 0=Pazar … 6=Cumartesi
 - `errors` doluysa adrese randevu verilemez (Optymus yine HTTP 200 döner);
   worker bunu `422 {ok:false, adresHatasi:true, error}` olarak iletir.

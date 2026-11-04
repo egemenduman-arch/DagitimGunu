@@ -75,7 +75,11 @@ async function adminLogin(){
    if(r.status===429)throw new Error(j.error||'Çok fazla hatalı deneme. Daha sonra tekrar deneyin.');
    if(!r.ok||!j.ok)throw new Error('Şifre hatalı.');
    ADMIN_PW=pw;
-   document.getElementById('apiState').textContent=j.optymus?'Optymus token tanımlı.':'⚠ Optymus token tanımlı değil (OPTYMUS_TOKEN secret). Canlı sorgu kapalı.';
+   {const d=j.optymusDurum||{},bit=d.tokenBitis?new Date(d.tokenBitis).toLocaleString('tr-TR'):'';
+    document.getElementById('apiState').textContent=
+     d.mod==='kullanici'?'Optymus: kullanıcı adı/şifre ile otomatik token aktif'+(bit?' • mevcut token bitişi: '+bit:'')+'.':
+     d.mod==='token'?(d.suresiDoldu?'⚠ OPTYMUS_TOKEN süresi dolmuş ('+bit+'). Canlı sorgu çalışmıyor.':'Optymus: sabit token kullanılıyor • bitiş: '+(bit||'bilinmiyor')+'. Otomatik yenileme için OPTYMUS_USERNAME/OPTYMUS_PASSWORD önerilir.'):
+     '⚠ Optymus kimlik bilgisi tanımlı değil. Canlı sorgu kapalı.';}
    loginPw.value='';
    loginScreen.style.display='none';
    adminApp.style.display='block';

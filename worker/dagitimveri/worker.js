@@ -3,11 +3,16 @@
 // Ortam değişkenleri / bağlamalar:
 //   DB               D1 veritabanı
 //   ADMIN_PASSWORD   (secret) admin paneli şifresi
-//   OPTYMUS_TOKEN    (secret) api.optymus.pro Bearer token'ı
-//   OPTYMUS_BASE     (ops.)   varsayılan https://api.optymus.pro
+//   OPTYMUS_USERNAME (secret) Optymus kullanıcı adı  ┐ önerilen: token otomatik
+//   OPTYMUS_PASSWORD (secret) Optymus şifresi         ┘ alınır ve yenilenir
+//   OPTYMUS_TOKEN    (secret) (alternatif) elle verilen Bearer token; süresi dolunca çalışmaz
+//   OPTYMUS_BASE     (ops.)   varsayılan https://api.optymus.tech
+//   OPTYMUS_CLIENT_ID / OPTYMUS_SCOPE (ops.) varsayılan DijitalKurye_App / "DijitalKurye offline_access"
 //   ALLOWED_ORIGINS  (ops.)   admin uçları için izinli origin listesi (virgülle). Boşsa "*".
 
-const OPTYMUS_DEFAULT_BASE = "https://api.optymus.pro";
+// Token'ı veren (iss) ve Postman'de kullanılan sunucu api.optymus.tech'tir.
+const OPTYMUS_DEFAULT_BASE = "https://api.optymus.tech";
+const OPTYMUS_TOKEN_PATH = "/connect/token";
 const OPTYMUS_PATH = "/api/app/work-zone/work-days-by-full-address";
 const OPTYMUS_TIMEOUT_MS = 10000;
 const OPTYMUS_CACHE_TTL = 3600; // sn
@@ -277,22 +282,111 @@ function pickZoneInfo(payload) {
   };
 }
 
-async function optymusWorkDays(env, fullAddress) {
-  if (!env.OPTYMUS_TOKEN) {
-    const e = new Error("Optymus token tanımlı değil (OPTYMUS_TOKEN)");
-    e.status = 503;
-    throw e;
-  }
-  const base = String(env.OPTYMUS_BASE || OPTYMUS_DEFAULT_BASE).replace(/\/+$/, "");
-  const url = base + OPTYMUS_PATH + "?fullAddress=" + encodeURIComponent(fullAddress);
+// ---------------------------------------------------------------------------
+// Optymus token yönetimi
+// Kullanıcı adı/şifre tanımlıysa token /connect/token (OAuth2 password grant)
+// ile alınır, bellekte tutulur ve süresi dolmadan yenilenir. Yoksa OPTYMUS_TOKEN kullanılır.
+// ---------------------------------------------------------------------------
+
+const optymusBase = env => String(env.OPTYMUS_BASE || OPTYMUS_DEFAULT_BASE).replace(/\/+$/, "");
+const hasCredentials = env => !!(env.OPTYMUS_USERNAME && env.OPTYMUS_PASSWORD);
+function optymusConfigured(env) { return hasCredentials(env) || !!env.OPTYMUS_TOKEN; }
+
+function jwtExp(token) {
+  try {
+    const part = String(token).split(".")[1];
+    const b64 = part.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((part.length + 3) % 4);
+    const exp = JSON.parse(atob(b64)).exp;
+    return Number.isFinite(exp) ? exp * 1000 : null;
+  } catch { return null; }
+}
+
+let tokenState = null; // { access, refresh, exp }
+const TOKEN_SKEW_MS = 5 * 60 * 1000;
+
+async function requestToken(env, params) {
+  const body = new URLSearchParams({ client_id: env.OPTYMUS_CLIENT_ID || "DijitalKurye_App", ...params });
+  if (env.OPTYMUS_CLIENT_SECRET) body.set("client_secret", env.OPTYMUS_CLIENT_SECRET);
   const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), OPTYMUS_TIMEOUT_MS);
+  try {
+    const r = await fetch(optymusBase(env) + OPTYMUS_TOKEN_PATH, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+      body: body.toString(),
+      signal: ctrl.signal
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) {
+      const e = new Error("Optymus token alınamadı: " + (j.error_description || j.error || ("HTTP " + r.status)));
+      e.status = 502;
+      e.authFailed = true;
+      throw e;
+    }
+    const exp = jwtExp(j.access_token) || (Date.now() + Number(j.expires_in || 3600) * 1000);
+    return { access: j.access_token, refresh: j.refresh_token || null, exp };
+  } catch (e) {
+    if (e.authFailed) throw e;
+    const err = new Error(e?.name === "AbortError" ? "Optymus token servisi yanıt vermedi" : "Optymus token servisine bağlanılamadı");
+    err.status = 504;
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function getAccessToken(env, { force = false } = {}) {
+  if (hasCredentials(env)) {
+    if (!force && tokenState && tokenState.exp - TOKEN_SKEW_MS > Date.now()) return tokenState.access;
+    if (tokenState?.refresh) {
+      try {
+        tokenState = await requestToken(env, { grant_type: "refresh_token", refresh_token: tokenState.refresh });
+        return tokenState.access;
+      } catch { /* yenileme başarısızsa şifreyle yeniden al */ }
+    }
+    tokenState = await requestToken(env, {
+      grant_type: "password",
+      scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
+      username: env.OPTYMUS_USERNAME,
+      password: env.OPTYMUS_PASSWORD
+    });
+    return tokenState.access;
+  }
+  if (env.OPTYMUS_TOKEN) {
+    const exp = jwtExp(env.OPTYMUS_TOKEN);
+    if (exp && exp < Date.now()) {
+      const e = new Error("OPTYMUS_TOKEN süresi dolmuş (" + new Date(exp).toISOString().slice(0, 10) + "). Yeni token ekleyin veya OPTYMUS_USERNAME/OPTYMUS_PASSWORD tanımlayın.");
+      e.status = 503;
+      throw e;
+    }
+    return env.OPTYMUS_TOKEN;
+  }
+  const e = new Error("Optymus kimlik bilgisi tanımlı değil (OPTYMUS_USERNAME/OPTYMUS_PASSWORD veya OPTYMUS_TOKEN)");
+  e.status = 503;
+  throw e;
+}
+
+function optymusStatus(env) {
+  if (hasCredentials(env)) return { mod: "kullanici", tokenBitis: tokenState ? new Date(tokenState.exp).toISOString() : null };
+  if (env.OPTYMUS_TOKEN) {
+    const exp = jwtExp(env.OPTYMUS_TOKEN);
+    return { mod: "token", tokenBitis: exp ? new Date(exp).toISOString() : null, suresiDoldu: !!(exp && exp < Date.now()) };
+  }
+  return { mod: null };
+}
+
+async function optymusWorkDays(env, fullAddress, retried = false) {
+  const token = await getAccessToken(env, { force: retried });
+  const url = optymusBase(env) + OPTYMUS_PATH + "?fullAddress=" + encodeURIComponent(fullAddress);
+  const ctrl = new AbortController();
+
   const timer = setTimeout(() => ctrl.abort(), OPTYMUS_TIMEOUT_MS);
   let r, text;
   try {
     r = await fetch(url, {
       method: "GET",
       headers: {
-        "Authorization": "Bearer " + env.OPTYMUS_TOKEN,
+        "Authorization": "Bearer " + token,
         "Accept": "application/json"
       },
       signal: ctrl.signal
@@ -304,6 +398,11 @@ async function optymusWorkDays(env, fullAddress) {
     throw err;
   } finally {
     clearTimeout(timer);
+  }
+  // Token sunucu tarafında iptal edildiyse bir kez yenileyip tekrar dene
+  if (r.status === 401 && !retried && hasCredentials(env)) {
+    tokenState = null;
+    return optymusWorkDays(env, fullAddress, true);
   }
   let body = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
@@ -408,13 +507,13 @@ export default {
       if (u.pathname === "/health") {
         let db = false;
         try { await env.DB.prepare("SELECT 1").first(); db = true; } catch { }
-        return json({ ok: db, db, optymus: !!env.OPTYMUS_TOKEN }, db ? 200 : 503);
+        return json({ ok: db, db, optymus: optymusConfigured(env) }, db ? 200 : 503);
       }
 
       // ---------------- META ----------------
       if (u.pathname === "/api/meta" && req.method === "GET") {
         const meta = await env.DB.prepare(`SELECT guncelleme_tarihi, kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
-        return json({ ok: true, meta: meta || null, optymus: !!env.OPTYMUS_TOKEN }, 200, { "Cache-Control": "public, max-age=300" });
+        return json({ ok: true, meta: meta || null, optymus: optymusConfigured(env) }, 200, { "Cache-Control": "public, max-age=300" });
       }
 
       // ---------------- OPTYMUS: TAM ADRES → GÜNLER ----------------
@@ -545,7 +644,7 @@ export default {
         if (!a.ok) return json({ ok: false, error: a.error }, a.status);
 
         if (u.pathname === "/admin/check" && req.method === "POST") {
-          return json({ ok: true, optymus: !!env.OPTYMUS_TOKEN });
+          return json({ ok: true, optymus: optymusConfigured(env), optymusDurum: optymusStatus(env) });
         }
 
         if (u.pathname === "/admin/oneriler" && req.method === "GET") {

@@ -9,7 +9,8 @@ database_id = "feb99173-b3ee-418e-a93c-dfca216d6202"
 
 # Gizli değişkenler (repo'ya YAZILMAZ):
 #   wrangler secret put ADMIN_PASSWORD
-#   wrangler secret put OPTYMUS_TOKEN
+#   wrangler secret put OPTYMUS_USERNAME
+#   wrangler secret put OPTYMUS_PASSWORD
 #
 # İsteğe bağlı: admin uçlarını yalnızca kendi sitenize açmak için
 # [vars]
