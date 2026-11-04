@@ -6,6 +6,11 @@ const TERMS = [
   /hava\s*muhalefeti/i,/yoğun\s*kar/i,/fırtına/i,/buzlanma/i
 ];
 
+const FETCH_TIMEOUT_MS=4000;
+const ALERT_CACHE_TTL=600; // sn
+// Zaman aşımlı fetch: yavaş bir resmî site tüm yanıtı bekletmesin.
+function tfetch(url,opts={}){return fetch(url,{...opts,signal:AbortSignal.timeout(FETCH_TIMEOUT_MS)})}
+
 function strip(s=""){return s.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim()}
 function escQ(s=""){return encodeURIComponent(s.replace(/[^\p{L}\p{N}\s-]/gu," ").trim())}
 function official(u=""){try{const h=new URL(u).hostname;return h.endsWith(".gov.tr")||h==="gov.tr"}catch{return false}}
@@ -19,31 +24,37 @@ async function googleOfficial(il){
  // Google News RSS yalnızca keşif için kullanılır; kullanıcıya yalnızca .gov.tr hedefleri gösterilir.
  const q=`"${il}" (motokurye OR motosiklet OR "trafiğe kapalı" OR "hava muhalefeti") site:gov.tr when:2d`;
  const url="https://news.google.com/rss/search?q="+escQ(q)+"&hl=tr&gl=TR&ceid=TR:tr";
- const r=await fetch(url,{headers:{"User-Agent":"Mozilla/5.0"}});
- if(!r.ok)return [];
- const xml=await r.text(), items=[...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
- const out=[];
- for(const m of items.slice(0,20)){
-  const b=m[1], title=strip((b.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||"");
-  const link=strip((b.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||"");
-  const pub=strip((b.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||"");
-  if(!TERMS.some(x=>x.test(title)))continue;
-  // News redirect is resolved server-side; keep only if final destination is official.
+ let xml;
+ try{
+  const r=await tfetch(url,{headers:{"User-Agent":"Mozilla/5.0"}});
+  if(!r.ok)return [];
+  xml=await r.text();
+ }catch{return []}
+ const items=[...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0,20).map(m=>{
+  const b=m[1];
+  return {
+   title:strip((b.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||""),
+   link:strip((b.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||""),
+   pub:strip((b.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||"")
+  };
+ }).filter(x=>x.link&&TERMS.some(t=>t.test(x.title)));
+ // Bağlantılar paralel ve zaman aşımlı çözülür; yalnızca resmî (.gov.tr) hedefler tutulur.
+ const res=await Promise.all(items.map(async({title,link,pub})=>{
   try{
-   const rr=await fetch(link,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0"}});
+   const rr=await tfetch(link,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0"}});
    const final=rr.url;
-   if(!official(final))continue;
+   if(!official(final))return null;
    const body=strip(await rr.text());
-   if(!body.toLocaleLowerCase("tr").includes(il.toLocaleLowerCase("tr")))continue;
+   if(!body.toLocaleLowerCase("tr").includes(il.toLocaleLowerCase("tr")))return null;
    const [type,label]=classify(title+" "+body.slice(0,3000));
-   out.push({type,label,title,summary:pub?`Yayın: ${pub}`:"Güncel resmî duyuru",url:final});
-  }catch{}
- }
- return out;
+   return {type,label,title,summary:pub?`Yayın: ${pub}`:"Güncel resmî duyuru",url:final};
+  }catch{return null}
+ }));
+ return res.filter(Boolean);
 }
 async function kgm(il){
  try{
-  const r=await fetch(KGM_URL,{headers:{"User-Agent":"Mozilla/5.0"}});
+  const r=await tfetch(KGM_URL,{headers:{"User-Agent":"Mozilla/5.0"}});
   if(!r.ok)return [];
   const h=await r.text(), text=strip(h);
   if(!text.toLocaleLowerCase("tr").includes(il.toLocaleLowerCase("tr")))return [];
@@ -195,7 +206,7 @@ async function mgmWeather(il, ilce){
 }
 
 export default {
- async fetch(req){
+ async fetch(req,env,ctx){
   const u=new URL(req.url);
   const headers={
     "Access-Control-Allow-Origin":"*",
@@ -209,6 +220,7 @@ export default {
   const il=(u.searchParams.get("il")||"").trim();
   const ilce=(u.searchParams.get("ilce")||"").trim();
   if(!il) return new Response(JSON.stringify({error:"il gerekli"}),{status:400,headers});
+  if(il.length>40||ilce.length>60) return new Response(JSON.stringify({error:"Geçersiz il/ilçe"}),{status:400,headers});
 
   if(u.pathname==="/weather"){
     if(!ilce) return new Response(JSON.stringify({error:"ilce gerekli"}),{status:400,headers});
@@ -220,13 +232,21 @@ export default {
     }
   }
 
+  // Sunucu tarafı önbellek: istemci no-store gönderse de aynı il için upstream'e 10 dk'da bir gidilir.
+  const cache=caches.default;
+  const cacheKey=new Request("https://cache.local/uyari?il="+encodeURIComponent(il.toLocaleLowerCase("tr"))+"&ilce="+encodeURIComponent(ilce.toLocaleLowerCase("tr")));
+  const hit=await cache.match(cacheKey);
+  if(hit) return new Response(hit.body,{headers});
   const [v,k]=await Promise.all([googleOfficial(il),kgm(il)]);
   const seen=new Set(), alerts=[...v,...k].filter(x=>{
     const z=x.url+"|"+x.title;
     if(seen.has(z)) return false;
     seen.add(z); return true;
   });
-  return new Response(JSON.stringify({il,ilce,checkedAt:new Date().toISOString(),alerts}),{headers});
+  const out=JSON.stringify({il,ilce,checkedAt:new Date().toISOString(),alerts});
+  const put=cache.put(cacheKey,new Response(out,{headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"max-age="+ALERT_CACHE_TTL}}));
+  if(ctx&&ctx.waitUntil) ctx.waitUntil(put); else await put;
+  return new Response(out,{headers});
  }
 }
 

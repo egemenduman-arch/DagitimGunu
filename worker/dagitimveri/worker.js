@@ -60,7 +60,7 @@ function trKey(v = "") {
     .replace(/Ç/g, "c").replace(/ç/g, "c")
     .replace(/Â/g, "a").replace(/â/g, "a").replace(/Î/g, "i").replace(/î/g, "i").replace(/Û/g, "u").replace(/û/g, "u")
     .toLowerCase()
-    .replace(/\b(mahallesi|mahalle|mah|mh|koyu|köyü)\b\.?/g, " ")
+    .replace(/\b(mahallesi|mahalle|mah|mh|koyu)\b\.?/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -98,6 +98,20 @@ let schemaReady = false;
 async function ensureSchema(db) {
   if (schemaReady) return;
   await db.batch([
+    db.prepare(`CREATE TABLE IF NOT EXISTS dagitim (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      il TEXT NOT NULL, ilce TEXT NOT NULL, mahalle TEXT NOT NULL,
+      pazartesi INTEGER DEFAULT 0, sali INTEGER DEFAULT 0, carsamba INTEGER DEFAULT 0,
+      persembe INTEGER DEFAULT 0, cuma INTEGER DEFAULT 0, cumartesi INTEGER DEFAULT 0, pazar INTEGER DEFAULT 0,
+      arama TEXT)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_dagitim_adres ON dagitim(il, ilce, mahalle)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS oneriler (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ad_soyad TEXT NOT NULL, gsm TEXT NOT NULL, email TEXT NOT NULL, aciklama TEXT NOT NULL,
+      tarih TEXT NOT NULL, durum TEXT DEFAULT 'Yeni')`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_oneriler_tarih ON oneriler(tarih)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS veri_bilgisi (
+      id INTEGER PRIMARY KEY CHECK (id = 1), guncelleme_tarihi TEXT, kayit_sayisi INTEGER DEFAULT 0)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS dagitim_yeni (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       il TEXT NOT NULL, ilce TEXT NOT NULL, mahalle TEXT NOT NULL,
@@ -109,9 +123,11 @@ async function ensureSchema(db) {
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_oneri_limit ON oneri_limit(ip, ts)`)
   ]);
   // Arama anahtarı sütunu (Türkçe karakter duyarsız arama için)
-  try {
+  // Eski kurulumlarda dagitim tablosunda arama sütunu yoksa ekle (hata yutulmaz)
+  const cols = await db.prepare(`PRAGMA table_info(dagitim)`).all();
+  if (!(cols.results || []).some(c => c.name === "arama")) {
     await db.prepare(`ALTER TABLE dagitim ADD COLUMN arama TEXT`).run();
-  } catch (e) { /* zaten var */ }
+  }
   const eksik = await db.prepare(`SELECT COUNT(*) AS n FROM dagitim WHERE arama IS NULL`).first();
   if (Number(eksik?.n || 0) > 0) {
     await db.prepare(`UPDATE dagitim SET arama = ${ARAMA_EXPR} WHERE arama IS NULL`).run();
@@ -336,22 +352,31 @@ async function requestToken(env, params) {
   }
 }
 
+let tokenInFlight = null; // eşzamanlı istekler tek bir token alımını paylaşır
+
+async function fetchFreshToken(env) {
+  if (tokenState?.refresh) {
+    try {
+      return await requestToken(env, { grant_type: "refresh_token", refresh_token: tokenState.refresh });
+    } catch { /* yenileme başarısızsa şifreyle yeniden al */ }
+  }
+  return requestToken(env, {
+    grant_type: "password",
+    scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
+    username: env.OPTYMUS_USERNAME,
+    password: optymusPassword(env)
+  });
+}
+
 async function getAccessToken(env, { force = false } = {}) {
   if (hasCredentials(env)) {
     if (!force && tokenState && tokenState.exp - TOKEN_SKEW_MS > Date.now()) return tokenState.access;
-    if (tokenState?.refresh) {
-      try {
-        tokenState = await requestToken(env, { grant_type: "refresh_token", refresh_token: tokenState.refresh });
-        return tokenState.access;
-      } catch { /* yenileme başarısızsa şifreyle yeniden al */ }
+    if (!tokenInFlight) {
+      tokenInFlight = fetchFreshToken(env)
+        .then(t => { tokenState = t; return t; })
+        .finally(() => { tokenInFlight = null; });
     }
-    tokenState = await requestToken(env, {
-      grant_type: "password",
-      scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
-      username: env.OPTYMUS_USERNAME,
-      password: optymusPassword(env)
-    });
-    return tokenState.access;
+    return (await tokenInFlight).access;
   }
   if (env.OPTYMUS_TOKEN) {
     const exp = jwtExp(env.OPTYMUS_TOKEN);
@@ -566,6 +591,7 @@ export default {
 
       // ---------------- META ----------------
       if (u.pathname === "/api/meta" && req.method === "GET") {
+        await ensureSchema(env.DB);
         const meta = await env.DB.prepare(`SELECT guncelleme_tarihi, kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
         return json({ ok: true, meta: meta || null, optymus: optymusConfigured(env) }, 200, { "Cache-Control": "public, max-age=300" });
       }
@@ -642,12 +668,14 @@ export default {
         toks.splice(6);
         const where = toks.map(() => `arama LIKE ?`).join(" AND ");
         const binds = toks.map(t => `%${t}%`);
+        // trKey "mahallesi/mah./mh/köyü" eklerini siler; SQL anahtarı silmez. Tam eşleşme
+        // katmanı bu yüzden "<anahtar> mah…" / "mh…" / "koy…" biçimlerini de kabul eder.
         const mahKey = trKeySql("mahalle");
         const first = toks[0];
         const r = await env.DB.prepare(`
           SELECT ${ROW_COLS},
             CASE
-              WHEN ${mahKey} = ? THEN 0
+              WHEN ${mahKey} = ? OR ${mahKey} LIKE ? OR ${mahKey} LIKE ? OR ${mahKey} LIKE ? THEN 0
               WHEN ${mahKey} LIKE ? THEN 1
               WHEN ${mahKey} LIKE ? THEN 2
               ELSE 3
@@ -656,7 +684,7 @@ export default {
           WHERE ${where}
           GROUP BY il, ilce, mahalle
           ORDER BY skor, length(mahalle), il, ilce, mahalle
-          LIMIT 30`).bind(key, first + "%", "%" + first + "%", ...binds).all();
+          LIMIT 30`).bind(key, key + " mah%", key + " mh%", key + " koy%", first + "%", "%" + first + "%", ...binds).all();
         let rows = (r.results || []).map(({ skor, ...x }) => x);
         if (!rows.length && toks.length < 4) rows = await reverseAddressMatch(env.DB, key);
         return json({ q, rows });
@@ -673,6 +701,7 @@ export default {
         const gsm = String(body.gsm || body.phone || "").trim();
         const email = String(body.email || "").trim();
         const aciklama = String(body.aciklama || body.message || "").trim();
+        if (body.kvkk_onay !== true) return json({ ok: false, error: "KVKK aydınlatma metnini onaylamanız gerekir." }, 400);
 
         if (!adSoyad || !gsm || !email || !aciklama) return json({ ok: false, error: "Tüm alanları doldurun." }, 400);
         if (adSoyad.length > 120) return json({ ok: false, error: "Ad soyad çok uzun." }, 400);

@@ -27,7 +27,19 @@ npx wrangler secret put OPTYMUS_USERNAME
 npx wrangler secret put OPTYMUS_PASSWORD
 ```
 
-İlk istekte worker, `dagitim` tablosuna Türkçe karakter duyarsız arama için
+Admin uçlarını yalnızca kendi sitenize açmak için `wrangler.toml` içindeki
+`ALLOWED_ORIGINS` değerini (ör. `https://kullanici.github.io`) tanımlayın;
+tanımlı değilse admin uçları her origin'e açıktır.
+
+Testler (`extractDays`, `trKey`, `timingSafeEqual`):
+
+```bash
+cd worker/dagitimveri
+npm test
+```
+
+İlk istekte worker eksik tabloları (`dagitim`, `oneriler`, `veri_bilgisi` ve yardımcılar)
+oluşturur, `dagitim` tablosuna Türkçe karakter duyarsız arama için
 `arama` sütununu ve gerekli yardımcı tabloları (`admin_deneme`, `oneri_limit`)
 kendiliğinden ekler.
 

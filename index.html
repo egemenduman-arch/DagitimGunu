@@ -18,6 +18,11 @@
 <script>
 window.dataLayer=window.dataLayer||[];
 function gtag(){dataLayer.push(arguments);}
+// KVKK: analitik çerezler kullanıcı onay verene kadar kapalı (Consent Mode v2).
+(function(){
+ var c=null;try{c=localStorage.getItem('dk_cerez_onay')}catch(e){}
+ gtag('consent','default',{analytics_storage:c==='evet'?'granted':'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
+})();
 gtag('js',new Date());
 gtag('config','G-PV9GWK34V8');
 </script>
@@ -182,6 +187,17 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .feedbackStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--dk-white);font-size:14px}
 .feedbackStatus.ok{color:#00753A}.feedbackStatus.err{color:var(--dk-error-dark)}
 
+.kvkkText{font-size:12px;line-height:16px;color:var(--dk-grey-600)}
+.kvkkText summary{cursor:pointer;font-weight:500;color:var(--dk-black)}
+.kvkkText p{margin:6px 0}
+.kvkkText a{color:inherit}
+.feedbackGrid .kvkkCheck{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:18px;color:var(--dk-black);margin:8px 0 0;font-weight:400}
+.kvkkCheck input{width:18px;height:18px;min-width:18px;margin:0;padding:0;accent-color:var(--dk-primary)}
+.consentBar{position:fixed;left:16px;right:16px;bottom:16px;z-index:50;max-width:640px;margin:0 auto;background:var(--dk-white);border:1px solid var(--dk-grey-300);border-radius:var(--dk-radius-16);box-shadow:var(--dk-shadow);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px;line-height:18px}
+.consentBar p{margin:0;flex:1 1 260px}
+.consentBar button{height:40px;font-size:14px;padding:0 16px}
+.consentBar .consentNo{background:var(--dk-white);border:1px solid var(--dk-grey-400)}
+
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
 @media(max-width:700px){
@@ -274,6 +290,13 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
       <div class="full"><label for="fbEmail">E-posta</label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required></div>
       <div class="full"><label for="fbMessage">Açıklama</label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Öneri veya talebinizi yazın" required></textarea></div>
       <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+      <div class="full kvkkBox">
+       <details class="kvkkText"><summary>KVKK Aydınlatma Metni</summary>
+        <p>6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında, bu formla paylaştığınız ad soyad, GSM, e-posta ve açıklama bilgileriniz veri sorumlusu Dijital Kurye tarafından yalnızca öneri/talebinizin değerlendirilmesi ve sizinle iletişim kurulması amacıyla, KVKK m.5/2-(c) ve (f) hukuki sebeplerine dayanılarak işlenir.</p>
+        <p>Verileriniz Cloudflare altyapısında saklanır; bu amaç dışında üçüncü kişilerle paylaşılmaz ve amacın gerektirdiği süre sonunda silinir. KVKK m.11 kapsamındaki haklarınız (bilgi talep etme, düzeltme, silme, itiraz vb.) için <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener">dijitalkurye.com.tr</a> üzerindeki iletişim kanallarından bize ulaşabilirsiniz.</p>
+       </details>
+       <label class="kvkkCheck"><input id="fbKvkk" type="checkbox" required> Aydınlatma metnini okudum; bilgilerimin bu amaçla işlenmesini kabul ediyorum.</label>
+      </div>
      </div>
      <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
      <div id="feedbackStatus" class="feedbackStatus" role="status"></div>
@@ -284,6 +307,12 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 
   <button type="button" id="feedbackLaunch" class="feedbackLaunch">Öneri / Talep Gönder</button>
  </main>
+</div>
+
+<div id="consentBar" class="consentBar" role="dialog" aria-label="Çerez tercihi" hidden>
+ <p>Sitenin kullanımını ölçmek için Google Analytics çerezlerini yalnızca onayınızla kullanıyoruz. Zorunlu olmayan çerez kullanılmaz.</p>
+ <button type="button" id="consentYes">Kabul et</button>
+ <button type="button" id="consentNo" class="consentNo">Reddet</button>
 </div>
 
 <script>
@@ -388,7 +417,7 @@ function badgeText(n,isoDate){
 }
 
 let currentRecords=[];
-function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
+function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.',side=true}={}){
  currentRecords=records;
  const box=$('results');
  const isoDate=$('date').value||localISODate();
@@ -417,12 +446,13 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
  const geo=records.find(r=>r.il&&r.ilce);
+ if(!side)return; // yalnızca tarih değişti: uyarı/hava paneli aynı kalır
  if(geo){loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}
  else{hideSection('opsSection');hideSection('weatherSection')}
 }
 
 // Tarih değişince mevcut sonuçları yeniden hesapla (yeniden sorgu atmadan)
-$('date').addEventListener('change',()=>{if(currentRecords.length)renderRecords(currentRecords)});
+$('date').addEventListener('change',()=>{if(currentRecords.length)renderRecords(currentRecords,{side:false})});
 
 // ===================================================================
 // Sorgu
@@ -724,6 +754,8 @@ $('feedbackForm').addEventListener('submit',async e=>{
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email))return show('Geçerli bir e-posta adresi girin.','err');
  const digits=payload.gsm.replace(/\D/g,'');
  if(digits.length<10||digits.length>13)return show('Geçerli bir GSM numarası girin.','err');
+ if(!$('fbKvkk').checked)return show('Göndermek için KVKK aydınlatma metnini onaylayın.','err');
+ payload.kvkk_onay=true;
  show('Gönderiliyor…');btn.disabled=true;
  try{
   const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -736,6 +768,23 @@ $('feedbackForm').addEventListener('submit',async e=>{
   show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');
  }finally{btn.disabled=false}
 });
+
+// ===================================================================
+// Çerez onayı (KVKK) – karar verilene kadar analitik kapalı kalır
+// ===================================================================
+(()=>{
+ const bar=$('consentBar');
+ let c=null;try{c=localStorage.getItem('dk_cerez_onay')}catch(e){}
+ if(c==='evet'||c==='hayir')return;
+ bar.hidden=false;
+ const decide=ok=>{
+  try{localStorage.setItem('dk_cerez_onay',ok?'evet':'hayir')}catch(e){}
+  if(typeof gtag==='function')gtag('consent','update',{analytics_storage:ok?'granted':'denied'});
+  bar.hidden=true;
+ };
+ $('consentYes').addEventListener('click',()=>decide(true));
+ $('consentNo').addEventListener('click',()=>decide(false));
+})();
 
 // ===================================================================
 // Service worker (yalnızca uygulama kabuğunu önbelleğe alır, API verisini değil)
