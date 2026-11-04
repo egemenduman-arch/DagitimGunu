@@ -64,11 +64,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .pillBtn:after{content:'';position:absolute;inset:-6px -2px} /* görünüm 32px, dokunma alanı 44px */
 .pillBtn:hover{background:var(--dk-white);filter:none}
 
-/* Ana kart + başlık */
-.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:48px 36px 36px}
-.hero{text-align:center;margin:0 auto 28px;max-width:640px}
-.hero h1{font-size:48px;line-height:52px;font-weight:600;letter-spacing:-.5px;margin:0 0 16px}
-.hero p{font-size:16px;line-height:20px;color:var(--dk-black-60);margin:0}
+/* Ana kart */
+.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:36px}
 
 /* Bölümler (Figma: Gönderici / Alıcı Bilgisi kutuları) */
 .accordion{margin-top:12px;border-radius:var(--dk-radius-16);background:var(--dk-grey-200)}
@@ -203,8 +200,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  .brandTop{padding:16px 0}
  .brandLogo{width:104px}
  .card{padding:28px 16px 20px;border-radius:24px}
- .hero h1{font-size:40px;line-height:44px}
- .hero p{font-size:15px}
  .grid,.filters{grid-template-columns:1fr;gap:10px}
  .accHead{padding:12px}
  .accBody{padding:0 12px 12px}
@@ -220,7 +215,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
 @media(max-width:380px){
- .hero h1{font-size:34px;line-height:38px}
  .badge{white-space:normal;text-align:center;max-width:96px}
 }
 @media(hover:none){button,.result,.suggestion{cursor:default}}
@@ -234,10 +228,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  </header>
 
  <main class="card">
-  <div class="hero">
-   <h1>Size Ne Zaman Gelebiliriz?</h1>
-   <p>Mahalle veya açık adresinizi yazın, seçtiğiniz tarihten itibaren ilk dağıtım gününü gösterelim.</p>
-  </div>
+  <h1 class="sr-only">Dağıtım Günü Sorgulama</h1>
 
   <div id="srStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
@@ -260,7 +251,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
      <button id="btn" type="button">Sorgula</button>
     </div>
     <div class="hint" id="qHint">En az 3 karakter yazınca mahalle önerileri görünür; ok tuşlarıyla seçip Enter'a basın. Tam adres yazarsanız sonuç daha kesin olur.</div>
-    <div class="dataBar" role="status"><span id="dataInfo">Merkezi veriye bağlanılıyor…</span></div>
+    <div class="dataBar" id="dataBar" role="alert" hidden><span id="dataInfo"></span></div>
     <details class="filtersToggle">
      <summary>İl / İlçe / Mahalle listesinden seç</summary>
      <div class="filters">
@@ -390,7 +381,8 @@ const NEW_TAB='<span class="sr-only"> (yeni sekmede açılır)</span>';
 // ===================================================================
 // Durum çubuğu
 // ===================================================================
-function setInfo(msg,ok=true){$('dataInfo').innerHTML='<span class="'+(ok?'statusOk':'statusErr')+'">'+esc(msg)+'</span>'}
+// Durum çubuğu yalnızca bağlantı/liste hatalarında görünür; başarılı durumda gizli kalır.
+function setInfo(msg,ok=true){$('dataBar').hidden=ok;$('dataInfo').innerHTML=ok?'':'<span class="statusErr">'+esc(msg)+'</span>'}
 
 // ===================================================================
 // Dağıtım günü hesaplama + gösterim
