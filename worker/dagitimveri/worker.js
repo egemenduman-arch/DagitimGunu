@@ -16,6 +16,7 @@ const OPTYMUS_TOKEN_PATH = "/connect/token";
 const OPTYMUS_PATH = "/api/app/work-zone/work-days-by-full-address";
 const OPTYMUS_TIMEOUT_MS = 10000;
 const OPTYMUS_CACHE_TTL = 3600; // sn
+const MEM_CACHE_MAX = 500;        // isolate başına bellekte tutulacak adres sonucu
 
 const ADMIN_MAX_FAIL = 10;          // pencere içinde izin verilen hatalı deneme
 const ADMIN_FAIL_WINDOW_MIN = 15;
@@ -98,6 +99,18 @@ let schemaReady = false;
 async function ensureSchema(db) {
   if (schemaReady) return;
   await db.batch([
+    // Ana tablolar: mevcut kurulumda zaten vardır (IF NOT EXISTS hiçbir şeyi değiştirmez);
+    // boş bir veritabanında ise ilk istekte "no such table" hatasını önler.
+    db.prepare(`CREATE TABLE IF NOT EXISTS dagitim (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      il TEXT NOT NULL, ilce TEXT NOT NULL, mahalle TEXT NOT NULL,
+      pazartesi INTEGER DEFAULT 0, sali INTEGER DEFAULT 0, carsamba INTEGER DEFAULT 0,
+      persembe INTEGER DEFAULT 0, cuma INTEGER DEFAULT 0, cumartesi INTEGER DEFAULT 0, pazar INTEGER DEFAULT 0)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS veri_bilgisi (
+      id INTEGER PRIMARY KEY, guncelleme_tarihi TEXT, kayit_sayisi INTEGER)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS oneriler (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ad_soyad TEXT, gsm TEXT, email TEXT, aciklama TEXT, tarih TEXT, durum TEXT DEFAULT 'Yeni')`),
     db.prepare(`CREATE TABLE IF NOT EXISTS dagitim_yeni (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       il TEXT NOT NULL, ilce TEXT NOT NULL, mahalle TEXT NOT NULL,
@@ -336,23 +349,34 @@ async function requestToken(env, params) {
   }
 }
 
+// Aynı anda gelen istekler token'ı tek seferde alsın (her biri ayrı /connect/token çağrısı yapmasın).
+let tokenPending = null;
 async function getAccessToken(env, { force = false } = {}) {
   if (hasCredentials(env)) {
     if (!force && tokenState && tokenState.exp - TOKEN_SKEW_MS > Date.now()) return tokenState.access;
-    if (tokenState?.refresh) {
-      try {
-        tokenState = await requestToken(env, { grant_type: "refresh_token", refresh_token: tokenState.refresh });
-        return tokenState.access;
-      } catch { /* yenileme başarısızsa şifreyle yeniden al */ }
-    }
-    tokenState = await requestToken(env, {
-      grant_type: "password",
-      scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
-      username: env.OPTYMUS_USERNAME,
-      password: optymusPassword(env)
-    });
-    return tokenState.access;
+    if (!tokenPending) tokenPending = fetchNewToken(env).finally(() => { tokenPending = null; });
+    return tokenPending;
   }
+  return staticToken(env);
+}
+
+async function fetchNewToken(env) {
+  if (tokenState?.refresh) {
+    try {
+      tokenState = await requestToken(env, { grant_type: "refresh_token", refresh_token: tokenState.refresh });
+      return tokenState.access;
+    } catch { /* yenileme başarısızsa şifreyle yeniden al */ }
+  }
+  tokenState = await requestToken(env, {
+    grant_type: "password",
+    scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
+    username: env.OPTYMUS_USERNAME,
+    password: optymusPassword(env)
+  });
+  return tokenState.access;
+}
+
+function staticToken(env) {
   if (env.OPTYMUS_TOKEN) {
     const exp = jwtExp(env.OPTYMUS_TOKEN);
     if (exp && exp < Date.now()) {
@@ -410,6 +434,26 @@ async function optymusWorkDays(env, fullAddress, retried = false) {
   return { status: r.status, ok: r.ok, body };
 }
 
+// Not: caches.default *.workers.dev alan adında çalışmaz (put/match etkisizdir).
+// Bu yüzden önce isolate belleğinde, sonra (özel alan adında) Cache API'de önbellek tutulur.
+const memCache = new Map(); // key -> { at, data }
+function memGet(k) {
+  const e = memCache.get(k);
+  if (!e) return null;
+  if (Date.now() - e.at > OPTYMUS_CACHE_TTL * 1000) { memCache.delete(k); return null; }
+  return e.data;
+}
+function memSet(k, data) {
+  if (memCache.size >= MEM_CACHE_MAX) memCache.delete(memCache.keys().next().value);
+  memCache.set(k, { at: Date.now(), data });
+}
+
+// Önbellek anahtarı: büyük/küçük harf ve boşluk farkları yok sayılır ama kelimeler korunur
+// (trKey "Mah."/"Köyü" gibi kelimeleri attığı için farklı yerleri aynı anahtara düşürebilirdi).
+function adresCacheKey(adres) {
+  return String(adres).toLocaleLowerCase("tr-TR").replace(/[\s,]+/g, " ").trim();
+}
+
 async function handleAdresGun(req, env, u, json, ctx) {
   const adres = (u.searchParams.get("adres") || u.searchParams.get("fullAddress") || "").trim();
   if (adres.length < 5) return json({ ok: false, error: "Adres en az 5 karakter olmalı" }, 400);
@@ -424,11 +468,15 @@ async function handleAdresGun(req, env, u, json, ctx) {
 
   // Aynı adres için kısa süreli önbellek (Optymus'a gereksiz yük bindirmemek için)
   const cache = caches.default;
-  const cacheKey = new Request("https://cache.local/adres-gun?k=" + encodeURIComponent(trKey(adres)));
+  const memKey = adresCacheKey(adres);
+  const cacheKey = new Request("https://cache.local/adres-gun?k=" + encodeURIComponent(memKey));
   if (!debug) {
-    const hit = await cache.match(cacheKey);
+    const mem = memGet(memKey);
+    if (mem) return json({ ...mem, cache: true });
+    const hit = await cache.match(cacheKey).catch(() => null);
     if (hit) {
       const j = await hit.json();
+      memSet(memKey, j);
       return json({ ...j, cache: true });
     }
   }
@@ -442,17 +490,18 @@ async function handleAdresGun(req, env, u, json, ctx) {
 
   if (!res.ok) {
     const msg = (res.body && typeof res.body === "object" && (res.body.error?.message || res.body.message || res.body.title)) || null;
+    // 404 = bölge dışı, 400 = adres doğrulama hatası → ikisi de "adrese hizmet yok" olarak gösterilir
+    const adresHatasi = res.status === 404 || res.status === 400;
     const out = {
-      ok: false, kaynak: "optymus", upstreamStatus: res.status, adresHatasi: res.status === 404,
+      ok: false, kaynak: "optymus", upstreamStatus: res.status, adresHatasi,
       error: res.status === 401 || res.status === 403
         ? "Optymus yetkilendirme hatası (token geçersiz veya süresi dolmuş)"
-        : res.status === 404
+        : adresHatasi
           ? (msg || "Adres için hizmet bölgesi bulunamadı")
           : (msg || "Optymus HTTP " + res.status)
     };
     if (debug) out.raw = res.body;
-    // 404 = adres bölge dışı → istemci bunu "bulunamadı" olarak göstermeli
-    return json(out, res.status === 404 ? 422 : 502);
+    return json(out, adresHatasi ? 422 : 502);
   }
 
   // Belgelenmiş yanıt: { days: [0..6] (0=Pazar), errors: [string] }
@@ -480,10 +529,11 @@ async function handleAdresGun(req, env, u, json, ctx) {
   if (debug) out.raw = res.body;
 
   if (out.ok && !debug) {
+    memSet(memKey, out);
     const toCache = new Response(JSON.stringify(out), {
       headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + OPTYMUS_CACHE_TTL }
     });
-    ctx.waitUntil(cache.put(cacheKey, toCache));
+    ctx.waitUntil(cache.put(cacheKey, toCache).catch(() => {}));
   }
   return json(out, out.ok ? 200 : (out.adresHatasi ? 422 : 502));
 }
@@ -780,7 +830,9 @@ export default {
 
       return json({ error: "Not found" }, 404);
     } catch (e) {
-      return json({ ok: false, error: String(e?.message || e) }, 500);
+      console.error("worker hatası", u.pathname, e);
+      // İç hata ayrıntısı (SQL vb.) yalnızca admin uçlarında döndürülür
+      return json({ ok: false, error: isAdmin ? String(e?.message || e) : "Sunucu hatası. Lütfen daha sonra tekrar deneyin." }, 500);
     }
   }
 };

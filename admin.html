@@ -103,7 +103,8 @@ async function adminLogin(){
    const r=await fetch(API+'/admin/check',{method:'POST',headers:{'X-Admin-Password':pw}});
    const j=await r.json().catch(()=>({}));
    if(r.status===429)throw new Error(j.error||'Çok fazla hatalı deneme. Daha sonra tekrar deneyin.');
-   if(!r.ok||!j.ok)throw new Error('Şifre hatalı.');
+   if(r.status===401)throw new Error('Şifre hatalı.');
+   if(!r.ok||!j.ok)throw new Error(j.error||('Sunucu hatası (HTTP '+r.status+').'));
    ADMIN_PW=pw;
    {const d=j.optymusDurum||{},bit=d.tokenBitis?new Date(d.tokenBitis).toLocaleString('tr-TR'):'';
     document.getElementById('apiState').textContent=
@@ -116,7 +117,7 @@ async function adminLogin(){
    loadMeta();
  }catch(e){
    ADMIN_PW='';
-   loginError.textContent=e.message||'Giriş yapılamadı.';
+   loginError.textContent=e.message==='Failed to fetch'?'Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.':(e.message||'Giriş yapılamadı.');
    loginError.style.display='block';
  }finally{loginBtn.disabled=false;loginBtn.textContent='Giriş Yap';}
 }
@@ -138,7 +139,7 @@ function parseRows(rows){
  if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');
  const h=rows[0].map(x=>norm(x)); const find=a=>h.findIndex(x=>a.includes(x));
  const ci=find(['il']),cj=find(['ilce']),cm=find(['mahalle','mahalle koy','mahallekoy']);
- const dayAlts=[['pzt','pazartesi'],['sal','sali'],['crs','carsamba'],['prs','persembe'],['cum','cuma'],['cts','cumartesi'],['pzr','pazar']];
+ const dayAlts=[['pzt','pts','pazartesi'],['sal','sali'],['crs','car','carsamba'],['prs','per','persembe'],['cum','cuma'],['cts','cmt','cumartesi'],['pzr','paz','pazar']];
  const di=dayAlts.map(find);
  if(ci<0||cj<0||cm<0||di.some(x=>x<0))throw new Error('Beklenen sütunlar bulunamadı.');
  const out=[];
@@ -147,7 +148,22 @@ function parseRows(rows){
 }
 async function call(path,pw,body){
  const r=await fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:body?JSON.stringify(body):undefined});
- const j=await r.json().catch(()=>({})); if(!r.ok)throw new Error(j.error||('HTTP '+r.status)); return j;
+ const j=await r.json().catch(()=>({})); if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;throw e} return j;
+}
+// Ağ kesintisi / 5xx durumunda parçayı tekrar dener. Tekrar gönderilen parça çift kayıt oluştursa bile
+// /admin/finish her il/ilçe/mahalle için yalnızca son satırı aldığından sonuç değişmez.
+async function callRetry(path,pw,body,tries=3){
+ for(let n=1;;n++){
+  try{return await call(path,pw,body)}
+  catch(e){if(n>=tries||(e.status&&e.status<500))throw e;await new Promise(r=>setTimeout(r,1000*2**(n-1)))}
+ }
+}
+// CSV'yi önce UTF-8 olarak okur; Türkçe Excel'in ürettiği Windows-1254 dosyalarda bozuk karakter (�) çıkarsa onunla çözer.
+async function readCsvText(file){
+ const buf=await file.arrayBuffer();
+ const utf=new TextDecoder('utf-8').decode(buf);
+ if(!utf.includes('\uFFFD'))return utf.replace(/^\uFEFF/,'');
+ try{return new TextDecoder('windows-1254').decode(buf)}catch(e){return utf}
 }
 const st=(m,c='')=>{const x=document.getElementById('status');x.className='status '+c;x.textContent=m};
 document.getElementById('upload').onclick=async()=>{
@@ -158,7 +174,7 @@ document.getElementById('upload').onclick=async()=>{
    st('Dosya okunuyor…');
    if(typeof XLSX==='undefined')throw new Error('Excel okuyucu yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.');
    let rows;
-   if(file.name.toLowerCase().endsWith('.csv')){const t=await file.text();const wb=XLSX.read(t,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
+   if(file.name.toLowerCase().endsWith('.csv')){const t=await readCsvText(file);const wb=XLSX.read(t,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
    else{const b=await file.arrayBuffer();const wb=XLSX.read(b,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
    const data=parseRows(rows);
    const seen=new Set();let dup=0;for(const r of data){const k=norm(r[0])+'|'+norm(r[1])+'|'+norm(r[2]);if(seen.has(k))dup++;else seen.add(k)}
@@ -168,7 +184,7 @@ document.getElementById('upload').onclick=async()=>{
    await call('/admin/start',pw);
    const size=200;
    for(let i=0;i<data.length;i+=size){
-     await call('/admin/chunk',pw,{rows:data.slice(i,i+size)});
+     await callRetry('/admin/chunk',pw,{rows:data.slice(i,i+size)});
      prog.value=Math.round(Math.min(99,(i+size)/data.length*100));
      st('Yükleniyor… '+Math.min(i+size,data.length).toLocaleString('tr-TR')+' / '+data.length.toLocaleString('tr-TR'));
    }
@@ -222,8 +238,12 @@ document.getElementById('upload').onclick=async()=>{
      </div>`).join('');
      list.querySelectorAll('select[data-id]').forEach(sel=>sel.onchange=async()=>{
        sel.disabled=true;
-       const rr=await fetch(API+'/admin/oneri-durum',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({id:Number(sel.dataset.id),durum:sel.value})});
-       const jj=await rr.json().catch(()=>({}));sel.disabled=false;if(!rr.ok){alert(jj.error||'Durum güncellenemedi');return}getReq();
+       try{
+         const rr=await fetch(API+'/admin/oneri-durum',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({id:Number(sel.dataset.id),durum:sel.value})});
+         const jj=await rr.json().catch(()=>({}));
+         if(!rr.ok){alert(jj.error||'Durum güncellenemedi');sel.disabled=false;return}
+         getReq();
+       }catch(e){alert('Durum güncellenemedi: '+e.message);sel.disabled=false}
      });
    }catch(e){st.textContent='Hata: '+e.message;}
  }

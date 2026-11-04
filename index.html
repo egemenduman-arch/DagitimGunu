@@ -387,7 +387,7 @@ function badgeText(n,isoDate){
  return n.add+' gün sonra';
 }
 
-let currentRecords=[];
+let currentRecords=[],lastGeoKey='';
 function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  currentRecords=records;
  const box=$('results');
@@ -396,7 +396,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  if(!records.length){
   box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
   $('deliveryMeta').textContent='';
-  hideSection('opsSection');hideSection('weatherSection');
+  hideSection('opsSection');hideSection('weatherSection');lastGeoKey='';
   return;
  }
  const card=r=>{
@@ -417,12 +417,19 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
  const geo=records.find(r=>r.il&&r.ilce);
- if(geo){loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}
- else{hideSection('opsSection');hideSection('weatherSection')}
+ // Aynı il/ilçe için (tarih değişimi, canlı sonucun gelmesi) uyarı ve hava durumu tekrar istenmez.
+ const geoKey=geo?geo.il+'|'+geo.ilce:'';
+ if(geo&&geoKey!==lastGeoKey){lastGeoKey=geoKey;loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}
+ else if(!geo){lastGeoKey='';hideSection('opsSection');hideSection('weatherSection')}
 }
 
 // Tarih değişince mevcut sonuçları yeniden hesapla (yeniden sorgu atmadan)
-$('date').addEventListener('change',()=>{if(currentRecords.length)renderRecords(currentRecords)});
+// Geçmiş bir tarih seçilirse bugüne çekilir (geçmiş için "dağıtım var" demek yanıltıcı olur).
+$('date').addEventListener('change',()=>{
+ const d=$('date'),today=localISODate();
+ if(!d.value||d.value<today)d.value=today;
+ if(currentRecords.length)renderRecords(currentRecords);
+});
 
 // ===================================================================
 // Sorgu
@@ -571,7 +578,7 @@ $('btn').addEventListener('click',run);
 
 // ---- İl / İlçe / Mahalle filtreleri ----
 function clearResults(){
- currentRecords=[];$('results').innerHTML='';
+ currentRecords=[];lastGeoKey='';$('results').innerHTML='';
  hideSection('deliverySection');hideSection('opsSection');hideSection('weatherSection');
 }
 selIl.addEventListener('change',async()=>{
@@ -590,6 +597,7 @@ selMah.addEventListener('change',()=>{if(selMah.value){q.value='';run()}});
 
 async function init(){
  $('date').value=localISODate();
+ $('date').min=localISODate();
  setInfo('Merkezi veriye bağlanılıyor…');
  try{
   const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);

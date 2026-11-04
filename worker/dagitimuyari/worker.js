@@ -7,7 +7,11 @@ const TERMS = [
 ];
 
 function strip(s=""){return s.replace(/<script[\s\S]*?<\/script>/gi," ").replace(/<style[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim()}
-function escQ(s=""){return encodeURIComponent(s.replace(/[^\p{L}\p{N}\s-]/gu," ").trim())}
+// Yalnızca kullanıcıdan gelen il adı temizlenir; sorgudaki site:/when:/OR/"..." operatörleri korunur.
+// (Eski escQ tüm sorguyu temizliyor, "site:gov.tr when:2d" filtresini "site gov tr when 2d" yapıyordu.)
+function cleanTerm(s=""){return String(s).replace(/[^\p{L}\p{N}\s-]/gu," ").replace(/\s+/g," ").trim().slice(0,60)}
+const FETCH_TIMEOUT_MS=6000;
+function fetchT(url,opts={},ms=FETCH_TIMEOUT_MS){return fetch(url,{...opts,signal:AbortSignal.timeout(ms)})}
 function official(u=""){try{const h=new URL(u).hostname;return h.endsWith(".gov.tr")||h==="gov.tr"}catch{return false}}
 function absMgm(u){try{return new URL(u,KGM_URL).href}catch{return u}}
 function classify(t){
@@ -16,34 +20,52 @@ function classify(t){
  return ["HAVA_UYARISI","🌨️ Hava/Valilik"];
 }
 async function googleOfficial(il){
- // Google News RSS yalnızca keşif için kullanılır; kullanıcıya yalnızca .gov.tr hedefleri gösterilir.
- const q=`"${il}" (motokurye OR motosiklet OR "trafiğe kapalı" OR "hava muhalefeti") site:gov.tr when:2d`;
- const url="https://news.google.com/rss/search?q="+escQ(q)+"&hl=tr&gl=TR&ceid=TR:tr";
- const r=await fetch(url,{headers:{"User-Agent":"Mozilla/5.0"}});
- if(!r.ok)return [];
- const xml=await r.text(), items=[...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)];
- const out=[];
- for(const m of items.slice(0,20)){
-  const b=m[1], title=strip((b.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||"");
-  const link=strip((b.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||"");
-  const pub=strip((b.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||"");
-  if(!TERMS.some(x=>x.test(title)))continue;
-  // News redirect is resolved server-side; keep only if final destination is official.
+ // Google News RSS yalnızca keşif için kullanılır; kullanıcıya yalnızca .gov.tr kaynaklı duyurular gösterilir.
+ const term=cleanTerm(il);
+ if(!term)return [];
+ const q=`"${term}" (motokurye OR motosiklet OR "trafiğe kapalı" OR "hava muhalefeti") site:gov.tr when:2d`;
+ const url="https://news.google.com/rss/search?q="+encodeURIComponent(q)+"&hl=tr&gl=TR&ceid=TR:tr";
+ let xml;
+ try{
+  const r=await fetchT(url,{headers:{"User-Agent":"Mozilla/5.0"}});
+  if(!r.ok)return [];
+  xml=await r.text();
+ }catch{return []}
+ const ilLow=il.toLocaleLowerCase("tr");
+ const items=[...xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0,20).map(m=>{
+  const b=m[1];
+  return {
+   title:strip((b.match(/<title>([\s\S]*?)<\/title>/i)||[])[1]||""),
+   link:strip((b.match(/<link>([\s\S]*?)<\/link>/i)||[])[1]||""),
+   pub:strip((b.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)||[])[1]||""),
+   source:(b.match(/<source[^>]*url="([^"]+)"/i)||[])[1]||""
+  };
+ }).filter(x=>x.link&&TERMS.some(t=>t.test(x.title))).slice(0,8);
+ // Bağlantılar paralel ve zaman aşımlı çözülür (eskiden sırayla ve süresiz bekleniyordu;
+ // istemci 9 sn'de vazgeçtiği için uyarılar hiç görünmeyebiliyordu).
+ const res=await Promise.all(items.map(async x=>{
   try{
-   const rr=await fetch(link,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0"}});
+   const rr=await fetchT(x.link,{redirect:"follow",headers:{"User-Agent":"Mozilla/5.0"}},5000);
    const final=rr.url;
-   if(!official(final))continue;
-   const body=strip(await rr.text());
-   if(!body.toLocaleLowerCase("tr").includes(il.toLocaleLowerCase("tr")))continue;
-   const [type,label]=classify(title+" "+body.slice(0,3000));
-   out.push({type,label,title,summary:pub?`Yayın: ${pub}`:"Güncel resmî duyuru",url:final});
+   if(official(final)){
+    const body=strip(await rr.text());
+    if(!body.toLocaleLowerCase("tr").includes(ilLow))return null;
+    const [type,label]=classify(x.title+" "+body.slice(0,3000));
+    return {type,label,title:x.title,summary:x.pub?`Yayın: ${x.pub}`:"Güncel resmî duyuru",url:final};
+   }
+   // Google News bazen yönlendirmeyi JS ile yapar; bu durumda RSS'teki <source> resmî ise kabul et.
+   if(official(x.source)&&x.title.toLocaleLowerCase("tr").includes(ilLow)){
+    const [type,label]=classify(x.title);
+    return {type,label,title:x.title,summary:(x.pub?`Yayın: ${x.pub} • `:"")+"Kaynak: "+new URL(x.source).hostname,url:x.link};
+   }
   }catch{}
- }
- return out;
+  return null;
+ }));
+ return res.filter(Boolean);
 }
 async function kgm(il){
  try{
-  const r=await fetch(KGM_URL,{headers:{"User-Agent":"Mozilla/5.0"}});
+  const r=await fetchT(KGM_URL,{headers:{"User-Agent":"Mozilla/5.0"}});
   if(!r.ok)return [];
   const h=await r.text(), text=strip(h);
   if(!text.toLocaleLowerCase("tr").includes(il.toLocaleLowerCase("tr")))return [];
@@ -82,7 +104,7 @@ function mgmHeaders(){
   };
 }
 async function getJson(url){
-  const r=await fetch(url,{headers:mgmHeaders(),cf:{cacheTtl:600,cacheEverything:true}});
+  const r=await fetchT(url,{headers:mgmHeaders(),cf:{cacheTtl:600,cacheEverything:true}},5000);
   const txt=await r.text();
   if(!r.ok) throw new Error("MGM HTTP "+r.status+" @ "+new URL(url).pathname);
   try{return JSON.parse(txt)}catch{throw new Error("MGM JSON yanıtı alınamadı")}
@@ -194,6 +216,24 @@ async function mgmWeather(il, ilce){
   };
 }
 
+// İl bazında uyarı önbelleği (isolate belleği): her sorguda Google + KGM'ye 10'larca istek atılmasın.
+const ALERT_TTL_MS=10*60*1000;
+const alertCache=new Map();
+async function alertsFor(il){
+ const k=il.toLocaleLowerCase("tr");
+ const hit=alertCache.get(k);
+ if(hit&&Date.now()-hit.at<ALERT_TTL_MS)return hit.alerts;
+ const [v,kg]=await Promise.all([googleOfficial(il),kgm(il)]);
+ const seen=new Set(), alerts=[...v,...kg].filter(x=>{
+  const z=x.url+"|"+x.title;
+  if(seen.has(z)) return false;
+  seen.add(z); return true;
+ });
+ if(alertCache.size>200)alertCache.delete(alertCache.keys().next().value);
+ alertCache.set(k,{at:Date.now(),alerts});
+ return alerts;
+}
+
 export default {
  async fetch(req){
   const u=new URL(req.url);
@@ -220,12 +260,8 @@ export default {
     }
   }
 
-  const [v,k]=await Promise.all([googleOfficial(il),kgm(il)]);
-  const seen=new Set(), alerts=[...v,...k].filter(x=>{
-    const z=x.url+"|"+x.title;
-    if(seen.has(z)) return false;
-    seen.add(z); return true;
-  });
+  if(il.length>60) return new Response(JSON.stringify({error:"il geçersiz"}),{status:400,headers});
+  const alerts=await alertsFor(il);
   return new Response(JSON.stringify({il,ilce,checkedAt:new Date().toISOString(),alerts}),{headers});
  }
 }
