@@ -10,8 +10,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
 <script>
@@ -21,6 +22,11 @@ gtag('js',new Date());
 gtag('config','G-PV9GWK34V8');
 </script>
 <style>
+/* Kurumsal font: Biennale (lisanslı). woff2 dosyaları fonts/ klasörüne konunca otomatik kullanılır. */
+@font-face{font-family:"Biennale";font-weight:400;font-display:swap;src:local("Biennale Regular"),local("Biennale-Regular"),url(fonts/Biennale-Regular.woff2) format("woff2")}
+@font-face{font-family:"Biennale";font-weight:500;font-display:swap;src:local("Biennale Medium"),local("Biennale-Medium"),url(fonts/Biennale-Medium.woff2) format("woff2")}
+@font-face{font-family:"Biennale";font-weight:600;font-display:swap;src:local("Biennale SemiBold"),local("Biennale-SemiBold"),url(fonts/Biennale-SemiBold.woff2) format("woff2")}
+@font-face{font-family:"Biennale";font-weight:700;font-display:swap;src:local("Biennale Bold"),local("Biennale-Bold"),url(fonts/Biennale-Bold.woff2) format("woff2")}
 /* Dijital Kurye Design System (Figma: Foundations / Color, Typography) */
 :root{
  --dk-primary:#8BAF2E;--dk-primary-soft:#EEF3DF;--dk-primary-ink:#4F6613;
@@ -208,7 +214,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 <body>
 <div class="wrap">
  <header class="brandTop">
-  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo_seffaf.png" alt="dijital.kurye" width="286" height="65"></a>
+  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"></a>
   <button type="button" id="contactBtn" class="pillBtn">Bize Ulaş</button>
  </header>
 
