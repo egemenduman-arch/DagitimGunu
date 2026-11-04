@@ -4,7 +4,7 @@
 //   DB               D1 veritabanı
 //   ADMIN_PASSWORD   (secret) admin paneli şifresi
 //   OPTYMUS_USERNAME (secret) Optymus kullanıcı adı  ┐ önerilen: token otomatik
-//   OPTYMUS_PASSWORD (secret) Optymus şifresi         ┘ alınır ve yenilenir
+//   OPTYMUS_PASSWORD (secret) Optymus şifresi (OPTYMUS_PASS da olur) ┘ alınır ve yenilenir
 //   OPTYMUS_TOKEN    (secret) (alternatif) elle verilen Bearer token; süresi dolunca çalışmaz
 //   OPTYMUS_BASE     (ops.)   varsayılan https://api.optymus.tech
 //   OPTYMUS_CLIENT_ID / OPTYMUS_SCOPE (ops.) varsayılan DijitalKurye_App / "DijitalKurye offline_access"
@@ -289,7 +289,8 @@ function pickZoneInfo(payload) {
 // ---------------------------------------------------------------------------
 
 const optymusBase = env => String(env.OPTYMUS_BASE || OPTYMUS_DEFAULT_BASE).replace(/\/+$/, "");
-const hasCredentials = env => !!(env.OPTYMUS_USERNAME && env.OPTYMUS_PASSWORD);
+const optymusPassword = env => env.OPTYMUS_PASSWORD || env.OPTYMUS_PASS;
+const hasCredentials = env => !!(env.OPTYMUS_USERNAME && optymusPassword(env));
 function optymusConfigured(env) { return hasCredentials(env) || !!env.OPTYMUS_TOKEN; }
 
 function jwtExp(token) {
@@ -348,7 +349,7 @@ async function getAccessToken(env, { force = false } = {}) {
       grant_type: "password",
       scope: env.OPTYMUS_SCOPE || "DijitalKurye offline_access",
       username: env.OPTYMUS_USERNAME,
-      password: env.OPTYMUS_PASSWORD
+      password: optymusPassword(env)
     });
     return tokenState.access;
   }
