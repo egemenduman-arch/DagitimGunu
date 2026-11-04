@@ -1,0 +1,16 @@
+name = "dagitimveri"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dagitimveri"
+database_id = "feb99173-b3ee-418e-a93c-dfca216d6202"
+
+# Gizli değişkenler (repo'ya YAZILMAZ):
+#   wrangler secret put ADMIN_PASSWORD
+#   wrangler secret put OPTYMUS_TOKEN
+#
+# İsteğe bağlı: admin uçlarını yalnızca kendi sitenize açmak için
+# [vars]
+# ALLOWED_ORIGINS = "https://ornek.github.io"

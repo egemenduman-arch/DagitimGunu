@@ -1,548 +1,647 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dijital Kurye | Dağıtım Günü Sorgulama</title><script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script><style>
-:root{--bg:#f5f7fb;--card:#fff;--ink:#172033;--muted:#687386;--accent:#5b4cf0;--ok:#087f5b;--line:#e5e9f2}*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}.wrap{max-width:980px;margin:42px auto;padding:0 18px}.hero{margin-bottom:18px}.hero h1{font-size:32px;margin:0 0 8px}.hero p{color:var(--muted);margin:0}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 10px 30px #1720330d}.grid{display:grid;grid-template-columns:1fr 190px 130px;gap:12px}.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}.field select{width:100%;font:inherit;border-radius:12px;border:1px solid #ccd3df;padding:12px 14px;background:#fff;color:var(--ink)}.searchwrap{position:relative}.suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 35px #17203322;max-height:330px;overflow:auto;display:none}.suggestion{padding:11px 13px;cursor:pointer;border-bottom:1px solid #f0f2f6}.suggestion:last-child{border-bottom:0}.suggestion:hover,.suggestion.active{background:#f5f4ff}.suggestion b{display:block;font-size:14px}.suggestion span{font-size:12px;color:var(--muted)}input,select,button{font:inherit;border-radius:12px;border:1px solid #ccd3df;padding:13px 14px}input:focus{outline:2px solid #5b4cf033;border-color:var(--accent)}button{background:var(--accent);color:white;border:0;font-weight:700;cursor:pointer}.hint{font-size:13px;color:var(--muted);margin-top:10px}.results{margin-top:18px}.result{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:10px;cursor:pointer}.result:hover{border-color:#b7b0ff}.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.place{font-weight:750;font-size:17px}.badge{white-space:nowrap;background:#e8fff6;color:var(--ok);font-weight:800;padding:7px 10px;border-radius:999px}.closed{background:#fff2f2;color:#b42318}.days{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.day{font-size:12px;padding:5px 8px;border-radius:8px;background:#f0f2f6;color:#8a94a6}.day.on{background:#e8fff6;color:#087f5b;font-weight:700}.empty{text-align:center;color:var(--muted);padding:30px 10px}.small{font-size:12px;color:var(--muted);margin-top:8px}.dataBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;padding:12px 14px;background:#f8f9fc;border:1px solid var(--line);border-radius:12px}.dataBar button{padding:9px 12px}.dataInfo{font-size:12px;color:var(--muted);flex:1}.importBtn{background:#172033}.statusOk{color:var(--ok);font-weight:700}.statusErr{color:#b42318;font-weight:700}@media(max-width:700px){
-  body{background:#f5f7fb;-webkit-text-size-adjust:100%}
-  .wrap{width:100%;max-width:none;margin:0 auto;padding:14px 12px 28px}
-  .hero{margin:8px 2px 14px}.hero h1{font-size:24px;line-height:1.15}.hero p{font-size:14px;line-height:1.45}
-  .card{padding:14px;border-radius:16px;box-shadow:0 6px 20px #1720330d}
-  .grid,.filters{grid-template-columns:1fr;gap:10px}
-  input,select,button,.field select{min-height:48px;font-size:16px;padding:12px 13px;width:100%}
-  #btn{order:3}.searchwrap{order:1}.grid #date{order:2}
-  .hint{font-size:12px;line-height:1.45;margin-top:9px}
-  .dataBar{display:grid;grid-template-columns:1fr;gap:8px;padding:10px;margin-top:12px}
-  .dataBar button{width:100%;min-height:46px}.dataInfo{font-size:11px;line-height:1.4;overflow-wrap:anywhere}
-  .filters{margin-top:12px;padding-top:12px}.field label{font-size:12px}
-  .suggestions{position:fixed;left:12px;right:12px;top:auto;max-height:46vh;border-radius:14px;z-index:9999}
-  .suggestion{padding:13px}.suggestion b{font-size:15px}.suggestion span{font-size:12px}
-  .results{margin-top:14px}.result{padding:14px;margin-top:9px;border-radius:13px}
-  .top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.place{font-size:16px;line-height:1.3;overflow-wrap:anywhere}
-  .badge{font-size:12px;padding:6px 8px;align-self:start}.small{font-size:12px;line-height:1.4}
-  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.day{text-align:center;font-size:10px;padding:6px 2px}
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dijital Kurye | Dağıtım Günü Sorgulama</title>
+<meta name="description" content="Mahalle veya açık adrese göre en erken dağıtım gününü sorgulayın.">
+<meta name="theme-color" content="#102d3b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-PV9GWK34V8');
+</script>
+<style>
+:root{
+ --bg:#f4f8f9;--card:#fff;--ink:#102c38;--muted:#58717a;--accent:#00a5a8;--accent-soft:#e8f7f5;
+ --ok:#078668;--ok-soft:#e1f6ee;--warn:#7a5200;--warn-soft:#fff8e6;--danger:#a61b1b;--danger-soft:#fff1f1;
+ --line:#dce8ea;--line-2:#edf0f5
 }
-@media(max-width:380px){.wrap{padding-left:8px;padding-right:8px}.card{padding:11px}.hero h1{font-size:22px}.badge{white-space:normal;text-align:center;max-width:92px}.days{gap:3px}.day{font-size:9px}}
-@media(hover:none){button,.result,.suggestion{cursor:default}button:active{transform:scale(.99)}}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(155deg,#eaf6f5 0,#f7fafb 45%,#f2f6f7 100%);min-height:100vh;-webkit-text-size-adjust:100%}
+.wrap{max-width:1060px;margin:22px auto 54px;padding:0 18px}
+button,input,select,textarea{font:inherit}
+input,select{border-radius:12px;border:1px solid #ccd3df;padding:13px 14px;background:#fff;color:var(--ink);width:100%;min-width:0}
+input:focus,select:focus,textarea:focus{outline:2px solid #00a5a833;border-color:var(--accent)}
+button{border-radius:12px;border:0;padding:13px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(.96)}button:disabled{opacity:.6;cursor:default}
 
+/* Üst bant + hero */
+.brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 24px;padding:13px 0;border-bottom:1px solid #d5e5e7}
+.brandLogo{display:block;width:210px;max-width:48vw;height:auto}
+.brandTopTag{font-size:10px;letter-spacing:1.8px;color:#52757b;font-weight:800}
+.hero{padding:30px 34px 28px;border-radius:22px;background:linear-gradient(115deg,#102d3b,#114c58 75%,#087b80);color:#fff;position:relative;overflow:hidden;margin-bottom:18px;box-shadow:0 12px 30px #173d4922}
+.hero:after{content:'';position:absolute;width:280px;height:280px;border:50px solid #ffffff0a;border-radius:50%;right:-130px;top:-140px;pointer-events:none}
+.hero h1{font-size:clamp(27px,4vw,39px);line-height:1.14;margin:9px 0 12px;letter-spacing:-.8px}
+.hero h1 em{color:#65e3d4;font-style:normal}
+.hero p{color:#d4e9ea;line-height:1.55;max-width:670px;margin:0}
+.eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#86dcd5}
+.heroPills{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.heroPills span{border:1px solid #ffffff40;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:700;color:#e6f8f7;background:#ffffff12}
+
+/* Kart + akordeon */
+.card{background:var(--card);border:1px solid #dce9ea;border-radius:20px;padding:22px;box-shadow:0 14px 36px #1539430d}
+.accordion{margin-top:12px;border:1px solid var(--line);border-radius:16px;background:#fff}
+#querySection{margin-top:0}
+.accHead{width:100%;min-height:52px;border:0;border-radius:16px;background:#fff;color:#103745;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:800;text-align:left}
+.accHead:hover{filter:none;background:#fafcfc}
+.accMeta{font-size:12px;font-weight:600;color:#687386;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.accChevron{font-size:14px;transition:transform .2s ease;flex:0 0 auto}
+.accordion.open>.accHead .accChevron{transform:rotate(180deg)}
+.accBody{display:none;border-top:1px solid var(--line-2);padding:14px}
+.accordion.open>.accBody{display:block}
+#deliverySection,#opsSection,#weatherSection,#feedbackSection{display:none}
+#deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
+
+/* Sorgu alanı */
+.grid{display:grid;grid-template-columns:1fr 190px 130px;gap:12px}
+.searchwrap{position:relative}
+.suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 35px #17203322;max-height:330px;overflow:auto;display:none}
+.suggestion{padding:11px 13px;cursor:pointer;border-bottom:1px solid #f0f2f6}
+.suggestion:last-child{border-bottom:0}
+.suggestion:hover,.suggestion.active{background:var(--accent-soft)}
+.suggestion b{display:block;font-size:14px}.suggestion span{font-size:12px;color:var(--muted)}
+.hint{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.45}
+.dataBar{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f4faf9;font-size:12px}
+.statusOk{color:var(--ok)}.statusErr{color:var(--danger)}
+.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}
+
+/* Sonuçlar */
+.result{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:10px;background:#fff}
+.result:first-child{margin-top:0}
+.result:hover{border-color:var(--accent)}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.place{font-size:17px;font-weight:800}
+.small{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45}
+.small b{color:var(--ink)}
+.badge{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:var(--ok-soft);color:#087b63;white-space:nowrap}
+.badge.closed{background:var(--danger-soft);color:var(--danger)}
+.days{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.day{font-size:12px;font-weight:700;padding:6px 9px;border-radius:9px;background:#f1f3f7;color:#9aa4b2}
+.day.on{background:var(--ok-soft);color:#087b63}
+.day.first{outline:2px solid var(--accent)}
+.empty,.loading,.error{padding:14px;border-radius:12px;background:#f8f9fc;color:var(--muted);font-size:14px}
+.error{background:var(--danger-soft);color:var(--danger)}
+
+/* Operasyon */
+.opsPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}
+.opsTitle{font-weight:800;margin-bottom:6px}.opsText{font-size:13px;line-height:1.45}
+.opsOk{background:#effaf5;border-color:#b7e4cf;color:#087f5b}
+.opsWarn{background:var(--warn-soft);border-color:#f3d38a;color:var(--warn)}
+.opsDanger{background:var(--danger-soft);border-color:#f1b5b5;color:var(--danger)}
+.opsNeutral{background:#f8f9fc;color:#687386}
+.opsItem{margin-top:10px;padding-top:10px;border-top:1px solid currentColor}
+.opsLink{display:inline-block;margin-top:5px;color:inherit;font-weight:700}
+
+/* Hava durumu */
+.weatherPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}
+.weatherTitle{font-weight:800;font-size:17px;margin-bottom:4px}
+.weatherSub{font-size:12px;color:#687386;margin-bottom:12px}
+.weatherFallback{font-size:13px;line-height:1.5;color:#687386}
+.weatherFallback a{font-weight:700;color:var(--accent)}
 .weatherNotice{margin:0 0 12px;padding:11px 13px;border-radius:12px;background:#eef7ff;border:1px solid #b9dcff;font-size:13px;line-height:1.45}
 .weatherNotice strong{display:block;font-size:14px;margin-bottom:3px}
 .weatherNotice.weatherRisk{background:#fff6df;border-color:#f2cf78;color:#7a5000}
-
 .weatherToday{margin:0 0 12px;padding:14px;border:1px solid #dfe6f0;border-radius:12px;background:#f8fafc}
 .weatherTodayHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.weatherTodayIcon{width:46px;height:46px;object-fit:contain}.weatherTodayTitle{font-size:15px;font-weight:800}
-.weatherTodayDesc{font-size:13px;color:#5e6b7f;margin-top:2px}.weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.weatherMetric{background:#fff;border:1px solid #e6eaf1;border-radius:10px;padding:9px}.weatherMetric span{display:block;font-size:11px;color:#6b778c}.weatherMetric b{font-size:14px}
-@media(max-width:700px){.weatherTodayGrid{grid-template-columns:repeat(2,1fr)}}
+.weatherTodayIcon{width:46px;height:46px;object-fit:contain}
+.weatherTodayTitle{font-size:15px;font-weight:800}
+.weatherTodayDesc{font-size:13px;color:#5e6b7f;margin-top:2px}
+.weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.weatherMetric{background:#fff;border:1px solid #e6eaf1;border-radius:10px;padding:9px}
+.weatherMetric span{display:block;font-size:11px;color:#6b778c}.weatherMetric b{font-size:14px}
+.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;background:#fff;font-size:13px}
+.weatherSimple th,.weatherSimple td{border:1px solid #d9e0ea;padding:9px 10px;text-align:center;vertical-align:middle}
+.weatherSimple th{width:90px;background:#f7f9fc;font-weight:800}
+.weatherSimple .dateCell{font-weight:700;white-space:nowrap}
+.conditionInner{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.conditionInner img{width:30px;height:30px;object-fit:contain;flex:0 0 auto}
+.conditionName{font-weight:700}
 
-/* Mobile responsive improvements */
-@media (max-width:700px){
- body{padding:10px 6px!important}
- .wrap,.container,main{width:100%!important;max-width:100%!important;margin:0 auto!important}
- h1{font-size:27px!important;line-height:1.12!important;margin-bottom:8px!important}
- input,select,button{min-height:48px!important;font-size:16px!important}
- .searchRow,.search-row,.topRow,.top-row{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
- .searchRow button,.search-row button,.topRow button,.top-row button{width:100%!important}
- .filters,.filterRow,.filter-row{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
- .weatherPanel{padding:14px!important}
- .weatherTitle{font-size:19px!important}
- .weatherSub{font-size:12px!important}
- .weatherScroll{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
- .weatherTable{min-width:700px!important;font-size:12px!important}
- .weatherTodayGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- .weatherToday{padding:12px!important}
- .weatherTodayHead{align-items:flex-start!important}
- .weatherNotice{font-size:12px!important}
- .opsPanel{padding:13px!important}
-}
-@media (max-width:420px){
- h1{font-size:24px!important}
- .weatherMetric{padding:8px!important}
-}
-
-
-/* Mobile app-style weather cards */
-.weatherMobileCards{display:none}
-@media(max-width:700px){
- .weatherScroll{display:none!important}
- .weatherMobileCards{display:grid!important;grid-template-columns:1fr!important;gap:9px;margin-top:10px}
- .weatherDayCard{border:1px solid #e3e9f2;border-radius:14px;background:#fff;padding:12px}
- .weatherDayTop{display:flex;justify-content:space-between;align-items:center;gap:10px}
- .weatherDayDate{font-size:13px;font-weight:800;color:#172033}
- .weatherDayCondition{display:flex;align-items:center;gap:8px;text-align:right;font-size:12px;font-weight:700}
- .weatherDayCondition img{width:34px;height:34px;object-fit:contain}
- .weatherDayStats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
- .weatherDayStat{background:#f7f9fc;border-radius:10px;padding:8px;text-align:center}
- .weatherDayStat span{display:block;font-size:10px;color:#718096;margin-bottom:3px}
- .weatherDayStat b{font-size:12px;color:#172033}
-}
-
-
-/* Collapsible query panel */
-.queryToggle{display:none;width:100%;border:1px solid #dfe5ee;background:#fff;color:#172033;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;align-items:center;justify-content:space-between;gap:10px}
-.queryToggle .qtChevron{transition:transform .2s ease}
-.queryToggle[aria-expanded="true"] .qtChevron{transform:rotate(180deg)}
-.querySummary{font-weight:600;color:#5f6c80;font-size:12px;margin-left:6px}
-@media(max-width:700px){
- .queryToggle{display:flex}
- body.queryCollapsed .queryControls{display:none!important}
- body.queryCollapsed .queryToggle{margin-bottom:0}
- .queryControls{margin-top:10px}
-}
-
-
-/* Mobile stable accordion layout */
-.accordion{margin-top:12px;border:1px solid #dfe5ee;border-radius:16px;background:#fff;overflow:visible}
-.accHead{width:100%;min-height:52px;border:0;background:#fff;color:#172033;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:800;text-align:left;cursor:pointer}
-.accHead .accMeta{font-size:12px;font-weight:600;color:#687386;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
-.accChevron{font-size:18px;transition:transform .2s ease;flex:0 0 auto}
-.accordion.open>.accHead .accChevron{transform:rotate(180deg)}
-.accBody{display:none;border-top:1px solid #edf0f5;padding:14px}
-.accordion.open>.accBody{display:block}
-#querySection{margin-top:0}
-#querySection .accBody{position:relative}
-#querySection .grid{margin-top:0}
-#querySection .filters{margin-top:14px}
-#deliverySection,#weatherSection,#opsSection{display:none}
-#deliverySection.hasContent,#weatherSection.hasContent,#opsSection.hasContent{display:block}
-#deliveryContent .results,#weatherContent .weatherBox,#opsContent .opsBox{margin-top:0}
-#deliveryContent .result:first-child,#weatherContent .weatherPanel:first-child,#opsContent .opsPanel:first-child{margin-top:0}
-.feedbackLaunch{width:100%;min-height:50px;margin-top:14px;border:1px solid #d9dff0;border-radius:14px;background:#fff;color:#5b4cf0;font-weight:800;font-size:15px;cursor:pointer}
+/* Öneri / talep */
+.feedbackLaunch{width:100%;min-height:50px;margin-top:14px;border:1px solid #d9dff0;border-radius:14px;background:#fff;color:var(--accent);font-weight:800;font-size:15px}
+.feedbackLaunch:hover{background:#fafcfc;filter:none}
 .feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .feedbackGrid .full{grid-column:1/-1}
 .feedbackGrid label{display:block;font-size:12px;font-weight:800;color:#5f6c80;margin-bottom:5px}
-.feedbackGrid input,.feedbackGrid textarea{width:100%;border:1px solid #d7deea;border-radius:11px;padding:11px 12px;font:inherit;background:#fff;color:#172033}
-.feedbackGrid textarea{min-height:110px;resize:vertical}
+.feedbackGrid textarea{width:100%;border:1px solid #d7deea;border-radius:11px;padding:11px 12px;background:#fff;color:var(--ink);min-height:110px;resize:vertical}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .feedbackActions{display:flex;gap:8px;margin-top:12px}
-.feedbackActions button{flex:1;min-height:46px;border-radius:11px;border:0;font-weight:800;cursor:pointer}
-.feedbackSend{background:#5b4cf0;color:#fff}.feedbackClose{background:#eef1f6;color:#273247}
+.feedbackActions button{flex:1;min-height:46px;border-radius:11px}
+.feedbackClose{background:#eef1f6;color:#273247}
 .feedbackNote{font-size:12px;color:#687386;line-height:1.45;margin-top:10px}
 .feedbackStatus{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#eef4ff;font-size:13px}
+.feedbackStatus.ok{background:#eafaf3;color:#087c52}.feedbackStatus.err{background:var(--danger-soft);color:var(--danger)}
+
 @media(max-width:700px){
- body{overflow-x:hidden}.wrap{padding-left:10px;padding-right:10px}
- .hero{margin-bottom:12px}.hero h1{font-size:25px}
- .card{padding:10px;border-radius:18px}
- .accordion{border-radius:14px;margin-top:10px}
- .accHead{min-height:54px;padding:13px 14px;font-size:15px}
+ .wrap{margin:12px auto 30px;padding:0 12px}
+ .brandTop{margin-bottom:12px}.brandLogo{width:160px}.brandTopTag{font-size:8px;letter-spacing:1px}
+ .hero{padding:22px 19px;border-radius:17px}.hero h1{font-size:28px}
+ .heroPills{margin-top:14px}.heroPills span{font-size:10px}
+ .card{padding:10px;border-radius:17px}
+ .accHead{min-height:54px;padding:13px 14px}
+ .accMeta{max-width:45%}
  .accBody{padding:12px}
- #querySection .grid{display:grid;grid-template-columns:1fr;gap:9px}
- #querySection .grid>*{width:100%;min-width:0}
- #querySection input,#querySection select,#querySection button{min-height:48px;font-size:16px}
- #querySection .filters{display:grid;grid-template-columns:1fr;gap:9px}
- .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
- .accHead .accMeta{max-width:45%}
-}
-
-
-.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px}
-.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;background:#fff;font-size:13px}
-.weatherSimple th,.weatherSimple td{border:1px solid #d9e0ea;padding:9px 10px;text-align:center;vertical-align:middle}
-.weatherSimple th:first-child{width:90px;background:#f7f9fc;font-weight:800}
-.weatherSimple .dateCell{font-weight:700;white-space:nowrap}
-.weatherSimple .conditionCell{min-width:125px}
-.weatherSimple .conditionInner{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
-.weatherSimple .conditionInner img{width:30px;height:30px;object-fit:contain;flex:0 0 auto}
-.weatherSimple .conditionName{font-weight:700}
-@media(max-width:700px){
+ .grid,.filters{grid-template-columns:1fr;gap:9px}
+ input,select,button{min-height:48px;font-size:16px}
+ .suggestions{max-height:46vh}
+ .suggestion{padding:13px}
+ .top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .place{font-size:16px;overflow-wrap:anywhere}
+ .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+ .day{text-align:center;font-size:10px;padding:6px 2px}
+ .weatherPanel{padding:12px}.weatherTitle{font-size:15px}
+ .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
  .weatherSimple{font-size:12px;min-width:590px}
- .weatherSimple th,.weatherSimple td{padding:8px 7px}
- .weatherSimple .conditionInner img{width:27px;height:27px}
+ .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
+@media(max-width:380px){
+ .hero h1{font-size:24px}
+ .badge{white-space:normal;text-align:center;max-width:92px}
+ .day{font-size:9px}
+}
+@media(hover:none){button,.result,.suggestion{cursor:default}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="brandTop">
+  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo_seffaf.png" alt="dijital.kurye logo" width="286" height="65"></a>
+  <span class="brandTopTag">SAHA OPERASYONLARI</span>
+ </div>
 
-/* Dijital Kurye inspired corporate operational theme */
-:root{--bg:#f4f8f9;--card:#fff;--ink:#102c38;--muted:#58717a;--accent:#00a5a8;--ok:#078668;--line:#dce8ea}
-body{background:linear-gradient(155deg,#eaf6f5 0,#f7fafb 45%,#f2f6f7 100%);color:var(--ink)}
-.wrap{max-width:1060px;margin:22px auto 54px}
-.brandLogo{display:block;width:210px;max-width:48vw;height:auto}.brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 24px;padding:13px 0;border-bottom:1px solid #d5e5e7}
-.brandName{text-decoration:none;color:#102c38;font-size:21px;letter-spacing:-1px;font-weight:900}.brandName span{color:#00a5a8}.brandName .brandDot{color:#f2a42c}.brandTopTag{font-size:10px;letter-spacing:1.8px;color:#52757b;font-weight:800}
-.hero{padding:30px 34px 28px;border-radius:22px;background:linear-gradient(115deg,#102d3b,#114c58 75%,#087b80);color:white;position:relative;overflow:hidden;margin-bottom:18px;box-shadow:0 12px 30px #173d4922}
-.hero:after{content:'';position:absolute;width:280px;height:280px;border:50px solid #ffffff0a;border-radius:50%;right:-130px;top:-140px;pointer-events:none}
-.hero h1{font-size:clamp(27px,4vw,39px);line-height:1.14;margin:9px 0 12px;letter-spacing:-.8px}.hero h1 em{color:#65e3d4;font-style:normal}
-.hero p{color:#d4e9ea;line-height:1.55;max-width:670px}.eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#86dcd5}
-.heroPills{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.heroPills span{border:1px solid #ffffff40;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:700;color:#e6f8f7;background:#ffffff12}
-.card{border:1px solid #dce9ea;border-radius:20px;box-shadow:0 14px 36px #1539430d}
-button,.feedbackSend{background:#00a5a8}button:hover{filter:brightness(.96)}
-input:focus,select:focus,textarea:focus{outline:2px solid #00a5a833;border-color:#00a5a8}
-.suggestion:hover,.suggestion.active{background:#e8f7f5}
-.accHead{color:#103745}.accordion{border-color:#dce8ea}
-.queryToggle{color:#103745}.badge,.day.on{background:#e1f6ee;color:#087b63}
-.result:hover{border-color:#00a5a8}.dataBar{background:#f4faf9}
-@media(max-width:700px){.wrap{margin:12px auto 30px;padding:0 12px}.brandTop{margin-bottom:12px}.brandLogo{width:160px}.brandName{font-size:18px}.brandTopTag{font-size:8px;letter-spacing:1px}.hero{padding:22px 19px;border-radius:17px}.hero h1{font-size:29px}.heroPills{margin-top:14px}.heroPills span{font-size:10px}.card{padding:14px;border-radius:17px}}
-</style><!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-PV9GWK34V8');
-</script>
-<style>
-.opsBox{margin-top:14px}.opsPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}.opsTitle{font-weight:800;margin-bottom:6px}.opsText{font-size:13px;line-height:1.45}.opsOk{background:#effaf5;border-color:#b7e4cf;color:#087f5b}.opsWarn{background:#fff8e6;border-color:#f3d38a;color:#7a5200}.opsDanger{background:#fff1f1;border-color:#f1b5b5;color:#a61b1b}.opsNeutral{background:#f8f9fc;color:#687386}.opsItem{margin-top:10px;padding-top:10px;border-top:1px solid currentColor}.opsLink{display:inline-block;margin-top:5px;color:inherit;font-weight:700}
-</style>
-<style>
-.weatherBox{margin-top:14px}.weatherPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}
-.weatherTitle{font-weight:800;font-size:17px;margin-bottom:4px}.weatherSub{font-size:12px;color:#687386;margin-bottom:12px}
-.weatherScroll{overflow-x:auto;-webkit-overflow-scrolling:touch}.weatherTable{width:100%;border-collapse:collapse;min-width:760px;font-size:12px}
-.weatherTable th,.weatherTable td{border:1px solid #e5e9f2;padding:8px;text-align:center}.weatherTable th{background:#f8f9fc}
-.weatherIcon{width:34px;height:34px;object-fit:contain;display:block;margin:auto}.weatherTempMax{font-weight:800}.weatherTempMin{color:#687386}
-.weatherFallback{font-size:13px;line-height:1.5;color:#687386}.weatherFallback a{font-weight:700;color:#5b4cf0}
-@media(max-width:700px){.weatherPanel{padding:12px}.weatherTitle{font-size:15px}}
-</style>
-</head><body><div class="wrap"><div class="brandTop"><a class="brandName" href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAR4AAABBCAYAAAAHZstAAAAJ10lEQVR42u2dfYxdRRmHH2olbanpBb+qwbBNNlqwgUWKWUgJ2+IXuzVZFBNK0N4GSUERtiS1xoIl2hojSG0gVGJLq4AgbsJCdqHW1F1oSYuKvY2UFoPuNhRszBZXXej+UdE/Zm48Pfed8313z7n3fZKb7M7MmTkzZ87vzLzzBYqiKIqiKIqiKIqiKIqiKIoSk9MmKZ1tgttWYI/P7S7gfULY1cCo5//5wBoh3PPAloRxNjqLgOsF9xWT/IwVZdL4r/ArC+H2O8K2+MJ1OMI9ESPOtiZ7BmVHOUz2M1YUpmsRhDLXtrD87AMmtHgURYWnHrQ7WlLzgBEtHkWJzzQtAkVRVHgURdGu1iRzEzBDcD/m+78CLI4QLijOw/r4FUWFB4zBNgpjwFDGcSqKol0tRVFUeBRFUVR4FEVR4VEURYlIHONyG7AS+Fwd7+cu4Gqf21HgMiHssOC2Guj1ufUAt4bEKYWpMtvhvhs4GZKfXntPEkFpxqUCPAlsL3h9XIRZ8+Wql6sxgwW7Bb9lJB9IkOrdPhunl7MjpF0GrrDvi1R3xu3z2uV5XlL6J4GLMQMpSWkHHhXcN3DqmsYSZhnSOvt3UkZs3jaR0eTa5cDryOtxkv7KQjobhXDDjnuS4uwRwt0ZIc6ejPMWtHYs6L7S/rYFpFcm32u1brCVVYrnDeBmz0sihelOce/bhPj2C+FaHGl3YBYiD8Z8Xr/BLMnpdvivTvlM7hfifA24wCc6T2RcD/9hyyR1V+urwIe1gZh7yla8i8YtwHrgHEfL9g7gvpznYXPYyybwKeCnwACwU/DvBGYlvJ+P2+v9DAAHfKLbnXFZVMWsJa3wrAV+r+91IegJeuA5ZI0VnQ8Ifi8Dt2O218gzHUJXKSpLgS4rCFK8XQnj7XQIuTed7jqIjld81iUVnmp/7zngHtvdUvJPdwHu8XTb3VwPvEfwf9GKzi8KkJfPprz+cqAfOOQQkLjMclz3jE942qaqHgYZlzdiDMmLMUsRHktRyOWcV5wR3IbZVozR008vxlAYxPMBfhWgr04Pt5Tz8p4DfBv4psN/D8YAuqMgQj9KdMP+IlunvCwA/mpF4VxBeC6O2ePodHT7BoB3PP+f43gXKgnKoEUQspL9jUWN5Br+byg6hDGApSHvxuWwFzvK5mRTxbBwbxsd4p8H4/Jc4F7chsmdtgUQ1ArPo3E5i7Q67MfM778uZn4eFOI4KNRZyag8mOIDKJVNKU5X64uev+cDP8MMzSlKGubZrtXNDv+nbPfq2SYtnyHb5ZJaMO+PGMcncBuVR/KSUZfwfNr3/2eo7/wdpfE5z4rO9Q7/X1rR+V2Tl5NkZP5kDFtPF/BBn9u4Q9ByJzyn6XuiZMhFVnSudfhvt6LzJy0qBoC9jlZPGGcCVzrifC5PmZyuwqPUmbnAw8j7VoMx0t9A+CzwRuEVard0qXj+ftMKxSVCS+bykG5op3CdqxWlwtPktNlfqQHz9jGMYbTF4X8fsKqJRAfgB/YXRD9wI2aJRpUzrLCECY+fvSo8ipcSZvSp3CD5OSy0ar4VEP7HVnSUWg5YsVgptHruB44I11yK26j8Zoy0WzAjwXG5QIWnGKIzSGOd7bUCMzfn8yHhTmDm6GzQahCIJDzVZRCbHa0df6v59QStnRbiD9/HRo3LU0MPjXeg4D6M8Tjs5NAfquhEFp5nBHdpCcWHAlo7lTxmToVnaljeoPkaB75C7THSXhbaboESzDu45/RcKbhd6BCeXKLCM/m0UaxFnHEZxiwq3uTw78IMrV+hVSFSq+cl4d3sEoTHz448C4/aePLDVSSbWTpI/kbE/m7F5y2M3cfPYmCm/fXro3dyxIrHAkFozsUsZ1oS0M36jwqPEsZIwv74GPkcin/LJz5n+PzbMbaeWcDj+vid/ASzdYiXeZjF2ofsB2uGUCe2JExvCDNQkBVjKjxKPZF2P9wKfN+2gDYL9e18G+ZfFGcl+lR8kPox+/Z4WWlF6Trhmu3ARMo0tcWjFIKy4PYsZpRrC/Au2wL6iC/MbMwufBvsi6TU8oAgPPNtuZUc4XONGpeVIGZgDOEtpN8a5QErPK8Ifmdb4blNi1xkN/I0Bam18zgFOJ7bJTxv+/4/iR4F3GycBzyCGaUatvaEW1LG+RBmMWhF8DsLM9q1Vou+hn8SfYRqoAgZcglPn090lmkfvKloxWyw/gWPWwn4DvD1lHH3WvGRVmDPtOKznuSbnDcq/chLJbzsK4rwuGw8qzATvVqt6HjPqlqI+6ypRsSV13bC5+Mci9HsbctRnu9F3n/pvZg1VgcIn6Ec9lU+YVs3SwT/tVZ4NgDHIz6PFuKf8lBF6kaO5awevmTL7Wsh5Xo8ZTqljOtiJY7wjGLmWizk1HkWtwPfpblsQK5tUh+NcG0fZrjTy4gj7LYc5XluyMeqNaXwAPzWIz5djo/fTCs+Rz3uR5GnEKQ51me0IHVxALjJ8f69kaC1M+L4AO7P8J7PlER8WsjX2is6a2zzu9kMzwfJ9nSNsQy/phVytJ1lAvbaj9mvHP432m7XR33uWRpPJ6jdHyevPB0gLgMJBOPAVGUk6rlat1nROb0J+9ZjmD2ns2RTRvE8Ocld8CrjGaZVseLzc4f/cis+3m0XfpRh+g9nnJ96s8vh/mCCuPqmqksZVXguoXbmaTPxPZLPKpa4k/Srhvsw9pZ60INs/AVzznfWBsw/W/FxzT/5khWf6oEDvVYw0nKY4u0JdL7g9mvgDwnr51V5Fp5lRD83qBGZAC4j22N0L0xYpmNWcFbU8Wu1y4rtiz73ezA2vhN1SPM1Kz4uMV1qxadqjP4y8I0UrZXH7Ae1SK2di5DXZT1N8l0chzD23Entsse117Tj3js3LnuAV31u0mFn45w6qlZFOhNqlVBx26i10rvijMJsG19rhLCvEm6ELWFGY0oR4huxLSWv4HQL144IdgvXwYRB4ue9JqzMyhGfcRSuxj16dYxTp3ZMt89jQcS4RzHDzqMh9c6fTvXZS0cV77Dh680dVvj9rbalwF8yiL+b7Nf9NVyDJeqBforSCJxlu7/+On93ETMzTZ+nohSCTmoP1XybgkwYVOFRlGLiOi9rsIiZUeFRlPxzKfIky4GiZkiFR1GK0c2a43N7QYVHUZR6EXSCxGhRM1UU4Wmj1povcVzrqdKArR3/CRJ/K3JrpxFbPAe1nioNKDxSa+ePWjT1pwN53o73t1eLSWkwlmBmifvrercWTT6E599kN6NaUfLC3UJd3wm8W4tmcmgLEJ0BajfCVpSiMw94WajvtzZC5qYX5D4nqF3zcQSz5maIdEd5KEoemYMZMn/B575Vi0ZRFEVRFEVRFEVRFEVRFEVpSv4HO94D83S5FQQAAAAASUVORK5CYII=" alt="dijital.kurye logo"></a><span class="brandTopTag">SAHA OPERASYONLARI</span></div><div class="hero"><span class="eyebrow">DİJİTAL KURYE · OPERASYON PLATFORMU</span><h1>Dağıtım Günü <em>Sorgulama</em></h1><p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p><div class="heroPills"><span>81 İl</span><span>Adres bazlı sorgulama</span><span>Güncel saha bilgisi</span></div></div><div class="card">
+ <div class="hero">
+  <span class="eyebrow">DİJİTAL KURYE · OPERASYON PLATFORMU</span>
+  <h1>Dağıtım Günü <em>Sorgulama</em></h1>
+  <p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p>
+  <div class="heroPills"><span>81 İl</span><span>Adres bazlı sorgulama</span><span>Güncel saha bilgisi</span></div>
+ </div>
+
+ <div class="card">
   <section id="querySection" class="accordion open">
-    <button type="button" class="accHead" aria-expanded="true"><span>🔎 Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span><span class="accChevron">⌃</span></button>
-    <div class="accBody">
-      <div class="grid">
-        <div class="searchwrap"><input id="q" style="width:100%" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın"><div id="suggestions" class="suggestions"></div></div>
-        <input id="date" type="date">
-        <button id="btn">Sorgula</button>
-      </div>
-      <div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Adres araması ile İl / İlçe / Mahalle seçimleri aynı sorgu alanındadır.</div>
-      <div class="dataBar"><div id="dataInfo" class="dataInfo">Merkezi veriye bağlanılıyor…</div></div>
-      <div class="filters">
-        <div class="field"><label>İl</label><select id="il"><option value="">Tüm iller</option></select></div>
-        <div class="field"><label>İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
-        <div class="field"><label>Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
-      </div>
+   <button type="button" class="accHead" aria-expanded="true"><span>🔎 Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <div class="accBody">
+    <div class="grid">
+     <div class="searchwrap">
+      <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın" aria-label="Mahalle veya açık adres" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
+      <div id="suggestions" class="suggestions" role="listbox"></div>
+     </div>
+     <input id="date" type="date" aria-label="Başlangıç tarihi">
+     <button id="btn" type="button">Sorgula</button>
     </div>
+    <div class="hint">En az 3 karakter yazdığınızda mahalle önerileri görünür. Dilerseniz aşağıdan İl / İlçe / Mahalle seçerek de sorgulayabilirsiniz.</div>
+    <div class="dataBar"><div id="dataInfo">Merkezi veriye bağlanılıyor…</div></div>
+    <div class="filters">
+     <div class="field"><label for="il">İl</label><select id="il" disabled><option value="">Tüm iller</option></select></div>
+     <div class="field"><label for="ilce">İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
+     <div class="field"><label for="mah">Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
+    </div>
+   </div>
   </section>
 
   <section id="deliverySection" class="accordion">
-    <button type="button" class="accHead" aria-expanded="false"><span>📦 Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><span class="accChevron">⌃</span></button>
-    <div class="accBody" id="deliveryContent"><div id="results" class="results"></div></div>
+   <button type="button" class="accHead" aria-expanded="false"><span>📦 Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <div class="accBody"><div id="results" aria-live="polite"></div></div>
   </section>
 
   <section id="opsSection" class="accordion">
-    <button type="button" class="accHead" aria-expanded="false"><span>🚚 Operasyon Durumu</span><span class="accChevron">⌃</span></button>
-    <div class="accBody" id="opsContent"><div id="opsBox" class="opsBox" style="display:none"></div></div>
+   <button type="button" class="accHead" aria-expanded="false"><span>🚚 Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <div class="accBody"><div id="opsBox"></div></div>
   </section>
 
   <section id="weatherSection" class="accordion">
-    <button type="button" class="accHead" aria-expanded="false"><span>🌤️ Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><span class="accChevron">⌃</span></button>
-    <div class="accBody" id="weatherContent"><div id="weatherBox" class="weatherBox" style="display:none"></div></div>
+   <button type="button" class="accHead" aria-expanded="false"><span>🌤️ Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><span class="accChevron">▼</span></button>
+   <div class="accBody"><div id="weatherBox"></div></div>
   </section>
 
   <button type="button" id="feedbackLaunch" class="feedbackLaunch">💬 Öneri / Talep Gönder</button>
   <section id="feedbackSection" class="accordion">
-    <button type="button" class="accHead" aria-expanded="false"><span>Öneri / Talep Formu</span><span class="accChevron">⌃</span></button>
-    <div class="accBody">
-      <form id="feedbackForm">
-        <div class="feedbackGrid">
-          <div><label for="fbName">Ad Soyad</label><input id="fbName" name="name" autocomplete="name" required></div>
-          <div><label for="fbPhone">GSM</label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="05xx xxx xx xx" required></div>
-          <div class="full"><label for="fbEmail">E-posta</label><input id="fbEmail" name="email" type="email" autocomplete="email" required></div>
-          <div class="full"><label for="fbMessage">Açıklama</label><textarea id="fbMessage" name="message" placeholder="Öneri veya talebinizi yazın" required></textarea></div>
-        </div>
-        <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
-        <div id="feedbackStatus" class="feedbackStatus"></div>
-        <div class="feedbackNote">Gönderdiğiniz bilgiler yalnızca öneri/talebinizin değerlendirilmesi ve gerektiğinde sizinle iletişim kurulması amacıyla kaydedilir.</div>
-      </form>
-    </div>
+   <button type="button" class="accHead" aria-expanded="false"><span>Öneri / Talep Formu</span><span class="accChevron">▼</span></button>
+   <div class="accBody">
+    <form id="feedbackForm" novalidate>
+     <div class="feedbackGrid">
+      <div><label for="fbName">Ad Soyad</label><input id="fbName" name="name" autocomplete="name" maxlength="120" required></div>
+      <div><label for="fbPhone">GSM</label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required></div>
+      <div class="full"><label for="fbEmail">E-posta</label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required></div>
+      <div class="full"><label for="fbMessage">Açıklama</label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Öneri veya talebinizi yazın" required></textarea></div>
+      <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+     </div>
+     <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
+     <div id="feedbackStatus" class="feedbackStatus" role="status"></div>
+     <div class="feedbackNote">Gönderdiğiniz bilgiler yalnızca öneri/talebinizin değerlendirilmesi ve gerektiğinde sizinle iletişim kurulması amacıyla kaydedilir.</div>
+    </form>
+   </div>
   </section>
-</div></div><script>
-
-
-const MGM_BASE='https://servis.mgm.gov.tr/web';
-const MGM_PAGE='https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx';
-let weatherRequestNo=0;
-function weatherEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function mgmSlug(v){return String(v||'').toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
-function weatherFallback(box,il,ilce,msg){
- box.style.display='block';
- box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+'</div><div class="weatherFallback">'+weatherEsc(msg)+' <a target="_blank" rel="noopener noreferrer" href="'+MGM_PAGE+'?m='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce)+'">MGM tahminlerini aç ↗</a></div></div>';
-}
-async function loadWeather(il,ilce){
- const box=document.getElementById('weatherBox'); if(!box||!il||!ilce)return;
- const req=++weatherRequestNo; box.style.display='block';
- const ws=document.getElementById('weatherSection');if(ws){ws.classList.add('hasContent');}
- box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • MGM verisi yükleniyor…</div></div>';
- try{
-  const wr=await fetch('https://dagitimuyari.egemenduman.workers.dev/weather?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),{cache:'no-store'});
-  if(!wr.ok)throw new Error('Hava servisi HTTP '+wr.status);
-  const data=await wr.json(); if(req!==weatherRequestNo)return;
-  let rows=Array.isArray(data.rows)?data.rows:[];
-  if(!rows.length)throw new Error(data.error||'Tahmin bulunamadı');
-
-  const val=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null)return o[k];return '—'};
-  const WEATHER_NAMES={
-    'A':'Açık','AB':'Az Bulutlu','PB':'Parçalı Bulutlu','CB':'Çok Bulutlu',
-    'HY':'Hafif Yağmurlu','HHY':'Hafif Yağmurlu','Y':'Yağmurlu','KY':'Kuvvetli Yağmurlu',
-    'HSY':'Hafif Sağanak Yağışlı','SY':'Sağanak Yağışlı','KSY':'Kuvvetli Sağanak Yağışlı',
-    'GSY':'Gök Gürültülü Sağanak Yağışlı','HGSY':'Hafif Gök Gürültülü Sağanak Yağışlı','KGY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı','KGSY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı',
-    'HKY':'Hafif Kar Yağışlı','K':'Kar Yağışlı','KKY':'Karla Karışık Yağmurlu','YKY':'Yoğun Kar Yağışlı',
-    'S':'Sisli','SIS':'Sisli','P':'Puslu','PUS':'Puslu','D':'Dumanlı','R':'Rüzgarlı','KF':'Kum Fırtınası','TF':'Toz veya Kum Fırtınası'
-  };
-  const weatherName=c=>WEATHER_NAMES[String(c||'').toUpperCase()]||String(c||'—');
-  const risky=c=>/GSY|KGY|KSY|KY|KKY|K$|SY|Y$/.test(String(c||'').toUpperCase());
-
-  const cur=data.current && !data.current.error ? data.current : null;
-  let todayCard='';
-  if(cur){
-    const cc=val(cur,['hadise','hadiseKodu','weather']);
-    const ccode=String(cc||'').replace(/[^A-Za-z0-9_-]/g,'');
-    const cicon=ccode&&ccode!=='—'?'<img class="weatherTodayIcon" alt="" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(ccode)+'.svg">':'';
-    const temp=val(cur,['sicaklik','temperature']);
-    const nem=val(cur,['nem','humidity']);
-    const rh=val(cur,['ruzgarHiz','ruzgarHizi']);
-    const ry=val(cur,['ruzgarYon','ruzgarYonu']);
-    const obs=String(val(cur,['tarih','veriZamani','date'])).replace('T',' ').replace('Z','');
-    const obsLabel=cur.isForecast?'MGM saatlik tahmini':'Son ölçüm';
-    todayCard='<div class="weatherToday"><div class="weatherTodayHead">'+cicon+'<div><div class="weatherTodayTitle">Bugün • '+weatherEsc(weatherName(cc))+'</div><div class="weatherTodayDesc">'+weatherEsc(ilce+' / '+il)+(obs&&obs!=='—'?' • '+weatherEsc(obsLabel)+': '+weatherEsc(obs):'')+'</div></div></div><div class="weatherTodayGrid"><div class="weatherMetric"><span>Sıcaklık</span><b>'+weatherEsc(temp)+' °C</b></div><div class="weatherMetric"><span>Nem</span><b>%'+weatherEsc(nem)+'</b></div><div class="weatherMetric"><span>Rüzgâr</span><b>'+weatherEsc(rh)+' km/sa</b></div><div class="weatherMetric"><span>Rüzgâr yönü</span><b>'+weatherEsc(ry)+'°</b></div></div></div>';
-    if(risky(cc)){
-      todayCard+='<div class="weatherNotice weatherRisk"><strong>⚠ Bugün için hava durumu uyarısı – '+weatherEsc(ilce+' / '+il)+'</strong>'+weatherEsc(weatherName(cc))+' koşulları kurye saha operasyonunu etkileyebilir.</div>';
-    }
-  }else{
-    todayCard='<div class="weatherNotice"><strong>Bugünün hava durumu</strong>Anlık MGM ölçümü alınamadı; aşağıdaki 5 günlük tahmin gösteriliyor.</div>';
-  }
-
-  // MGM daily forecast starts with tomorrow. For the user-selected date, if it is
-  // before the first MGM row, explain that clearly instead of pretending it is missing.
-  const selected=document.getElementById('date')?.value || document.querySelector('input[type="date"]')?.value || '';
-  const firstDate=String(val(rows[0],['tarih','date'])).slice(0,10);
-  let notice='';
-  if(selected && firstDate && selected < firstDate){
-    notice='';
-  }
-
-  // Warning for the queried location based on the forecast conditions returned by MGM.
-  const alerts=rows.filter(r=>risky(val(r,['hadise','hadiseKodu','weather']))).map(r=>{
-    const dt=String(val(r,['tarih','date'])).slice(0,10);
-    const code=val(r,['hadise','hadiseKodu','weather']);
-    return weatherEsc(dt.split('-').reverse().join('.')+' – '+weatherName(code));
-  });
-  if(alerts.length){
-    notice+='<div class="weatherNotice weatherRisk"><strong>⚠ Hava durumu uyarısı – '+weatherEsc(ilce+' / '+il)+'</strong>'+alerts.join('<br>')+'</div>';
-  }
-
-  const simpleRows=rows.slice(0,5).map((r,i)=>{
-    const n=i+1;
-    const rawDate=String(val(r,['tarih','date','tarihGun'+n]));
-    const dt=rawDate.slice(0,10);
-    const dateText=/^\d{4}-\d{2}-\d{2}$/.test(dt)?dt.split('-').reverse().join('.'):rawDate;
-    const had=val(r,['hadise','hadiseKodu','weather','hadiseGun'+n,'hadise'+n]);
-    const code=String(had||'').replace(/[^A-Za-z0-9_-]/g,'');
-    const icon=code&&code!=='—'?'<img alt="'+weatherEsc(weatherName(had))+'" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(code)+'.svg">':'';
-    return {dateText,had,icon};
-  });
-
-  const dates=simpleRows.map(x=>'<td class="dateCell">'+weatherEsc(x.dateText)+'</td>').join('');
-  const conditions=simpleRows.map(x=>'<td class="conditionCell"><div class="conditionInner">'+x.icon+'<span class="conditionName">'+weatherEsc(weatherName(x.had))+'</span></div></td>').join('');
-
-  box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+' • Meteoroloji Genel Müdürlüğü</div><div class="weatherSimpleWrap"><table class="weatherSimple"><tbody><tr><th>Tarih</th>'+dates+'</tr><tr><th>Durum</th>'+conditions+'</tr></tbody></table></div></div>';
-
- }catch(e){
-  if(req===weatherRequestNo){
-   box.innerHTML='<div class="weatherPanel"><div class="weatherTitle">5 Günlük Hava Tahmini</div><div class="weatherSub">'+weatherEsc(ilce+' / '+il)+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü ve operasyon sorgusu çalışmaya devam ediyor.</div></div>';
-  }
- }
-}
-const OPS_API='https://dagitimuyari.egemenduman.workers.dev';
-let opsRequestNo=0;
-function opsEsc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function hideOperationalAlerts(){const b=document.getElementById('opsBox');if(b){b.style.display='none';b.innerHTML=''}}
-async function loadOperationalAlerts(il,ilce){
- const box=document.getElementById('opsBox');if(!box||!il)return;const req=++opsRequestNo;
- const os=document.getElementById('opsSection');if(os){os.classList.add('hasContent');}
- box.style.display='block';box.innerHTML='<div class="opsPanel opsNeutral"><div class="opsTitle">Operasyon Durumu</div><div class="opsText">Resmî kaynak uyarıları kontrol ediliyor…</div></div>';
- const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7000);
- try{
-  const r=await fetch(OPS_API+'/?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce||''),{signal:ctrl.signal,cache:'no-store'});
-  if(!r.ok)throw new Error();const data=await r.json();if(req!==opsRequestNo)return;
-  const a=Array.isArray(data.alerts)?data.alerts:[];
-  if(!a.length){box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">✓ Aktif operasyon uyarısı bulunamadı</div><div class="opsText">'+opsEsc(ilce?ilce+' / '+il:il)+' için eşleşen güncel uyarı bulunmadı.</div></div>';return}
-  const severe=a.some(x=>x.type==='MOTOSIKLET_YASAGI'||x.type==='YOL_KAPALI');
-  const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+opsEsc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+opsEsc(x.summary)+'</div>':'')+(x.url?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+opsEsc(x.url)+'">Resmî kaynağı aç ↗</a>':'')+'</div>').join('');
-  box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle">⚠ Operasyon uyarısı</div><div class="opsText">'+items+'</div></div>';
- }catch(e){if(req===opsRequestNo)box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">✓ Kurye saha kısıtlaması bulunamadı</div><div class="opsText">Kontrol süresi içinde kurye/motosiklet saha çalışmasını kısıtlayan aktif bir duyuru tespit edilmedi.</div></div>'}finally{clearTimeout(timer)}
-}
-
-let DATA=[]; const DN=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
-function norm(s){return (s||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(mahallesi|mahalle|mah|mh|sokagi|sokak|sk|caddesi|cadde|cd)\b\.?/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
-let IDX=[]; function rebuildIndex(){IDX=DATA.map((r,i)=>({i,n:[norm(r[0]),norm(r[1]),norm(r[2])],all:norm(r[0]+' '+r[1]+' '+r[2])}));} rebuildIndex();
-function hasPhrase(q,v){return !!v && (' '+q+' ').includes(' '+v+' ')}
-function allTokens(q,v){const toks=v.split(' ').filter(t=>t.length>1); return toks.length>0 && toks.every(t=>(' '+q+' ').includes(' '+t+' '))}
-function tokens(s){return new Set(s.split(' ').filter(Boolean))}
-function fieldHit(q,v){if(!v)return false; const qt=tokens(q), vt=v.split(' ').filter(Boolean); return vt.length>0 && vt.every(t=>qt.has(t))}
-function score(x,q){
-  const il=x.n[0], ilce=x.n[1], mah=x.n[2];
-  const ilHit=fieldHit(q,il), ilceHit=fieldHit(q,ilce), mahHit=fieldHit(q,mah);
-  if(!mahHit && !ilceHit && !ilHit) return 0;
-  let s=mahHit?3000:0; if(ilceHit)s+=1500; if(ilHit)s+=800;
-  if(mahHit&&ilceHit)s+=2500; if(mahHit&&ilceHit&&ilHit)s+=4000;
-  // Sorguda bir il/ilçe açıkça tespit edildiyse yanlış coğrafyayı ele.
-  const detectedIls=new Set(IDX.filter(y=>fieldHit(q,y.n[0])).map(y=>y.n[0]));
-  const detectedIlceler=new Set(IDX.filter(y=>fieldHit(q,y.n[1])).map(y=>y.n[1]));
-  if(detectedIls.size && !ilHit) s-=5000;
-  if(detectedIlceler.size && !ilceHit) s-=4000;
-  return s;
-}
-function nextOpen(days,date){let d=new Date(date+'T12:00:00'); for(let add=0;add<14;add++){let x=new Date(d);x.setDate(d.getDate()+add);let idx=(x.getDay()+6)%7;if(days[idx])return {add,date:x,idx}}return null}
-function fmt(d){return d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
-function esc(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function renderRows(indices){const date=document.getElementById('date').value,box=document.getElementById('results');
-const ds=document.getElementById('deliverySection');if(ds){ds.classList.add('hasContent');}if(!indices.length){box.innerHTML='<div class="empty">Eşleşen mahalle bulunamadı.</div>';hideOperationalAlerts();return}box.innerHTML=indices.slice(0,30).map(i=>{const r=DATA[i],n=nextOpen(r[3],date),badge=n?(n.add===0?'Bugün dağıtım var':n.add+' gün sonra'):'Dağıtım günü yok';return `<div class="result"><div class="top"><div><div class="place">${esc(r[2])}</div><div class="small">${esc(r[1])} / ${esc(r[0])}</div></div><div class="badge ${n?'':'closed'}">${badge}</div></div>${n?`<div class="small"><b>İlk uygun gün:</b> ${fmt(n.date)}</div>`:''}<div class="days">${DN.map((d,j)=>`<span class="day ${r[3][j]?'on':''}">${d.slice(0,3)}</span>`).join('')}</div></div>`}).join('');const first=DATA[indices[0]];if(first){
- const ds=document.getElementById('deliverySection');if(ds){setAccordion(ds,true);}
- const qs=document.getElementById('querySection');if(qs){setAccordion(qs,false);}
- const qm=document.getElementById('queryMeta');if(qm)qm.textContent=first[2]+' • '+first[1];
- const dm=document.getElementById('deliveryMeta');if(dm)dm.textContent=first[2];
- loadOperationalAlerts(first[0],first[1]);loadWeather(first[0],first[1]);
-}}
-function filteredIndices(){const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;return DATA.map((r,i)=>[r,i]).filter(([r])=>(!il||r[0]===il)&&(!ic||r[1]===ic)&&(!m||r[2]===m)).map(x=>x[1])}
-function run(){const raw=document.getElementById('q').value.trim(),q=norm(raw);if(!q){renderRows(filteredIndices());return}let hits=IDX.map(x=>[score(x,q),x.i]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]);const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;hits=hits.filter(([s,i])=>(!il||DATA[i][0]===il)&&(!ic||DATA[i][1]===ic)&&(!m||DATA[i][2]===m));const top=hits.length?hits[0][0]:0;renderRows(hits.filter(x=>x[0]>=Math.max(1,top-250)).slice(0,30).map(x=>x[1]))}
-function uniq(a){return [...new Set(a)].sort((a,b)=>a.localeCompare(b,'tr'))}
-function fillSelect(el,items,placeholder){el.innerHTML=`<option value="">${placeholder}</option>`+items.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');el.disabled=!items.length}
-function initFilters(){const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');fillSelect(il,uniq(DATA.map(r=>r[0])),'Tüm iller');il.disabled=false;il.onchange=()=>{fillSelect(ic,uniq(DATA.filter(r=>!il.value||r[0]===il.value).map(r=>r[1])),'Tüm ilçeler');fillSelect(m,[],'Tüm mahalleler');run()};ic.onchange=()=>{fillSelect(m,uniq(DATA.filter(r=>(!il.value||r[0]===il.value)&&(!ic.value||r[1]===ic.value)).map(r=>r[2])),'Tüm mahalleler');run()};m.onchange=run}
-let activeSug=-1;
-function showSuggestions(){const input=document.getElementById('q'),box=document.getElementById('suggestions'),q=norm(input.value);activeSug=-1;if(q.length<3){box.style.display='none';return}const il=document.getElementById('il').value,ic=document.getElementById('ilce').value;let arr=[];for(let k=0;k<IDX.length;k++){const x=IDX[k],i=x.i;if(il&&DATA[i][0]!==il)continue;if(ic&&DATA[i][1]!==ic)continue;const mh=x.n[2];let s=0;if(mh===q)s=10000;else if(mh.startsWith(q))s=8000-q.length;else if(mh.includes(q))s=6000-mh.indexOf(q);else if(x.all.includes(q))s=3000-x.all.indexOf(q);if(s>0){arr.push([s,i]);if(arr.length>80){arr.sort((a,b)=>b[0]-a[0]);arr.length=20}}}arr.sort((a,b)=>b[0]-a[0]);arr=arr.slice(0,10);if(!arr.length){box.style.display='none';return}box.innerHTML=arr.map(([s,i])=>`<div class="suggestion" data-i="${i}"><b>${esc(DATA[i][2])}</b><span>${esc(DATA[i][1])} / ${esc(DATA[i][0])}</span></div>`).join('');box.style.display='block';box.querySelectorAll('.suggestion').forEach(el=>el.onmousedown=e=>{e.preventDefault();selectSuggestion(+el.dataset.i)})}
-function selectSuggestion(i){suggestionSelected=true;const r=DATA[i],q=document.getElementById('q'),box=document.getElementById('suggestions'),il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');clearTimeout(suggestTimer);box.style.display='none';box.innerHTML='';q.value=`${r[2]}, ${r[1]}, ${r[0]}`;il.value=r[0];const ilceler=uniq(DATA.filter(x=>x[0]===r[0]).map(x=>x[1]));fillSelect(ic,ilceler,'Tüm ilçeler');ic.value=r[1];const mahalleler=uniq(DATA.filter(x=>x[0]===r[0]&&x[1]===r[1]).map(x=>x[2]));fillSelect(m,mahalleler,'Tüm mahalleler');m.value=r[2];renderRows([i]);q.blur()}
-const qel=document.getElementById('q');let suggestTimer=null;let suggestionSelected=false;qel.addEventListener('input',()=>{clearTimeout(suggestTimer); const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah'); if(il.value||ic.value||m.value){il.value=''; fillSelect(ic,[],'Tüm ilçeler'); fillSelect(m,[],'Tüm mahalleler');}const box=document.getElementById('suggestions');if(suggestionSelected){suggestionSelected=false;const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');il.value='';fillSelect(ic,[],'Tüm ilçeler');fillSelect(m,[],'Tüm mahalleler');}if(norm(qel.value).length<3){box.style.display='none';return}suggestTimer=setTimeout(showSuggestions,300)});qel.addEventListener('paste',()=>{clearTimeout(suggestTimer);document.getElementById('suggestions').style.display='none'});qel.addEventListener('keydown',e=>{const box=document.getElementById('suggestions'),els=[...box.querySelectorAll('.suggestion')];if((e.key==='ArrowDown'||e.key==='ArrowUp')&&els.length){e.preventDefault();activeSug=(activeSug+(e.key==='ArrowDown'?1:-1)+els.length)%els.length;els.forEach((x,j)=>x.classList.toggle('active',j===activeSug));els[activeSug].scrollIntoView({block:'nearest'})}else if(e.key==='Enter'){e.preventDefault();if(activeSug>=0&&els[activeSug])selectSuggestion(+els[activeSug].dataset.i);else{box.style.display='none';run()}}else if(e.key==='Escape')box.style.display='none'});document.addEventListener('click',e=>{if(!e.target.closest('.searchwrap'))document.getElementById('suggestions').style.display='none'});
-document.getElementById('date').valueAsDate=new Date();document.getElementById('btn').onclick=run;
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('DagitimGunuDB',1);r.onupgradeneeded=()=>r.result.createObjectStore('store');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-async function dbSet(k,v){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction('store','readwrite');tx.objectStore('store').put(v,k);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
-async function dbGet(k){const db=await openDB();return new Promise((res,rej)=>{const r=db.transaction('store').objectStore('store').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-function setInfo(msg,ok=true){const e=document.getElementById('dataInfo');e.innerHTML=`<span class="${ok?'statusOk':'statusErr'}">${esc(msg)}</span>`}
-function dayOpen(v){const x=norm(String(v??''));return ['acik','açık','1','true','evet','yes','x'].includes(x)||v===1||v===true}
-function parseRows(rows){if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');const h=rows[0].map(x=>norm(String(x??'')));const find=(alts)=>h.findIndex(x=>alts.includes(x));const ci=find(['il']), cj=find(['ilce']), cm=find(['mahalle','mahalle koy','mahallekoy']);const dayAlts=[['pzt','pazartesi'],['sal','sali'],['crs','carsamba'],['prs','persembe'],['cum','cuma'],['cts','cumartesi'],['pzr','pazar']];const di=dayAlts.map(find);if(ci<0||cj<0||cm<0||di.some(x=>x<0))throw new Error('Beklenen sütunlar bulunamadı: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR');const out=[];for(let n=1;n<rows.length;n++){const r=rows[n];const il=String(r[ci]??'').trim(),ilce=String(r[cj]??'').trim(),mah=String(r[cm]??'').trim();if(!il||!ilce||!mah)continue;out.push([il,ilce,mah,di.map(i=>dayOpen(r[i]))])}if(!out.length)throw new Error('Geçerli veri satırı bulunamadı.');return out}
-async function importFile(file){try{setInfo('Excel okunuyor…');let rows;if(file.name.toLowerCase().endsWith('.csv')){const text=await file.text();const wb=XLSX.read(text,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}else{if(typeof XLSX==='undefined')throw new Error('Excel okuyucu yüklenemedi. İnternet bağlantısını kontrol edin veya CSV kullanın.');const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}const fresh=parseRows(rows);DATA=fresh;rebuildIndex();initFilters();document.getElementById('q').value='';document.getElementById('results').innerHTML='';const meta={name:file.name,count:DATA.length,updated:new Date().toISOString()};await dbSet('data',DATA);await dbSet('meta',meta);setInfo(`${file.name} yüklendi • ${DATA.length.toLocaleString('tr-TR')} kayıt • ${new Date(meta.updated).toLocaleString('tr-TR')}`)}catch(e){setInfo('Güncelleme başarısız: '+e.message,false)}}
-const DATA_API='https://dagitimveri.egemenduman.workers.dev';
-let SUGGESTIONS=[];
-function apiRows(j){return Array.isArray(j)?j:(Array.isArray(j?.rows)?j.rows:(Array.isArray(j?.data)?j.data:[]))}
-function rowToData(x){
- if(Array.isArray(x)) return x;
- return [x.il,x.ilce,x.mahalle,[x.pazartesi,x.sali,x.carsamba,x.persembe,x.cuma,x.cumartesi,x.pazar].map(Number)];
-}
-async function apiJSON(path){
- const r=await fetch(DATA_API+path,{cache:'no-store'});
- const j=await r.json().catch(()=>({}));
- if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
- return j;
-}
-async function apiList(path,key){
- const j=await apiJSON(path);
- return uniq(apiRows(j).map(x=>typeof x==='string'?x:(x[key]||x.name||x.value)).filter(Boolean));
-}
-async function loadProvinceList(){
- try{
-   setInfo('Merkezi veriye bağlanılıyor…');
-   const items=await apiList('/api/iller','il');
-   fillSelect(document.getElementById('il'),items,'Tüm iller');
-   document.getElementById('il').disabled=false;
-   setInfo('Merkezi veri bağlantısı hazır • '+items.length+' il');
- }catch(e){ setInfo('Merkezi bağlantı kurulamadı: '+e.message,false); }
-}
-function renderApiRows(rows){
- DATA=rows.map(rowToData);
- rebuildIndex();
- renderRows(DATA.map((_,i)=>i));
-}
-async function showSuggestions(){
- const input=document.getElementById('q'),box=document.getElementById('suggestions');
- const raw=input.value.trim(); activeSug=-1;
- if(norm(raw).length<3){box.style.display='none';box.innerHTML='';return}
- try{
-   const j=await apiJSON('/api/ara?q='+encodeURIComponent(raw));
-   SUGGESTIONS=apiRows(j).slice(0,10).map(rowToData);
-   if(!SUGGESTIONS.length){box.style.display='none';box.innerHTML='';return}
-   box.innerHTML=SUGGESTIONS.map((r,i)=>`<div class="suggestion" data-i="${i}"><b>${esc(r[2])}</b><span>${esc(r[1])} / ${esc(r[0])}</span></div>`).join('');
-   box.style.display='block';
-   box.querySelectorAll('.suggestion').forEach(el=>el.onmousedown=e=>{e.preventDefault();selectSuggestion(+el.dataset.i)});
- }catch(e){box.style.display='none';}
-}
-async function selectSuggestion(i){
- const r=SUGGESTIONS[i]; if(!r)return;
- suggestionSelected=true; clearTimeout(suggestTimer);
- const q=document.getElementById('q'),box=document.getElementById('suggestions');
- const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');
- box.style.display='none';box.innerHTML='';q.value=`${r[2]}, ${r[1]}, ${r[0]}`;
- il.value=r[0];
- try{
-   fillSelect(ic,await apiList('/api/ilceler?il='+encodeURIComponent(r[0]),'ilce'),'Tüm ilçeler');ic.value=r[1];
-   fillSelect(m,await apiList('/api/mahalleler?il='+encodeURIComponent(r[0])+'&ilce='+encodeURIComponent(r[1]),'mahalle'),'Tüm mahalleler');m.value=r[2];
- }catch(e){}
- renderApiRows([r]); q.blur();
-}
-async function run(){
- const q=document.getElementById('q').value.trim();
- const il=document.getElementById('il').value,ic=document.getElementById('ilce').value,m=document.getElementById('mah').value;
- const box=document.getElementById('results');
- try{
-   if(il&&ic&&m){
-     const j=await apiJSON('/api/mahalle?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ic)+'&mahalle='+encodeURIComponent(m));
-     renderApiRows(j.row?[j.row]:apiRows(j)); return;
-   }
-   if(norm(q).length>=3){
-     box.innerHTML='<div class="loading">Adres aranıyor…</div>';
-     const j=await apiJSON('/api/ara?q='+encodeURIComponent(q));
-     renderApiRows(apiRows(j)); return;
-   }
-   box.innerHTML='<div class="empty">Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.</div>';
- }catch(e){
-   box.innerHTML='<div class="error">Sorgu yapılamadı: '+esc(e.message)+'</div>';
- }
-}
-function initFilters(){
- const il=document.getElementById('il'),ic=document.getElementById('ilce'),m=document.getElementById('mah');
- il.onchange=async()=>{
-   document.getElementById('results').innerHTML='';hideOperationalAlerts();
-   const wb=document.getElementById('weatherBox');if(wb)wb.style.display='none';
-   fillSelect(m,[],'Tüm mahalleler');
-   if(!il.value){fillSelect(ic,[],'Tüm ilçeler');return}
-   try{fillSelect(ic,await apiList('/api/ilceler?il='+encodeURIComponent(il.value),'ilce'),'Tüm ilçeler')}
-   catch(e){setInfo('İlçe listesi alınamadı: '+e.message,false)}
- };
- ic.onchange=async()=>{
-   document.getElementById('results').innerHTML='';hideOperationalAlerts();
-   const wb=document.getElementById('weatherBox');if(wb)wb.style.display='none';
-   if(!ic.value){fillSelect(m,[],'Tüm mahalleler');return}
-   try{fillSelect(m,await apiList('/api/mahalleler?il='+encodeURIComponent(il.value)+'&ilce='+encodeURIComponent(ic.value),'mahalle'),'Tüm mahalleler')}
-   catch(e){setInfo('Mahalle listesi alınamadı: '+e.message,false)}
- };
- m.onchange=()=>{if(m.value)run()};
-}
-document.getElementById('btn').onclick=run;
-initFilters(); loadProvinceList();
-</script>
-
-
+ </div>
+</div>
 
 <script>
+(()=>{
+'use strict';
+
+// ===================================================================
+// Ayarlar
+// ===================================================================
+const DATA_API='https://dagitimveri.egemenduman.workers.dev';
+const OPS_API='https://dagitimuyari.egemenduman.workers.dev';
+const MGM_PAGE='https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx';
+const DAY_NAMES=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+const DAY_SHORT=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+const DAY_KEYS=['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const pad=n=>String(n).padStart(2,'0');
+const trLower=s=>String(s??'').toLocaleLowerCase('tr-TR');
+// Türkçe karakter duyarsız anahtar (yalnızca istemci tarafı uzunluk kontrolleri için)
+const norm=s=>trLower(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim();
+
+// Yerel tarih (UTC değil) – Türkiye'de 00:00-03:00 arası "dün" görünme hatasını giderir.
+function localISODate(d=new Date()){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+
+// ===================================================================
+// API yardımcıları
+// ===================================================================
+async function apiJSON(url,{signal,timeout=12000}={}){
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),timeout);
+ if(signal)signal.addEventListener('abort',()=>ctrl.abort(),{once:true});
+ try{
+  const r=await fetch(url,{cache:'no-store',signal:ctrl.signal});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;throw e}
+  return j;
+ }catch(e){
+  if(e.name==='AbortError'&&!(signal&&signal.aborted))throw new Error('Sunucu yanıt vermedi');
+  throw e;
+ }finally{clearTimeout(timer)}
+}
+const dataApi=(path,opts)=>apiJSON(DATA_API+path,opts);
+const apiRows=j=>Array.isArray(j)?j:(Array.isArray(j?.rows)?j.rows:(Array.isArray(j?.data)?j.data:[]));
+function toRecord(x){
+ if(Array.isArray(x))return {il:x[0],ilce:x[1],mahalle:x[2],days:x[3].map(Number)};
+ return {il:x.il,ilce:x.ilce,mahalle:x.mahalle,days:DAY_KEYS.map(k=>Number(x[k])===1?1:0)};
+}
+const uniqSorted=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y,'tr'));
+async function apiList(path,key){
+ const j=await dataApi(path);
+ return uniqSorted(apiRows(j).map(x=>typeof x==='string'?x:(x[key]||x.name||x.value)));
+}
+
+// ===================================================================
+// Akordeon
+// ===================================================================
 function setAccordion(section,open){
  if(!section)return;
  section.classList.toggle('open',!!open);
  const b=section.querySelector(':scope > .accHead');
- if(b){b.setAttribute('aria-expanded',open?'true':'false');const c=b.querySelector('.accChevron');if(c)c.textContent=open?'⌃':'⌄';}
+ if(b)b.setAttribute('aria-expanded',open?'true':'false');
 }
+function showSection(id,open){const s=$(id);s.classList.add('hasContent');if(open!==undefined)setAccordion(s,open)}
+function hideSection(id){const s=$(id);s.classList.remove('hasContent');setAccordion(s,false)}
 document.querySelectorAll('.accordion > .accHead').forEach(b=>{
  b.addEventListener('click',()=>setAccordion(b.parentElement,!b.parentElement.classList.contains('open')));
 });
-document.getElementById('feedbackLaunch').addEventListener('click',()=>{
- const s=document.getElementById('feedbackSection');s.style.display='block';setAccordion(s,true);
- s.scrollIntoView({behavior:'smooth',block:'start'});
-});
-document.getElementById('feedbackClose').addEventListener('click',()=>setAccordion(document.getElementById('feedbackSection'),false));
-document.getElementById('feedbackForm').addEventListener('submit',async e=>{
- e.preventDefault();
- const form=e.currentTarget;
- const st=document.getElementById('feedbackStatus');
- const btn=form.querySelector('.feedbackSend');
- const payload={
-   ad_soyad:document.getElementById('fbName').value.trim(),
-   gsm:document.getElementById('fbPhone').value.trim(),
-   email:document.getElementById('fbEmail').value.trim(),
-   aciklama:document.getElementById('fbMessage').value.trim()
- };
- st.style.display='block';st.textContent='Gönderiliyor…';btn.disabled=true;
- try{
-   const r=await fetch('https://script.google.com/macros/s/AKfycbwHsvj8UTIX8ePaXg6UV588GJd1aKhLLvNQowcAs_iEUmsbQOAien1gjlcP-PpQ0Wdk/exec',{
-     method:'POST',
-     headers:{'Content-Type':'text/plain;charset=utf-8'},
-     body:JSON.stringify(payload)
-   });
-   const j=await r.json().catch(()=>({}));
-   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
-   st.textContent='✓ Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.';
-   form.reset();
- }catch(err){
-   st.textContent='Gönderilemedi. Lütfen daha sonra tekrar deneyin.';
- }finally{btn.disabled=false;}
-});
-</script>
 
-</body></html>
+// ===================================================================
+// Durum çubuğu
+// ===================================================================
+function setInfo(msg,ok=true){$('dataInfo').innerHTML='<span class="'+(ok?'statusOk':'statusErr')+'">'+esc(msg)+'</span>'}
+
+// ===================================================================
+// Dağıtım günü hesaplama + gösterim
+// ===================================================================
+function nextOpen(days,isoDate){
+ const [y,m,d]=isoDate.split('-').map(Number);
+ const start=new Date(y,m-1,d,12);
+ for(let add=0;add<7;add++){
+  const x=new Date(start);x.setDate(start.getDate()+add);
+  const idx=(x.getDay()+6)%7;
+  if(days[idx])return {add,date:x,idx};
+ }
+ return null;
+}
+const fmtDate=d=>d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+function badgeText(n,isoDate){
+ if(!n)return 'Dağıtım günü yok';
+ if(n.add===0)return isoDate===localISODate()?'Bugün dağıtım var':'Seçilen gün dağıtım var';
+ return n.add+' gün sonra';
+}
+
+let currentRecords=[];
+function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
+ currentRecords=records;
+ const box=$('results');
+ const isoDate=$('date').value||localISODate();
+ showSection('deliverySection',true);
+ if(!records.length){
+  box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
+  $('deliveryMeta').textContent='';
+  hideSection('opsSection');hideSection('weatherSection');
+  return;
+ }
+ box.innerHTML=records.slice(0,30).map(r=>{
+  const n=nextOpen(r.days,isoDate);
+  return '<div class="result"><div class="top"><div><div class="place">'+esc(r.mahalle)+'</div><div class="small">'+esc(r.ilce)+' / '+esc(r.il)+'</div></div>'+
+   '<div class="badge '+(n?'':'closed')+'">'+esc(badgeText(n,isoDate))+'</div></div>'+
+   (n?'<div class="small"><b>İlk uygun gün:</b> '+esc(fmtDate(n.date))+'</div>':'')+
+   '<div class="days">'+DAY_NAMES.map((d,j)=>'<span class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+d+'">'+DAY_SHORT[j]+'</span>').join('')+'</div></div>';
+ }).join('');
+ const first=records[0];
+ setAccordion($('querySection'),false);
+ $('queryMeta').textContent=first.mahalle+' • '+first.ilce;
+ $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':first.mahalle;
+ loadOperationalAlerts(first.il,first.ilce);
+ loadWeather(first.il,first.ilce);
+}
+
+// Tarih değişince mevcut sonuçları yeniden hesapla (yeniden sorgu atmadan)
+$('date').addEventListener('change',()=>{if(currentRecords.length)renderRecords(currentRecords)});
+
+// ===================================================================
+// Sorgu
+// ===================================================================
+const q=$('q'),sugBox=$('suggestions'),selIl=$('il'),selIlce=$('ilce'),selMah=$('mah');
+let SUGGESTIONS=[],activeSug=-1,suggestTimer=null,sugCtrl=null,runNo=0;
+
+function fillSelect(el,items,placeholder){
+ el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+items.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+ el.disabled=!items.length;
+}
+
+async function run(){
+ const my=++runNo;
+ const text=q.value.trim(),il=selIl.value,ic=selIlce.value,m=selMah.value;
+ const box=$('results');
+ closeSuggestions();
+ try{
+  if(il&&ic&&m){
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Sorgulanıyor…</div>';
+   const j=await dataApi('/api/mahalle?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ic)+'&mahalle='+encodeURIComponent(m));
+   if(my!==runNo)return;
+   renderRecords((j.row?[j.row]:apiRows(j)).map(toRecord));
+   return;
+  }
+  if(norm(text).length>=3){
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Adres aranıyor…</div>';
+   const j=await dataApi('/api/ara?q='+encodeURIComponent(text));
+   if(my!==runNo)return;
+   renderRecords(apiRows(j).map(toRecord));
+   return;
+  }
+  showSection('deliverySection',true);
+  box.innerHTML='<div class="empty">Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.</div>';
+ }catch(e){
+  if(my!==runNo)return;
+  box.innerHTML='<div class="error">Sorgu yapılamadı: '+esc(e.message)+'</div>';
+ }
+}
+
+// ---- Öneriler ----
+function closeSuggestions(){
+ clearTimeout(suggestTimer);
+ if(sugCtrl){sugCtrl.abort();sugCtrl=null}
+ sugBox.style.display='none';sugBox.innerHTML='';activeSug=-1;
+ q.setAttribute('aria-expanded','false');
+}
+async function showSuggestions(){
+ const raw=q.value.trim();
+ if(norm(raw).length<3){closeSuggestions();return}
+ if(sugCtrl)sugCtrl.abort();
+ const ctrl=sugCtrl=new AbortController();
+ try{
+  const j=await dataApi('/api/ara?q='+encodeURIComponent(raw),{signal:ctrl.signal});
+  if(ctrl!==sugCtrl)return; // daha yeni bir istek var
+  SUGGESTIONS=apiRows(j).slice(0,10).map(toRecord);
+  activeSug=-1;
+  if(!SUGGESTIONS.length){sugBox.style.display='none';sugBox.innerHTML='';return}
+  sugBox.innerHTML=SUGGESTIONS.map((r,i)=>'<div class="suggestion" role="option" data-i="'+i+'"><b>'+esc(r.mahalle)+'</b><span>'+esc(r.ilce)+' / '+esc(r.il)+'</span></div>').join('');
+  sugBox.style.display='block';q.setAttribute('aria-expanded','true');
+ }catch(e){if(ctrl===sugCtrl){sugBox.style.display='none'}}
+}
+sugBox.addEventListener('mousedown',e=>{
+ const el=e.target.closest('.suggestion');if(!el)return;
+ e.preventDefault();selectSuggestion(+el.dataset.i);
+});
+async function selectSuggestion(i){
+ const r=SUGGESTIONS[i];if(!r)return;
+ closeSuggestions();
+ q.value=r.mahalle+', '+r.ilce+', '+r.il;
+ q.blur();
+ renderRecords([r]);
+ // Filtreleri seçilen kayda göre doldur (sonucu bekletmeden)
+ if(![...selIl.options].some(o=>o.value===r.il))fillSelect(selIl,uniqSorted([...[...selIl.options].map(o=>o.value),r.il]),'Tüm iller');
+ selIl.value=r.il;
+ try{
+  fillSelect(selIlce,await apiList('/api/ilceler?il='+encodeURIComponent(r.il),'ilce'),'Tüm ilçeler');selIlce.value=r.ilce;
+  fillSelect(selMah,await apiList('/api/mahalleler?il='+encodeURIComponent(r.il)+'&ilce='+encodeURIComponent(r.ilce),'mahalle'),'Tüm mahalleler');selMah.value=r.mahalle;
+ }catch(e){}
+}
+
+q.addEventListener('input',()=>{
+ // Serbest yazım başlayınca açılır liste filtrelerini sıfırla
+ if(selIl.value||selIlce.value||selMah.value){selIl.value='';fillSelect(selIlce,[],'Tüm ilçeler');fillSelect(selMah,[],'Tüm mahalleler')}
+ clearTimeout(suggestTimer);
+ if(norm(q.value).length<3){closeSuggestions();return}
+ suggestTimer=setTimeout(showSuggestions,300);
+});
+q.addEventListener('keydown',e=>{
+ const els=[...sugBox.querySelectorAll('.suggestion')],open=sugBox.style.display==='block';
+ if((e.key==='ArrowDown'||e.key==='ArrowUp')&&open&&els.length){
+  e.preventDefault();
+  activeSug=(activeSug+(e.key==='ArrowDown'?1:-1)+els.length)%els.length;
+  els.forEach((x,j)=>x.classList.toggle('active',j===activeSug));
+  els[activeSug].scrollIntoView({block:'nearest'});
+ }else if(e.key==='Enter'){
+  e.preventDefault();
+  if(open&&activeSug>=0&&els[activeSug])selectSuggestion(+els[activeSug].dataset.i);else run();
+ }else if(e.key==='Escape')closeSuggestions();
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.searchwrap'))closeSuggestions()});
+$('btn').addEventListener('click',run);
+
+// ---- İl / İlçe / Mahalle filtreleri ----
+function clearResults(){
+ currentRecords=[];$('results').innerHTML='';
+ hideSection('deliverySection');hideSection('opsSection');hideSection('weatherSection');
+}
+selIl.addEventListener('change',async()=>{
+ clearResults();fillSelect(selMah,[],'Tüm mahalleler');
+ if(!selIl.value){fillSelect(selIlce,[],'Tüm ilçeler');return}
+ try{fillSelect(selIlce,await apiList('/api/ilceler?il='+encodeURIComponent(selIl.value),'ilce'),'Tüm ilçeler')}
+ catch(e){setInfo('İlçe listesi alınamadı: '+e.message,false)}
+});
+selIlce.addEventListener('change',async()=>{
+ clearResults();
+ if(!selIlce.value){fillSelect(selMah,[],'Tüm mahalleler');return}
+ try{fillSelect(selMah,await apiList('/api/mahalleler?il='+encodeURIComponent(selIl.value)+'&ilce='+encodeURIComponent(selIlce.value),'mahalle'),'Tüm mahalleler')}
+ catch(e){setInfo('Mahalle listesi alınamadı: '+e.message,false)}
+});
+selMah.addEventListener('change',()=>{if(selMah.value){q.value='';run()}});
+
+async function init(){
+ $('date').value=localISODate();
+ setInfo('Merkezi veriye bağlanılıyor…');
+ try{
+  const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);
+  fillSelect(selIl,iller,'Tüm iller');
+  const m=meta&&meta.meta;
+  let msg='Merkezi veri hazır • '+iller.length+' il';
+  if(m&&m.kayit_sayisi)msg+=' • '+Number(m.kayit_sayisi).toLocaleString('tr-TR')+' mahalle';
+  if(m&&m.guncelleme_tarihi)msg+=' • Son güncelleme: '+new Date(m.guncelleme_tarihi).toLocaleDateString('tr-TR');
+  setInfo(msg);
+ }catch(e){setInfo('Merkezi bağlantı kurulamadı: '+e.message,false)}
+}
+
+// ===================================================================
+// Operasyon uyarıları
+// ===================================================================
+let opsNo=0;
+async function loadOperationalAlerts(il,ilce){
+ const box=$('opsBox'),my=++opsNo;
+ showSection('opsSection');
+ $('opsMeta').textContent='';
+ box.innerHTML='<div class="opsPanel opsNeutral"><div class="opsTitle">Operasyon Durumu</div><div class="opsText">Resmî kaynak uyarıları kontrol ediliyor…</div></div>';
+ try{
+  const data=await apiJSON(OPS_API+'/?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce||''),{timeout:9000});
+  if(my!==opsNo)return;
+  const a=Array.isArray(data.alerts)?data.alerts:[];
+  const where=esc(ilce?ilce+' / '+il:il);
+  if(!a.length){
+   box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">✓ Aktif operasyon uyarısı bulunamadı</div><div class="opsText">'+where+' için eşleşen güncel uyarı bulunmadı.</div></div>';
+   $('opsMeta').textContent='Uyarı yok';
+   return;
+  }
+  const severe=a.some(x=>x.type==='MOTOSIKLET_YASAGI'||x.type==='YOL_KAPALI');
+  const safeUrl=u=>/^https:\/\//i.test(String(u||''))?u:'';
+  const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+esc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+esc(x.summary)+'</div>':'')+(safeUrl(x.url)?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">Resmî kaynağı aç ↗</a>':'')+'</div>').join('');
+  box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle">⚠ Operasyon uyarısı – '+where+'</div><div class="opsText">'+items+'</div></div>';
+  $('opsMeta').textContent=a.length+' uyarı';
+  setAccordion($('opsSection'),true);
+ }catch(e){
+  if(my!==opsNo)return;
+  // Hata durumunda "uyarı yok" DEMİYORUZ: kontrol yapılamadığını açıkça belirtiyoruz.
+  box.innerHTML='<div class="opsPanel opsWarn"><div class="opsTitle">Operasyon durumu kontrol edilemedi</div><div class="opsText">Resmî kaynaklara şu anda ulaşılamadı. Motokurye kısıtlaması veya yol kapanması olup olmadığını valilik ve KGM duyurularından teyit edin.</div></div>';
+  $('opsMeta').textContent='Kontrol edilemedi';
+ }
+}
+
+// ===================================================================
+// Hava durumu (MGM)
+// ===================================================================
+const WEATHER_NAMES={
+ 'A':'Açık','AB':'Az Bulutlu','PB':'Parçalı Bulutlu','CB':'Çok Bulutlu',
+ 'HY':'Hafif Yağmurlu','Y':'Yağmurlu','KY':'Kuvvetli Yağmurlu',
+ 'HSY':'Hafif Sağanak Yağışlı','SY':'Sağanak Yağışlı','KSY':'Kuvvetli Sağanak Yağışlı',
+ 'GSY':'Gök Gürültülü Sağanak Yağışlı','HGSY':'Hafif Gök Gürültülü Sağanak Yağışlı','KGY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı','KGSY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı',
+ 'HKY':'Hafif Kar Yağışlı','K':'Kar Yağışlı','KKY':'Karla Karışık Yağmurlu','YKY':'Yoğun Kar Yağışlı',
+ 'S':'Sisli','SIS':'Sisli','P':'Puslu','PUS':'Puslu','D':'Dumanlı','R':'Rüzgarlı','GKR':'Güneyli Kuvvetli Rüzgar','KKR':'Kuzeyli Kuvvetli Rüzgar',
+ 'KF':'Kum Fırtınası','TF':'Toz veya Kum Fırtınası','DY':'Dolu','SGK':'Soğuk','SCK':'Sıcak'
+};
+// Kurye operasyonunu etkileyebilecek hadiseler (açık liste – önceki regex "HY" gibi hafif yağışları da yakalıyordu)
+const RISKY=new Set(['Y','KY','SY','KSY','GSY','HGSY','KGY','KGSY','K','HKY','YKY','KKY','KF','TF','DY','GKR','KKR']);
+const wCode=c=>String(c??'').toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+const weatherName=c=>WEATHER_NAMES[wCode(c)]||String(c||'—');
+const isRisky=c=>RISKY.has(wCode(c));
+const wIcon=(c,cls='')=>{const k=wCode(c);return k?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
+const pick=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!==-9999)return o[k];return null};
+const dotDate=s=>{const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('.'):String(s||'—')};
+
+let weatherNo=0;
+async function loadWeather(il,ilce){
+ const box=$('weatherBox'),my=++weatherNo,where=esc(ilce+' / '+il);
+ showSection('weatherSection');
+ const head='<div class="weatherTitle">5 Günlük Hava Tahmini</div>';
+ box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • MGM verisi yükleniyor…</div></div>';
+ try{
+  const data=await apiJSON(OPS_API+'/weather?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),{timeout:12000});
+  if(my!==weatherNo)return;
+  const rows=(Array.isArray(data.rows)?data.rows:[]).filter(r=>pick(r,['tarih','date']));
+  if(!rows.length)throw new Error(data.error||'Tahmin bulunamadı');
+
+  let html='';
+  const cur=data.current&&!data.current.error?data.current:null;
+  if(cur){
+   const cc=pick(cur,['hadise','hadiseKodu','weather']);
+   const val=(k,s='')=>{const v=pick(cur,k);return v===null?'—':esc(v)+s};
+   const obs=String(pick(cur,['tarih','veriZamani','date'])||'').replace('T',' ').replace(/(:\d{2})\.\d+/,'$1').replace('Z','');
+   html+='<div class="weatherToday"><div class="weatherTodayHead">'+wIcon(cc,'weatherTodayIcon')+'<div><div class="weatherTodayTitle">Bugün • '+esc(weatherName(cc))+'</div><div class="weatherTodayDesc">'+where+(obs?' • '+(cur.isForecast?'MGM saatlik tahmini':'Son ölçüm')+': '+esc(obs):'')+'</div></div></div>'+
+    '<div class="weatherTodayGrid"><div class="weatherMetric"><span>Sıcaklık</span><b>'+val(['sicaklik','temperature'],' °C')+'</b></div><div class="weatherMetric"><span>Nem</span><b>%'+val(['nem','humidity'])+'</b></div><div class="weatherMetric"><span>Rüzgâr</span><b>'+val(['ruzgarHiz','ruzgarHizi'],' km/sa')+'</b></div><div class="weatherMetric"><span>Rüzgâr yönü</span><b>'+val(['ruzgarYon','ruzgarYonu'],'°')+'</b></div></div></div>';
+  }
+  const alerts=rows.filter(r=>isRisky(pick(r,['hadise','hadiseKodu','weather']))).map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
+  if(cur&&isRisky(pick(cur,['hadise','hadiseKodu','weather'])))alerts.unshift('Bugün – '+esc(weatherName(pick(cur,['hadise','hadiseKodu','weather']))));
+  if(alerts.length)html+='<div class="weatherNotice weatherRisk"><strong>⚠ Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>';
+
+  const five=rows.slice(0,5);
+  const temp=r=>{const lo=pick(r,['enDusuk']),hi=pick(r,['enYuksek']);return lo===null&&hi===null?'—':esc((lo??'—')+'° / '+(hi??'—')+'°')};
+  html+='<div class="weatherSimpleWrap"><table class="weatherSimple"><tbody>'+
+   '<tr><th>Tarih</th>'+five.map(r=>'<td class="dateCell">'+esc(dotDate(pick(r,['tarih','date'])))+'</td>').join('')+'</tr>'+
+   '<tr><th>Durum</th>'+five.map(r=>{const h=pick(r,['hadise','hadiseKodu','weather']);return '<td><div class="conditionInner">'+wIcon(h)+'<span class="conditionName">'+esc(weatherName(h))+'</span></div></td>'}).join('')+'</tr>'+
+   '<tr><th>Min / Maks</th>'+five.map(r=>'<td>'+temp(r)+'</td>').join('')+'</tr>'+
+   '</tbody></table></div>';
+
+  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • Meteoroloji Genel Müdürlüğü</div>'+html+'</div>';
+  $('weatherMeta').textContent=alerts.length?'⚠ '+alerts.length+' uyarı':'5 günlük';
+ }catch(e){
+  if(my!==weatherNo)return;
+  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü sorgusu çalışmaya devam ediyor. <a target="_blank" rel="noopener noreferrer" href="'+MGM_PAGE+'?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce)+'">MGM tahminlerini aç ↗</a></div></div>';
+  $('weatherMeta').textContent='5 günlük';
+ }
+}
+
+// ===================================================================
+// Öneri / talep formu → D1 (/api/oneri). Admin paneli buradan okur.
+// ===================================================================
+$('feedbackLaunch').addEventListener('click',()=>{
+ const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
+ s.scrollIntoView({behavior:'smooth',block:'start'});
+ setTimeout(()=>$('fbName').focus(),300);
+});
+$('feedbackClose').addEventListener('click',()=>{const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent')});
+$('feedbackForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const form=e.currentTarget,st=$('feedbackStatus'),btn=form.querySelector('.feedbackSend');
+ const show=(msg,cls='')=>{st.style.display='block';st.className='feedbackStatus '+cls;st.textContent=msg};
+ const payload={
+  ad_soyad:$('fbName').value.trim(),gsm:$('fbPhone').value.trim(),
+  email:$('fbEmail').value.trim(),aciklama:$('fbMessage').value.trim(),
+  website:$('fbWebsite').value
+ };
+ if(!payload.ad_soyad||!payload.gsm||!payload.email||!payload.aciklama)return show('Lütfen tüm alanları doldurun.','err');
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email))return show('Geçerli bir e-posta adresi girin.','err');
+ const digits=payload.gsm.replace(/\D/g,'');
+ if(digits.length<10||digits.length>13)return show('Geçerli bir GSM numarası girin.','err');
+ show('Gönderiliyor…');btn.disabled=true;
+ try{
+  const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
+  show('✓ Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.','ok');
+  form.reset();
+  if(typeof gtag==='function')gtag('event','oneri_gonder');
+ }catch(err){
+  show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');
+ }finally{btn.disabled=false}
+});
+
+// ===================================================================
+// Service worker (yalnızca uygulama kabuğunu önbelleğe alır, API verisini değil)
+// ===================================================================
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+ window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
+}
+
+init();
+})();
+</script>
+</body>
+</html>
