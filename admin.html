@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Dağıtım Verisi Yönetimi</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
@@ -31,13 +32,21 @@ progress{width:100%;height:18px;margin-top:12px}
 </div></div>
 <div id="adminApp" class="adminApp"><div class="wrap"><div class="card">
 <div class="topbar"><div><h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
-<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button></div>
+<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button><button id="tabApi" type="button">Optymus Test</button></div>
 <div id="dataPanel" class="panel active">
+<div id="metaInfo" class="small" style="margin-top:4px"></div>
 <label>Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
 <button id="upload">Veriyi Güncelle</button>
 <progress id="prog" value="0" max="100" style="display:none"></progress>
 <div id="status" class="status">Dosya seçip güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
+</div>
+<div id="apiPanel" class="panel">
+  <div id="apiState" class="small"></div>
+  <label for="apiAddr">Tam adres</label><input id="apiAddr" placeholder="Örn: Caferağa Mah. Moda Cad. No:10, Kadıköy, İstanbul">
+  <button id="apiTest" type="button">Sorgula</button>
+  <div id="apiStatus" class="status">Canlı servisin döndürdüğü ham yanıtı ve çözümlenen günleri görmek için adres girin.</div>
+  <pre id="apiRaw" style="display:none;white-space:pre-wrap;word-break:break-word;background:#0f1b2a;color:#d6e2f0;padding:12px;border-radius:11px;font-size:12px;max-height:420px;overflow:auto"></pre>
 </div>
 <div id="reqPanel" class="panel">
   <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
@@ -63,16 +72,29 @@ async function adminLogin(){
  try{
    const r=await fetch(API+'/admin/check',{method:'POST',headers:{'X-Admin-Password':pw}});
    const j=await r.json().catch(()=>({}));
+   if(r.status===429)throw new Error(j.error||'Çok fazla hatalı deneme. Daha sonra tekrar deneyin.');
    if(!r.ok||!j.ok)throw new Error('Şifre hatalı.');
    ADMIN_PW=pw;
+   {const d=j.optymusDurum||{},bit=d.tokenBitis?new Date(d.tokenBitis).toLocaleString('tr-TR'):'';
+    document.getElementById('apiState').textContent=
+     d.mod==='kullanici'?'Optymus: kullanıcı adı/şifre ile otomatik token aktif'+(bit?' • mevcut token bitişi: '+bit:'')+'.':
+     d.mod==='token'?(d.suresiDoldu?'⚠ OPTYMUS_TOKEN süresi dolmuş ('+bit+'). Canlı sorgu çalışmıyor.':'Optymus: sabit token kullanılıyor • bitiş: '+(bit||'bilinmiyor')+'. Otomatik yenileme için OPTYMUS_USERNAME/OPTYMUS_PASSWORD önerilir.'):
+     '⚠ Optymus kimlik bilgisi tanımlı değil. Canlı sorgu kapalı.';}
    loginPw.value='';
    loginScreen.style.display='none';
    adminApp.style.display='block';
+   loadMeta();
  }catch(e){
    ADMIN_PW='';
    loginError.textContent=e.message||'Giriş yapılamadı.';
    loginError.style.display='block';
  }finally{loginBtn.disabled=false;loginBtn.textContent='Giriş Yap';}
+}
+async function loadMeta(){
+ const el=document.getElementById('metaInfo');
+ try{const r=await fetch(API+'/api/meta',{cache:'no-store'});const j=await r.json();const m=j.meta||{};
+  el.textContent='Mevcut veri: '+Number(m.kayit_sayisi||0).toLocaleString('tr-TR')+' kayıt • Son güncelleme: '+(m.guncelleme_tarihi?new Date(m.guncelleme_tarihi).toLocaleString('tr-TR'):'—');
+ }catch(e){el.textContent='Mevcut veri bilgisi alınamadı.'}
 }
 loginBtn.addEventListener('click',adminLogin);
 loginPw.addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
@@ -81,7 +103,7 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{
 });
 
 const norm=s=>String(s??'').trim().toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();
-const dayOpen=v=>{const x=norm(v);return ['1','evet','e','var','acik','aktif','x','yes','true'].includes(x)||Number(v)===1?1:0};
+const dayOpen=v=>{if(v===true||v===1)return 1;const x=norm(v);return ['1','evet','e','var','acik','aktif','x','yes','true'].includes(x)?1:0};
 function parseRows(rows){
  if(!rows||rows.length<2)throw new Error('Excel boş veya başlık satırı bulunamadı.');
  const h=rows[0].map(x=>norm(x)); const find=a=>h.findIndex(x=>a.includes(x));
@@ -104,11 +126,16 @@ document.getElementById('upload').onclick=async()=>{
  btn.disabled=true; prog.style.display='block'; prog.value=0;
  try{
    st('Dosya okunuyor…');
+   if(typeof XLSX==='undefined')throw new Error('Excel okuyucu yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.');
    let rows;
    if(file.name.toLowerCase().endsWith('.csv')){const t=await file.text();const wb=XLSX.read(t,{type:'string'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
    else{const b=await file.arrayBuffer();const wb=XLSX.read(b,{type:'array'});rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})}
-   const data=parseRows(rows); st(data.length.toLocaleString('tr-TR')+' kayıt hazırlandı. Yetki kontrol ediliyor…');
-   await call('/admin/check',pw); await call('/admin/start',pw);
+   const data=parseRows(rows);
+   const seen=new Set();let dup=0;for(const r of data){const k=norm(r[0])+'|'+norm(r[1])+'|'+norm(r[2]);if(seen.has(k))dup++;else seen.add(k)}
+   if(dup&&!confirm(dup+' adet tekrarlı İl/İlçe/Mahalle satırı bulundu. Tekrarlarda dosyadaki son satır geçerli olacak. Devam edilsin mi?')){st('Yükleme iptal edildi.');return}
+   if(!confirm(data.length.toLocaleString('tr-TR')+' kayıt mevcut dağıtım verisinin YERİNE yüklenecek. Onaylıyor musunuz?')){st('Yükleme iptal edildi.');return}
+   st(data.length.toLocaleString('tr-TR')+' kayıt hazırlandı. Yükleme başlıyor…');
+   await call('/admin/start',pw);
    const size=200;
    for(let i=0;i<data.length;i+=size){
      await call('/admin/chunk',pw,{rows:data.slice(i,i+size)});
@@ -117,15 +144,36 @@ document.getElementById('upload').onclick=async()=>{
    }
    const done=await call('/admin/finish',pw); prog.value=100;
    st('Güncelleme tamamlandı • '+done.count.toLocaleString('tr-TR')+' kayıt • '+new Date(done.updated).toLocaleString('tr-TR'),'ok');
+   loadMeta();
  }catch(e){st('Güncelleme başarısız: '+e.message,'err')}
  finally{btn.disabled=false}
 };
 </script>
 <script>
 (()=>{
- const td=document.getElementById('tabData'),tr=document.getElementById('tabReq'),dp=document.getElementById('dataPanel'),rp=document.getElementById('reqPanel');
- function tab(which){const req=which==='req';td.classList.toggle('active',!req);tr.classList.toggle('active',req);dp.classList.toggle('active',!req);rp.classList.toggle('active',req)}
- td.onclick=()=>tab('data');tr.onclick=()=>tab('req');
+ const tabs={data:['tabData','dataPanel'],req:['tabReq','reqPanel'],api:['tabApi','apiPanel']};
+ function tab(which){for(const [k,[b,p]] of Object.entries(tabs)){document.getElementById(b).classList.toggle('active',k===which);document.getElementById(p).classList.toggle('active',k===which)}}
+ for(const k of Object.keys(tabs))document.getElementById(tabs[k][0]).onclick=()=>tab(k);
+ const DN=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+ async function apiTest(){
+   const addr=document.getElementById('apiAddr').value.trim(),st=document.getElementById('apiStatus'),raw=document.getElementById('apiRaw');
+   if(addr.length<5){st.className='status err';st.textContent='En az 5 karakterlik bir adres girin.';return}
+   st.className='status';st.textContent='Sorgulanıyor…';raw.style.display='none';
+   try{
+     const r=await fetch(API+'/api/adres-gun?debug=1&adres='+encodeURIComponent(addr),{headers:{'X-Admin-Password':ADMIN_PW},cache:'no-store'});
+     const j=await r.json().catch(()=>({}));
+     raw.textContent=JSON.stringify(j.raw!==undefined?j.raw:j,null,2);raw.style.display='block';
+     if(j.ok&&Array.isArray(j.days)){
+       st.className='status ok';
+       st.textContent='Çözümlenen günler: '+(DN.filter((_,i)=>j.days[i]).join(', ')||'yok')+(j.bolge?' • Bölge: '+j.bolge:'')+(j.il?' • '+[j.mahalle,j.ilce,j.il].filter(Boolean).join(' / '):'');
+     }else{
+       st.className='status err';
+       st.textContent='Hata'+(j.upstreamStatus?' (Optymus HTTP '+j.upstreamStatus+')':' (HTTP '+r.status+')')+': '+(j.error||'bilinmiyor')+'. Aşağıdaki ham yanıtı kontrol edin.';
+     }
+   }catch(e){st.className='status err';st.textContent='Hata: '+e.message}
+ }
+ document.getElementById('apiTest').onclick=apiTest;
+ document.getElementById('apiAddr').addEventListener('keydown',e=>{if(e.key==='Enter')apiTest()});
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function getReq(){
    const pw=ADMIN_PW,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
@@ -136,15 +184,16 @@ document.getElementById('upload').onclick=async()=>{
      const rows=j.rows||[];st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz öneri / talep yok.';
      list.innerHTML=rows.map(x=>`<div class="req">
        <div class="reqtop"><b>${esc(x.ad_soyad)}</b><span class="badge">${esc(x.durum)}</span></div>
-       <div class="reqmeta">${esc(x.gsm)} • ${esc(x.email)}<br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
+       <div class="reqmeta"><a href="tel:${esc(String(x.gsm).replace(/[^\d+]/g,''))}">${esc(x.gsm)}</a> • <a href="mailto:${esc(x.email)}">${esc(x.email)}</a><br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
        <div class="reqmsg">${esc(x.aciklama)}</div>
        <select data-id="${x.id}">
          ${['Yeni','İnceleniyor','Tamamlandı'].map(d=>`<option ${d===x.durum?'selected':''}>${d}</option>`).join('')}
        </select>
      </div>`).join('');
      list.querySelectorAll('select[data-id]').forEach(sel=>sel.onchange=async()=>{
+       sel.disabled=true;
        const rr=await fetch(API+'/admin/oneri-durum',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({id:Number(sel.dataset.id),durum:sel.value})});
-       const jj=await rr.json().catch(()=>({}));if(!rr.ok){alert(jj.error||'Durum güncellenemedi');return}getReq();
+       const jj=await rr.json().catch(()=>({}));sel.disabled=false;if(!rr.ok){alert(jj.error||'Durum güncellenemedi');return}getReq();
      });
    }catch(e){st.textContent='Hata: '+e.message;}
  }
