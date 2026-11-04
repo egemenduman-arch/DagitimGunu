@@ -32,7 +32,7 @@ progress{width:100%;height:18px;margin-top:12px}
 </div></div>
 <div id="adminApp" class="adminApp"><div class="wrap"><div class="card">
 <div class="topbar"><div><h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
-<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button></div>
+<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button><button id="tabApi" type="button">Optymus Test</button></div>
 <div id="dataPanel" class="panel active">
 <div id="metaInfo" class="small" style="margin-top:4px"></div>
 <label>Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
@@ -40,6 +40,13 @@ progress{width:100%;height:18px;margin-top:12px}
 <progress id="prog" value="0" max="100" style="display:none"></progress>
 <div id="status" class="status">Dosya seçip güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
+</div>
+<div id="apiPanel" class="panel">
+  <div id="apiState" class="small"></div>
+  <label for="apiAddr">Tam adres</label><input id="apiAddr" placeholder="Örn: Caferağa Mah. Moda Cad. No:10, Kadıköy, İstanbul">
+  <button id="apiTest" type="button">Sorgula</button>
+  <div id="apiStatus" class="status">Canlı servisin döndürdüğü ham yanıtı ve çözümlenen günleri görmek için adres girin.</div>
+  <pre id="apiRaw" style="display:none;white-space:pre-wrap;word-break:break-word;background:#0f1b2a;color:#d6e2f0;padding:12px;border-radius:11px;font-size:12px;max-height:420px;overflow:auto"></pre>
 </div>
 <div id="reqPanel" class="panel">
   <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
@@ -68,6 +75,7 @@ async function adminLogin(){
    if(r.status===429)throw new Error(j.error||'Çok fazla hatalı deneme. Daha sonra tekrar deneyin.');
    if(!r.ok||!j.ok)throw new Error('Şifre hatalı.');
    ADMIN_PW=pw;
+   document.getElementById('apiState').textContent=j.optymus?'Optymus token tanımlı.':'⚠ Optymus token tanımlı değil (OPTYMUS_TOKEN secret). Canlı sorgu kapalı.';
    loginPw.value='';
    loginScreen.style.display='none';
    adminApp.style.display='block';
@@ -139,9 +147,29 @@ document.getElementById('upload').onclick=async()=>{
 </script>
 <script>
 (()=>{
- const td=document.getElementById('tabData'),tr=document.getElementById('tabReq'),dp=document.getElementById('dataPanel'),rp=document.getElementById('reqPanel');
- function tab(which){const req=which==='req';td.classList.toggle('active',!req);tr.classList.toggle('active',req);dp.classList.toggle('active',!req);rp.classList.toggle('active',req)}
- td.onclick=()=>tab('data');tr.onclick=()=>tab('req');
+ const tabs={data:['tabData','dataPanel'],req:['tabReq','reqPanel'],api:['tabApi','apiPanel']};
+ function tab(which){for(const [k,[b,p]] of Object.entries(tabs)){document.getElementById(b).classList.toggle('active',k===which);document.getElementById(p).classList.toggle('active',k===which)}}
+ for(const k of Object.keys(tabs))document.getElementById(tabs[k][0]).onclick=()=>tab(k);
+ const DN=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+ async function apiTest(){
+   const addr=document.getElementById('apiAddr').value.trim(),st=document.getElementById('apiStatus'),raw=document.getElementById('apiRaw');
+   if(addr.length<5){st.className='status err';st.textContent='En az 5 karakterlik bir adres girin.';return}
+   st.className='status';st.textContent='Sorgulanıyor…';raw.style.display='none';
+   try{
+     const r=await fetch(API+'/api/adres-gun?debug=1&adres='+encodeURIComponent(addr),{headers:{'X-Admin-Password':ADMIN_PW},cache:'no-store'});
+     const j=await r.json().catch(()=>({}));
+     raw.textContent=JSON.stringify(j.raw!==undefined?j.raw:j,null,2);raw.style.display='block';
+     if(j.ok&&Array.isArray(j.days)){
+       st.className='status ok';
+       st.textContent='Çözümlenen günler: '+(DN.filter((_,i)=>j.days[i]).join(', ')||'yok')+(j.bolge?' • Bölge: '+j.bolge:'')+(j.il?' • '+[j.mahalle,j.ilce,j.il].filter(Boolean).join(' / '):'');
+     }else{
+       st.className='status err';
+       st.textContent='Hata'+(j.upstreamStatus?' (Optymus HTTP '+j.upstreamStatus+')':' (HTTP '+r.status+')')+': '+(j.error||'bilinmiyor')+'. Aşağıdaki ham yanıtı kontrol edin.';
+     }
+   }catch(e){st.className='status err';st.textContent='Hata: '+e.message}
+ }
+ document.getElementById('apiTest').onclick=apiTest;
+ document.getElementById('apiAddr').addEventListener('keydown',e=>{if(e.key==='Enter')apiTest()});
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  async function getReq(){
    const pw=ADMIN_PW,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
