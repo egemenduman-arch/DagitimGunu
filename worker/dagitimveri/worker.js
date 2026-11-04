@@ -494,6 +494,59 @@ async function handleAdresGun(req, env, u, json, ctx) {
 
 const ROW_COLS = `il, ilce, mahalle, pazartesi, sali, carsamba, persembe, cuma, cumartesi, pazar`;
 
+// ---------------------------------------------------------------------------
+// Açık adresten mahalle bulma (ters eşleştirme)
+// "Denizköşkler E-5 yanyol ... Avcılar, İstanbul" gibi uzun adreslerde her kelimenin
+// kayıtta geçmesi beklenemez. Bunun yerine adresin İÇİNDE geçen ilçe ve mahalle adları aranır.
+// ---------------------------------------------------------------------------
+
+let geoCache = null; // { at, list: [{ il, ilce, ilK, ilceK }] }
+const GEO_TTL_MS = 6 * 3600 * 1000;
+
+async function geoList(db) {
+  if (geoCache && Date.now() - geoCache.at < GEO_TTL_MS) return geoCache.list;
+  const r = await db.prepare(`SELECT DISTINCT il, ilce FROM dagitim`).all();
+  const list = (r.results || []).map(x => ({ il: x.il, ilce: x.ilce, ilK: trKey(x.il), ilceK: trKey(x.ilce) }));
+  geoCache = { at: Date.now(), list };
+  return list;
+}
+
+async function reverseAddressMatch(db, key, limit = 10) {
+  const q = " " + key + " ";
+  const has = k => !!k && q.includes(" " + k + " ");
+  const list = await geoList(db);
+
+  let areas = list.filter(x => has(x.ilceK));
+  const withIl = areas.filter(x => has(x.ilK));
+  if (withIl.length) areas = withIl;
+  if (!areas.length) {
+    // İlçe yazılmamışsa yalnızca il içinde ara (tek il eşleşirse)
+    const iller = [...new Set(list.filter(x => has(x.ilK)).map(x => x.il))];
+    if (iller.length !== 1) return [];
+    areas = list.filter(x => x.il === iller[0]);
+  }
+  areas = areas.slice(0, 60);
+
+  const hits = [];
+  for (let i = 0; i < areas.length; i += 20) {
+    const part = areas.slice(i, i + 20);
+    const where = part.map(() => `(il = ? AND ilce = ?)`).join(" OR ");
+    const r = await db.prepare(`SELECT ${ROW_COLS} FROM dagitim WHERE ${where} ORDER BY id DESC`)
+      .bind(...part.flatMap(a => [a.il, a.ilce])).all();
+    for (const row of r.results || []) {
+      const mk = trKey(row.mahalle);
+      if (mk.length >= 3 && has(mk)) hits.push({ row, score: mk.length + (q.indexOf(" " + mk + " ") < 40 ? 5 : 0) });
+    }
+  }
+  const seen = new Set();
+  return hits
+    .sort((a, b) => b.score - a.score)
+    .filter(h => { const k = h.row.il + "|" + h.row.ilce + "|" + h.row.mahalle; if (seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0, limit)
+    .map(h => h.row);
+}
+
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -576,9 +629,17 @@ export default {
         if (key.length < 3) return json({ rows: [] });
         await ensureSchema(env.DB);
 
-        // Her kelime anahtar içinde geçmeli; sıralama: mahalle adı tam/önek eşleşmesi önce.
-        const toks = key.split(" ").filter(t => t.length >= 2).slice(0, 6);
+        const toks = key.split(" ").filter(t => t.length >= 2);
         if (!toks.length) return json({ rows: [] });
+
+        // Uzun / açık adres: önce adresin içinde geçen ilçe + mahalleyi bul.
+        if (toks.length >= 4) {
+          const rev = await reverseAddressMatch(env.DB, key);
+          if (rev.length) return json({ q, rows: rev, eslesme: "adres" });
+        }
+
+        // Kısa sorgu: her kelime kayıtta geçmeli; mahalle adı tam/önek eşleşmesi önce.
+        toks.splice(6);
         const where = toks.map(() => `arama LIKE ?`).join(" AND ");
         const binds = toks.map(t => `%${t}%`);
         const mahKey = trKeySql("mahalle");
@@ -596,7 +657,8 @@ export default {
           GROUP BY il, ilce, mahalle
           ORDER BY skor, length(mahalle), il, ilce, mahalle
           LIMIT 30`).bind(key, first + "%", "%" + first + "%", ...binds).all();
-        const rows = (r.results || []).map(({ skor, ...x }) => x);
+        let rows = (r.results || []).map(({ skor, ...x }) => x);
+        if (!rows.length && toks.length < 4) rows = await reverseAddressMatch(env.DB, key);
         return json({ q, rows });
       }
 
@@ -708,6 +770,7 @@ export default {
                 kayit_sayisi = excluded.kayit_sayisi`).bind(now),
             env.DB.prepare(`DELETE FROM dagitim_yeni`)
           ]);
+          geoCache = null;
           const m = await env.DB.prepare(`SELECT kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
           return json({ ok: true, count: Number(m?.kayit_sayisi || 0), updated: now });
         }
