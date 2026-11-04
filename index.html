@@ -196,7 +196,7 @@ button:hover{filter:brightness(.96)}button:disabled{opacity:.6;cursor:default}
    <div class="accBody">
     <div class="grid">
      <div class="searchwrap">
-      <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Mahalle veya açık adres yazın" aria-label="Mahalle veya açık adres" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
+      <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli" aria-label="Mahalle veya açık adres" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
       <div id="suggestions" class="suggestions" role="listbox"></div>
      </div>
      <input id="date" type="date" aria-label="Başlangıç tarihi">
@@ -282,7 +282,7 @@ async function apiJSON(url,{signal,timeout=12000}={}){
  try{
   const r=await fetch(url,{cache:'no-store',signal:ctrl.signal});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;throw e}
+  if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;e.body=j;throw e}
   return j;
  }catch(e){
   if(e.name==='AbortError'&&!(signal&&signal.aborted))throw new Error('Sunucu yanıt vermedi');
@@ -334,8 +334,15 @@ function nextOpen(days,isoDate){
  }
  return null;
 }
+// Canlı (Optymus) sonuçlarda rezervasyon en erken ertesi gün olabilir.
+function liveStart(isoDate){const t=new Date();t.setDate(t.getDate()+1);const tm=localISODate(t);return isoDate>tm?isoDate:tm}
+const isoOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const fmtDate=d=>d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
+function relText(date){
+ const t=new Date();t.setHours(12,0,0,0);const diff=Math.round((date-t)/864e5);
+ return diff<=0?'Bugün':diff===1?'Yarın':diff+' gün sonra';
+}
 function badgeText(n,isoDate){
  if(!n)return 'Dağıtım günü yok';
  if(n.add===0)return isoDate===localISODate()?'Bugün dağıtım var':'Seçilen gün dağıtım var';
@@ -355,10 +362,12 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
   return;
  }
  const card=r=>{
-  const n=nextOpen(r.days,isoDate);
+  const from=r.kaynak==='live'?liveStart(isoDate):isoDate;
+  const n=nextOpen(r.days,from);
   return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
-   '<div class="badge '+(n?'':'closed')+'">'+esc(badgeText(n,isoDate))+'</div></div>'+
-   (n?'<div class="small"><b>İlk uygun gün:</b> '+esc(fmtDate(n.date))+'</div>':'')+
+   '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
+   (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken rezervasyon':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
+   (n&&r.kaynak==='live'?'<div class="small">ReservationDate: <code>'+isoOf(n.date)+'</code></div>':'')+
    '<div class="days">'+DAY_NAMES.map((d,j)=>'<span class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+d+'">'+DAY_SHORT[j]+'</span>').join('')+'</div>'+
    (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live">● Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
@@ -387,20 +396,20 @@ let LIVE_ON=false,TABLE_DATE='';
 // ---- Optymus (canlı) – worker üzerinden; token tarayıcıya hiç gelmez ----
 function mahalleAddress(r){
  const m=String(r.mahalle||'').trim();
- return m+(/\b(mah|mahalle|mahallesi|köy|köyü|koyu)\b\.?$/i.test(m)?'':' Mah.')+', '+r.ilce+', '+r.il;
+ return m+(/\b(mah|mahalle|mahallesi|köy|köyü|koyu)\b\.?$/i.test(m)?'':' Mah.')+' '+r.ilce+'/'+r.il;
 }
 async function liveLookup(address){
  if(!LIVE_ON||!address)return null;
  try{
   const j=await dataApi('/api/adres-gun?adres='+encodeURIComponent(address),{timeout:15000});
   return j.ok&&Array.isArray(j.days)?j:{error:j.error||'Yanıt çözümlenemedi'};
- }catch(e){return {error:e.message,notFound:e.status===404}}
+ }catch(e){return {error:e.message,notFound:e.status===404||e.status===422}}
 }
 function tableNote(){return 'Kayıtlı tablo'+(TABLE_DATE?' • güncelleme '+TABLE_DATE:'')}
 function withLive(rec,live){
  if(live&&!live.error)return {...rec,days:live.days.map(Number),kaynak:'live',bolge:live.bolge||''};
  const out={...rec,kaynak:'tablo'};
- if(LIVE_ON&&live&&live.error)out.note=live.notFound?'Bu adres canlı serviste hizmet bölgesi olarak bulunamadı; kayıtlı tablo bilgisi gösteriliyor.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablo bilgisi gösteriliyor.';
+ if(LIVE_ON&&live&&live.error)out.note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablo bilgisi gösteriliyor.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablo bilgisi gösteriliyor.';
  return out;
 }
 
@@ -443,8 +452,8 @@ async function run(){
     return;
    }
    const recs=tab.map(r=>({...r,kaynak:'tablo'}));
-   if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Yazdığınız adres canlı serviste bulunamadı; kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi mahalle, ilçe ve il ile birlikte yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
-   renderRecords(recs,{emptyMsg:live&&live.notFound?'Bu adres için hizmet bölgesi bulunamadı.':'Eşleşen mahalle bulunamadı.'});
+   if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
+   renderRecords(recs,{emptyMsg:live&&live.notFound?'Bu adrese hizmet verilemiyor: '+live.error:'Eşleşen mahalle bulunamadı.'});
    return;
   }
   showSection('deliverySection',true);

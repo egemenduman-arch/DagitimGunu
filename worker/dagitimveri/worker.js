@@ -165,9 +165,9 @@ function truthy(v) {
 
 // .NET DayOfWeek: 0=Pazar..6=Cumartesi. ISO: 1=Pazartesi..7=Pazar.
 // Listede 7 varsa ISO, aksi halde .NET kabul edilir.
-function numbersToDays(nums) {
+function numbersToDays(nums, allowIso = true) {
   const days = [0, 0, 0, 0, 0, 0, 0];
-  const iso = nums.includes(7) && !nums.includes(0);
+  const iso = allowIso && nums.includes(7) && !nums.includes(0);
   for (const n of nums) {
     if (!Number.isInteger(n)) continue;
     const idx = iso ? (n - 1) : ((n + 6) % 7);
@@ -176,7 +176,8 @@ function numbersToDays(nums) {
   return days;
 }
 
-// Yanıt şeması kesin bilinmediğinden olası biçimleri tolere eden çözümleyici.
+// Belgelenmiş biçim {days,errors} handleAdresGun'da doğrudan işlenir; bu çözümleyici
+// yalnızca beklenmeyen bir biçim gelirse yedek olarak kullanılır.
 // Desteklenen örnekler:
 //   [1,2,3] / ["Monday","Friday"] / ["Pazartesi"]
 //   {monday:true, tuesday:false,...} / {pazartesi:1,...}
@@ -342,7 +343,7 @@ async function handleAdresGun(req, env, u, json, ctx) {
   if (!res.ok) {
     const msg = (res.body && typeof res.body === "object" && (res.body.error?.message || res.body.message || res.body.title)) || null;
     const out = {
-      ok: false, kaynak: "optymus", upstreamStatus: res.status,
+      ok: false, kaynak: "optymus", upstreamStatus: res.status, adresHatasi: res.status === 404,
       error: res.status === 401 || res.status === 403
         ? "Optymus yetkilendirme hatası (token geçersiz veya süresi dolmuş)"
         : res.status === 404
@@ -351,10 +352,20 @@ async function handleAdresGun(req, env, u, json, ctx) {
     };
     if (debug) out.raw = res.body;
     // 404 = adres bölge dışı → istemci bunu "bulunamadı" olarak göstermeli
-    return json(out, res.status === 404 ? 404 : 502);
+    return json(out, res.status === 404 ? 422 : 502);
   }
 
-  const days = extractDays(res.body);
+  // Belgelenmiş yanıt: { days: [0..6] (0=Pazar), errors: [string] }
+  // errors doluysa adrese randevu verilemez; Optymus bu durumda da HTTP 200 döner.
+  const body = res.body && typeof res.body === "object" ? res.body : {};
+  const errors = Array.isArray(body.errors) ? body.errors.map(e => String(e?.message || e)).filter(Boolean) : [];
+  if (errors.length) {
+    const out = { ok: false, kaynak: "optymus", adres, adresHatasi: true, error: errors.join(" • "), errors };
+    if (debug) out.raw = res.body;
+    return json(out, 422);
+  }
+  const days = Array.isArray(body.days) ? numbersToDays(body.days.map(Number).filter(n => n >= 0 && n <= 6), false)
+                                        : extractDays(res.body);
   const info = pickZoneInfo(res.body);
   const out = {
     ok: !!days,
@@ -365,15 +376,16 @@ async function handleAdresGun(req, env, u, json, ctx) {
     checkedAt: new Date().toISOString()
   };
   if (!days) out.error = "Optymus yanıtı çözümlenemedi";
+  if (days && !days.some(Boolean)) { out.ok = false; out.adresHatasi = true; out.error = "Bu adres için hizmet günü tanımlı değil"; }
   if (debug) out.raw = res.body;
 
-  if (days && !debug) {
+  if (out.ok && !debug) {
     const toCache = new Response(JSON.stringify(out), {
       headers: { "Content-Type": "application/json", "Cache-Control": "max-age=" + OPTYMUS_CACHE_TTL }
     });
     ctx.waitUntil(cache.put(cacheKey, toCache));
   }
-  return json(out, days ? 200 : 502);
+  return json(out, out.ok ? 200 : (out.adresHatasi ? 422 : 502));
 }
 
 // ---------------------------------------------------------------------------

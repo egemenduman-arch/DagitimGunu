@@ -39,3 +39,15 @@ kendiliğinden ekler.
 | `GET /api/meta` | Son güncelleme tarihi, kayıt sayısı |
 | `POST /api/oneri` | Öneri / talep kaydı (IP başına saatte 5) |
 | `POST /admin/*` | `X-Admin-Password` ile; 15 dk'da 10 hatalı denemede kilitlenir |
+
+## Optymus – adrese göre çalışma günleri
+
+Kaynak: `docs/optymus-work-days.postman_collection.json`
+
+- `GET https://api.optymus.pro/api/app/work-zone/work-days-by-full-address?fullAddress=...`
+- `Authorization: Bearer <OPTYMUS_TOKEN>`
+- Yanıt: `{"days":[1,4],"errors":[]}` — `days`: 0=Pazar … 6=Cumartesi
+- `errors` doluysa adrese randevu verilemez (Optymus yine HTTP 200 döner);
+  worker bunu `422 {ok:false, adresHatasi:true, error}` olarak iletir.
+- Rezervasyon en erken **ertesi gün** olabilir; ekranda gösterilen
+  `ReservationDate` (YYYY-MM-DD) iş emrinde kullanılır.

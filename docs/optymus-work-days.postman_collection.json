@@ -1,0 +1,190 @@
+{
+  "info": {
+    "_postman_id": "0ebb2ab8-0d54-4af7-9a6e-ea0d1cff8eb5",
+    "name": "Dijital Kurye API - Çalışma Günleri",
+    "description": "`baseUrl` ve `access_token` değişkenlerini doldurarak kullanabilirsiniz.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": ""
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Adrese göre çalışma günleri",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/app/work-zone/work-days-by-full-address?fullAddress=Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "app",
+            "work-zone",
+            "work-days-by-full-address"
+          ],
+          "query": [
+            {
+              "key": "fullAddress",
+              "value": "Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+              "description": "Müşterinin açık adresi"
+            }
+          ]
+        },
+        "description": "Verilen adrese hizmet verilen haftanın günlerini döner.\n\n**days:** 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi\n\n**errors:** Doluysa bu adres için randevu verilemez. Hata durumunda da HTTP 200 döner.\n\nRandevu tarihi en erken ertesi gün olabilir; `days` içindeki günlere denk gelen tarihler seçilebilir."
+      },
+      "response": [
+        {
+          "name": "200 - Başarılı",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/work-zone/work-days-by-full-address?fullAddress=Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "app",
+                "work-zone",
+                "work-days-by-full-address"
+              ],
+              "query": [
+                {
+                  "key": "fullAddress",
+                  "value": "Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+                  "description": "Müşterinin açık adresi"
+                }
+              ]
+            },
+            "description": "Verilen adrese hizmet verilen haftanın günlerini döner.\n\n**days:** 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi\n\n**errors:** Doluysa bu adres için randevu verilemez. Hata durumunda da HTTP 200 döner.\n\nRandevu tarihi en erken ertesi gün olabilir; `days` içindeki günlere denk gelen tarihler seçilebilir."
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "body": "{\n  \"days\": [\n    1,\n    4\n  ],\n  \"errors\": []\n}"
+        },
+        {
+          "name": "200 - Adres çözümlenemedi",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/work-zone/work-days-by-full-address?fullAddress=Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "app",
+                "work-zone",
+                "work-days-by-full-address"
+              ],
+              "query": [
+                {
+                  "key": "fullAddress",
+                  "value": "Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+                  "description": "Müşterinin açık adresi"
+                }
+              ]
+            },
+            "description": "Verilen adrese hizmet verilen haftanın günlerini döner.\n\n**days:** 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi\n\n**errors:** Doluysa bu adres için randevu verilemez. Hata durumunda da HTTP 200 döner.\n\nRandevu tarihi en erken ertesi gün olabilir; `days` içindeki günlere denk gelen tarihler seçilebilir."
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "body": "{\n  \"days\": [],\n  \"errors\": [\n    \"DK sisteminde adres çözümlenemedi\"\n  ]\n}"
+        },
+        {
+          "name": "401 - Yetkisiz",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/app/work-zone/work-days-by-full-address?fullAddress=Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "app",
+                "work-zone",
+                "work-days-by-full-address"
+              ],
+              "query": [
+                {
+                  "key": "fullAddress",
+                  "value": "Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli",
+                  "description": "Müşterinin açık adresi"
+                }
+              ]
+            },
+            "description": "Verilen adrese hizmet verilen haftanın günlerini döner.\n\n**days:** 0=Pazar, 1=Pazartesi, 2=Salı, 3=Çarşamba, 4=Perşembe, 5=Cuma, 6=Cumartesi\n\n**errors:** Doluysa bu adres için randevu verilemez. Hata durumunda da HTTP 200 döner.\n\nRandevu tarihi en erken ertesi gün olabilir; `days` içindeki günlere denk gelen tarihler seçilebilir."
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json; charset=utf-8"
+            }
+          ],
+          "body": "{}"
+        }
+      ]
+    }
+  ]
+}
