@@ -6,6 +6,8 @@ Mahalle veya açık adrese göre en erken dağıtım gününü gösteren PWA.
 |---|---|
 | `index.html` | Son kullanıcı sorgu ekranı |
 | `admin.html` | Dağıtım verisi yükleme + öneri/talep yönetimi |
+| `dijitalkurye_logo.svg`, `icons/` | Figma Design System'den alınan logo ve "dk" uygulama ikonları |
+| `fonts/` | Kurumsal font Biennale için yer (bkz. `fonts/README.md`) |
 | `service-worker.js` | Yalnızca uygulama kabuğunu önbelleğe alır (API verisini almaz) |
 | `worker/dagitimveri/` | Veri API'si (Cloudflare Worker + D1) |
 | `worker/dagitimuyari/` | Operasyon uyarıları + MGM hava durumu worker'ı |

@@ -2,8 +2,8 @@
 // - Sayfa (HTML): önce ağ, ağ yoksa önbellek → yeni sürümler hemen görünür.
 // - Aynı origin'deki statik dosyalar: önbellek, arkada güncelle.
 // - Başka origin'ler (API, MGM, analytics): HİÇ önbelleğe alınmaz → dağıtım verisi hep güncel.
-const CACHE = 'dagitim-gunu-v2';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './dijitalkurye_logo_seffaf.png', './icons/icon-192.png', './icons/icon-512.png'];
+const CACHE = 'dagitim-gunu-v3';
+const SHELL = ['./', './index.html', './manifest.webmanifest', './dijitalkurye_logo.svg', './icons/favicon.svg', './icons/favicon-32.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
