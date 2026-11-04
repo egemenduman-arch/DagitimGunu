@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dijital Kurye | Dağıtım Günü Sorgulama</title>
 <meta name="description" content="Mahalle veya açık adrese göre en erken dağıtım gününü sorgulayın.">
-<meta name="theme-color" content="#102d3b">
+<meta name="theme-color" content="#F0F0F0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -18,218 +21,245 @@ gtag('js',new Date());
 gtag('config','G-PV9GWK34V8');
 </script>
 <style>
+/* Dijital Kurye Design System (Figma: Foundations / Color, Typography) */
 :root{
- --bg:#f4f8f9;--card:#fff;--ink:#102c38;--muted:#58717a;--accent:#00a5a8;--accent-soft:#e8f7f5;
- --ok:#078668;--ok-soft:#e1f6ee;--warn:#7a5200;--warn-soft:#fff8e6;--danger:#a61b1b;--danger-soft:#fff1f1;
- --line:#dce8ea;--line-2:#edf0f5
+ --dk-primary:#8BAF2E;--dk-primary-soft:#EEF3DF;--dk-primary-ink:#4F6613;
+ --dk-black:#0C0C0C;--dk-black-60:#0C0C0C99;--dk-white:#FFFFFF;
+ --dk-grey-100:#FAFAFA;--dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-500:#A4A4A4;--dk-grey-600:#7F7F7F;
+ --dk-success:#00BF5F;--dk-error:#FF1B1B;--dk-error-dark:#B71D18;--dk-warning:#FEC84B;--dk-warning-ink:#7A5200;--dk-info:#00B8D9;--dk-info-dark:#006C9C;
+ --dk-radius-12:12px;--dk-radius-16:16px;--dk-radius-card:32px;
+ --dk-shadow:0 18px 34px #00000014;
+ --dk-font:"Biennale","Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+ /* eski isimler (JS/HTML içi kullanım için) */
+ --ink:var(--dk-black);--muted:var(--dk-grey-600);--accent:var(--dk-primary);--line:var(--dk-grey-300);
+ --danger:var(--dk-error-dark);--danger-soft:#FFF0F0;--warn:var(--dk-warning-ink);--warn-soft:#FFF8E6
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:linear-gradient(155deg,#eaf6f5 0,#f7fafb 45%,#f2f6f7 100%);min-height:100vh;-webkit-text-size-adjust:100%}
-.wrap{max-width:1060px;margin:22px auto 54px;padding:0 18px}
+body{margin:0;font-family:var(--dk-font);color:var(--dk-black);background:var(--dk-grey-200);min-height:100vh;-webkit-text-size-adjust:100%;font-size:14px;line-height:20px}
+.wrap{max-width:900px;margin:0 auto 48px;padding:0 16px}
 button,input,select,textarea{font:inherit}
-input,select{border-radius:12px;border:1px solid #ccd3df;padding:13px 14px;background:#fff;color:var(--ink);width:100%;min-width:0}
-input:focus,select:focus,textarea:focus{outline:2px solid #00a5a833;border-color:var(--accent)}
-button{border-radius:12px;border:0;padding:13px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
-button:hover{filter:brightness(.96)}button:disabled{opacity:.6;cursor:default}
+input,select{border-radius:var(--dk-radius-12);border:1px solid var(--dk-grey-400);padding:0 16px;height:56px;background:var(--dk-white);color:var(--dk-black);width:100%;min-width:0;font-size:16px}
+input::placeholder{color:var(--dk-grey-600)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--dk-primary);outline-offset:-1px;border-color:var(--dk-primary)}
+button{border-radius:var(--dk-radius-12);border:0;padding:0 20px;height:56px;background:var(--dk-primary);color:var(--dk-black);font-weight:600;font-size:16px;cursor:pointer}
+button:hover{filter:brightness(.95)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
 
-/* Üst bant + hero */
-.brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 24px;padding:13px 0;border-bottom:1px solid #d5e5e7}
-.brandLogo{display:block;width:210px;max-width:48vw;height:auto}
-.brandTopTag{font-size:10px;letter-spacing:1.8px;color:#52757b;font-weight:800}
-.hero{padding:30px 34px 28px;border-radius:22px;background:linear-gradient(115deg,#102d3b,#114c58 75%,#087b80);color:#fff;position:relative;overflow:hidden;margin-bottom:18px;box-shadow:0 12px 30px #173d4922}
-.hero:after{content:'';position:absolute;width:280px;height:280px;border:50px solid #ffffff0a;border-radius:50%;right:-130px;top:-140px;pointer-events:none}
-.hero h1{font-size:clamp(27px,4vw,39px);line-height:1.14;margin:9px 0 12px;letter-spacing:-.8px}
-.hero h1 em{color:#65e3d4;font-style:normal}
-.hero p{color:#d4e9ea;line-height:1.55;max-width:670px;margin:0}
-.eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#86dcd5}
-.heroPills{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
-.heroPills span{border:1px solid #ffffff40;border-radius:999px;padding:7px 11px;font-size:11px;font-weight:700;color:#e6f8f7;background:#ffffff12}
+/* Üst bar */
+.brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px 4px 24px}
+.brandLogo{display:block;width:118px;height:auto}
+.pillBtn{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--dk-grey-600);background:transparent;color:var(--dk-black);font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center}
+.pillBtn:hover{background:var(--dk-white);filter:none}
 
-/* Kart + akordeon */
-.card{background:var(--card);border:1px solid #dce9ea;border-radius:20px;padding:22px;box-shadow:0 14px 36px #1539430d}
-.accordion{margin-top:12px;border:1px solid var(--line);border-radius:16px;background:#fff}
-#querySection{margin-top:0}
-.accHead{width:100%;min-height:52px;border:0;border-radius:16px;background:#fff;color:#103745;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:15px;font-weight:800;text-align:left}
-.accHead:hover{filter:none;background:#fafcfc}
-.accMeta{font-size:12px;font-weight:600;color:#687386;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
-.accChevron{font-size:14px;transition:transform .2s ease;flex:0 0 auto}
+/* Ana kart + başlık */
+.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:48px 36px 36px}
+.hero{text-align:center;margin:0 auto 28px;max-width:640px}
+.hero h1{font-size:48px;line-height:52px;font-weight:600;letter-spacing:-.5px;margin:0 0 16px}
+.hero p{font-size:16px;line-height:20px;color:var(--dk-black-60);margin:0}
+
+/* Bölümler (Figma: Gönderici / Alıcı Bilgisi kutuları) */
+.accordion{margin-top:12px;border-radius:var(--dk-radius-16);background:var(--dk-grey-200)}
+#querySection{margin-top:0;background:transparent}
+#querySection>.accHead{display:none}
+#querySection>.accBody{display:block!important;padding:0}
+.accHead{width:100%;height:auto;min-height:56px;border:0;border-radius:var(--dk-radius-16);background:transparent;color:var(--dk-black);padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;text-align:left}
+.accHead:hover{filter:none}
+.accTitle{display:flex;align-items:center;gap:12px}
+.ico{width:40px;height:40px;border-radius:10px;background:var(--dk-white);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ico svg{width:22px;height:22px;stroke:var(--dk-black);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.accMeta{font-size:12px;line-height:16px;font-weight:500;color:var(--dk-grey-600);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.accChevron{width:20px;height:20px;transition:transform .2s ease;flex:0 0 auto;stroke:var(--dk-black);fill:none;stroke-width:2}
 .accordion.open>.accHead .accChevron{transform:rotate(180deg)}
-.accBody{display:none;border-top:1px solid var(--line-2);padding:14px}
+.accBody{display:none;padding:0 16px 16px}
 .accordion.open>.accBody{display:block}
 #deliverySection,#opsSection,#weatherSection,#feedbackSection{display:none}
 #deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
 
 /* Sorgu alanı */
-.grid{display:grid;grid-template-columns:1fr 190px 130px;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 180px 140px;gap:12px}
 .searchwrap{position:relative}
-.suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 35px #17203322;max-height:330px;overflow:auto;display:none}
-.suggestion{padding:11px 13px;cursor:pointer;border-bottom:1px solid #f0f2f6}
+.searchwrap .inIco{position:absolute;left:16px;top:18px;width:20px;height:20px;stroke:var(--dk-black);fill:none;stroke-width:1.8;pointer-events:none}
+.searchwrap input{padding-left:48px}
+.suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:var(--dk-white);border-radius:var(--dk-radius-12);box-shadow:var(--dk-shadow);border:1px solid var(--dk-grey-300);max-height:330px;overflow:auto;display:none}
+.suggestion{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--dk-grey-300)}
 .suggestion:last-child{border-bottom:0}
-.suggestion:hover,.suggestion.active{background:var(--accent-soft)}
-.suggestion b{display:block;font-size:14px}.suggestion span{font-size:12px;color:var(--muted)}
-.hint{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.45}
-.dataBar{margin-top:12px;padding:10px 12px;border-radius:12px;background:#f4faf9;font-size:12px}
-.statusOk{color:var(--ok)}.statusErr{color:var(--danger)}
-.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
-.field label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px}
+.suggestion:hover,.suggestion.active{background:var(--dk-primary-soft)}
+.suggestion b{display:block;font-size:14px;font-weight:600}.suggestion span{font-size:12px;color:var(--dk-grey-600)}
+.hint{font-size:12px;line-height:16px;color:var(--dk-grey-600);margin-top:10px}
+.dataBar{margin-top:12px;font-size:12px;line-height:16px;color:var(--dk-grey-600)}
+.dataBar:before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dk-grey-400);margin-right:8px;vertical-align:1px}
+.dataBar:has(.statusOk):before{background:var(--dk-success)}
+.dataBar:has(.statusErr):before{background:var(--dk-error)}
+.statusOk{color:var(--dk-grey-600)}.statusErr{color:var(--dk-error-dark)}
+.filtersToggle{margin-top:14px;font-size:14px}
+.filtersToggle summary{cursor:pointer;font-weight:500;color:var(--dk-black);list-style:none;display:inline-flex;align-items:center;gap:6px}
+.filtersToggle summary::-webkit-details-marker{display:none}
+.filtersToggle summary:after{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.filtersToggle[open] summary:after{transform:rotate(225deg)}
+.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px}
+.field label{display:block;font-size:12px;line-height:16px;font-weight:500;color:var(--dk-grey-600);margin:0 0 6px}
 
 /* Sonuçlar */
-.result{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:10px;background:#fff}
+.result{border-radius:var(--dk-radius-12);padding:16px;margin-top:8px;background:var(--dk-white)}
 .result:first-child{margin-top:0}
-.result:hover{border-color:var(--accent)}
 .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
-.place{font-size:17px;font-weight:800}
-.small{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45}
-.small b{color:var(--ink)}
-.badge{font-size:12px;font-weight:800;padding:6px 10px;border-radius:999px;background:var(--ok-soft);color:#087b63;white-space:nowrap}
-.badge.closed{background:var(--danger-soft);color:var(--danger)}
-.days{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
-.day{font-size:12px;font-weight:700;padding:6px 9px;border-radius:9px;background:#f1f3f7;color:#9aa4b2}
-.day.on{background:var(--ok-soft);color:#087b63}
-.day.first{outline:2px solid var(--accent)}
-.srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:var(--muted)}
-.src{font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;background:#eef1f6;color:#4a5668}
-.src.live{background:#e3f4fb;color:#0b6b8a}
-.note{margin-top:10px;padding:9px 11px;border-radius:10px;background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.45}
-.groupTitle{margin:16px 2px 4px;font-size:12px;font-weight:800;color:var(--muted);letter-spacing:.3px}
-.empty,.loading,.error{padding:14px;border-radius:12px;background:#f8f9fc;color:var(--muted);font-size:14px}
-.error{background:var(--danger-soft);color:var(--danger)}
+.place{font-size:18px;line-height:24px;font-weight:600}
+.small{font-size:14px;color:var(--dk-grey-600);margin-top:4px;line-height:20px}
+.small b{color:var(--dk-black);font-weight:500}
+.small code{font-size:12px;background:var(--dk-grey-200);padding:1px 6px;border-radius:6px;color:var(--dk-black)}
+.badge{font-size:12px;line-height:16px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--dk-primary);color:var(--dk-black);white-space:nowrap}
+.badge.closed{background:var(--danger-soft);color:var(--dk-error-dark)}
+.days{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+.day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-500);min-width:44px;text-align:center}
+.day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink)}
+.day.first{background:var(--dk-black);color:var(--dk-white)}
+.srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
+.src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
+.src.live{border-color:var(--dk-success);color:#00753A}
+.note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
+.groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
+.groupTitle:first-child{margin-top:0}
+.empty,.loading,.error{padding:14px 16px;border-radius:var(--dk-radius-12);background:var(--dk-white);color:var(--dk-grey-600);font-size:14px}
+.error{color:var(--dk-error-dark)}
 
-/* Operasyon */
-.opsPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}
-.opsTitle{font-weight:800;margin-bottom:6px}.opsText{font-size:13px;line-height:1.45}
-.opsOk{background:#effaf5;border-color:#b7e4cf;color:#087f5b}
-.opsWarn{background:var(--warn-soft);border-color:#f3d38a;color:var(--warn)}
-.opsDanger{background:var(--danger-soft);border-color:#f1b5b5;color:var(--danger)}
-.opsNeutral{background:#f8f9fc;color:#687386}
-.opsItem{margin-top:10px;padding-top:10px;border-top:1px solid currentColor}
-.opsLink{display:inline-block;margin-top:5px;color:inherit;font-weight:700}
+/* Operasyon (Figma: Notification – Inline) */
+.opsPanel{position:relative;border-radius:var(--dk-radius-12);padding:14px 16px 14px 48px;background:var(--dk-white);box-shadow:var(--dk-shadow)}
+.opsPanel:before{content:'i';position:absolute;left:16px;top:14px;width:20px;height:20px;border-radius:50%;background:var(--dk-info-dark);color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.opsTitle{font-weight:700;margin-bottom:2px}.opsText{font-size:14px;line-height:20px;color:var(--dk-black-60)}
+.opsOk:before{content:'✓';background:var(--dk-success)}
+.opsWarn:before{content:'!';background:var(--dk-warning);color:var(--dk-black)}
+.opsDanger:before{content:'!';background:var(--dk-error)}
+.opsNeutral:before{background:var(--dk-grey-500)}
+.opsItem{margin-top:10px;padding-top:10px;border-top:1px solid var(--dk-grey-300);color:var(--dk-black)}
+.opsItem div{color:var(--dk-black-60)}
+.opsLink{display:inline-block;margin-top:4px;color:var(--dk-black);font-weight:500}
 
 /* Hava durumu */
-.weatherPanel{border:1px solid #e5e9f2;border-radius:14px;padding:14px 16px;background:#fff}
-.weatherTitle{font-weight:800;font-size:17px;margin-bottom:4px}
-.weatherSub{font-size:12px;color:#687386;margin-bottom:12px}
-.weatherFallback{font-size:13px;line-height:1.5;color:#687386}
-.weatherFallback a{font-weight:700;color:var(--accent)}
-.weatherNotice{margin:0 0 12px;padding:11px 13px;border-radius:12px;background:#eef7ff;border:1px solid #b9dcff;font-size:13px;line-height:1.45}
-.weatherNotice strong{display:block;font-size:14px;margin-bottom:3px}
-.weatherNotice.weatherRisk{background:#fff6df;border-color:#f2cf78;color:#7a5000}
-.weatherToday{margin:0 0 12px;padding:14px;border:1px solid #dfe6f0;border-radius:12px;background:#f8fafc}
+.weatherPanel{border-radius:var(--dk-radius-12);padding:16px;background:var(--dk-white)}
+.weatherTitle{font-weight:600;font-size:18px;line-height:24px;margin-bottom:2px}
+.weatherSub{font-size:12px;color:var(--dk-grey-600);margin-bottom:12px}
+.weatherFallback{font-size:14px;line-height:20px;color:var(--dk-grey-600)}
+.weatherFallback a{font-weight:500;color:var(--dk-black)}
+.weatherNotice{position:relative;margin:0 0 12px;padding:12px 14px 12px 46px;border-radius:var(--dk-radius-12);background:var(--dk-white);box-shadow:var(--dk-shadow);font-size:14px;line-height:20px;color:var(--dk-black-60)}
+.weatherNotice:before{content:'!';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.weatherNotice strong{display:block;font-size:14px;margin-bottom:2px;color:var(--dk-black)}
+.weatherToday{margin:0 0 12px;padding:14px;border-radius:var(--dk-radius-12);background:var(--dk-grey-200)}
 .weatherTodayHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.weatherTodayIcon{width:46px;height:46px;object-fit:contain}
-.weatherTodayTitle{font-size:15px;font-weight:800}
-.weatherTodayDesc{font-size:13px;color:#5e6b7f;margin-top:2px}
+.weatherTodayIcon{width:44px;height:44px;object-fit:contain}
+.weatherTodayTitle{font-size:16px;font-weight:600}
+.weatherTodayDesc{font-size:12px;color:var(--dk-grey-600);margin-top:2px}
 .weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.weatherMetric{background:#fff;border:1px solid #e6eaf1;border-radius:10px;padding:9px}
-.weatherMetric span{display:block;font-size:11px;color:#6b778c}.weatherMetric b{font-size:14px}
+.weatherMetric{background:var(--dk-white);border-radius:10px;padding:10px}
+.weatherMetric span{display:block;font-size:12px;color:var(--dk-grey-600)}.weatherMetric b{font-size:16px;font-weight:600}
 .weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;background:#fff;font-size:13px}
-.weatherSimple th,.weatherSimple td{border:1px solid #d9e0ea;padding:9px 10px;text-align:center;vertical-align:middle}
-.weatherSimple th{width:90px;background:#f7f9fc;font-weight:800}
-.weatherSimple .dateCell{font-weight:700;white-space:nowrap}
-.conditionInner{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
-.conditionInner img{width:30px;height:30px;object-fit:contain;flex:0 0 auto}
-.conditionName{font-weight:700}
+.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;font-size:14px}
+.weatherSimple th,.weatherSimple td{border-bottom:1px solid var(--dk-grey-300);padding:10px;text-align:center;vertical-align:middle}
+.weatherSimple tr:last-child th,.weatherSimple tr:last-child td{border-bottom:0}
+.weatherSimple th{width:90px;text-align:left;font-weight:500;color:var(--dk-grey-600)}
+.weatherSimple .dateCell{font-weight:600;white-space:nowrap}
+.conditionInner{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.conditionInner img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
+.conditionName{font-weight:500}
 
 /* Öneri / talep */
-.feedbackLaunch{width:100%;min-height:50px;margin-top:14px;border:1px solid #d9dff0;border-radius:14px;background:#fff;color:var(--accent);font-weight:800;font-size:15px}
-.feedbackLaunch:hover{background:#fafcfc;filter:none}
-.feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.feedbackLaunch{display:flex;margin:20px auto 0;height:40px;padding:0 18px;border:1px solid var(--dk-black);border-radius:999px;background:var(--dk-white);color:var(--dk-black);font-weight:500;font-size:14px;align-items:center}
+.feedbackLaunch:hover{background:var(--dk-grey-100);filter:none}
+.feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .feedbackGrid .full{grid-column:1/-1}
-.feedbackGrid label{display:block;font-size:12px;font-weight:800;color:#5f6c80;margin-bottom:5px}
-.feedbackGrid textarea{width:100%;border:1px solid #d7deea;border-radius:11px;padding:11px 12px;background:#fff;color:var(--ink);min-height:110px;resize:vertical}
+.feedbackGrid label{display:block;font-size:12px;font-weight:500;color:var(--dk-grey-600);margin-bottom:6px}
+.feedbackGrid textarea{width:100%;border:1px solid var(--dk-grey-400);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:110px;resize:vertical;font-size:16px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .feedbackActions{display:flex;gap:8px;margin-top:12px}
-.feedbackActions button{flex:1;min-height:46px;border-radius:11px}
-.feedbackClose{background:#eef1f6;color:#273247}
-.feedbackNote{font-size:12px;color:#687386;line-height:1.45;margin-top:10px}
-.feedbackStatus{display:none;margin-top:10px;padding:10px;border-radius:10px;background:#eef4ff;font-size:13px}
-.feedbackStatus.ok{background:#eafaf3;color:#087c52}.feedbackStatus.err{background:var(--danger-soft);color:var(--danger)}
+.feedbackActions button{flex:1;height:48px}
+.feedbackClose{background:var(--dk-white);color:var(--dk-black);border:1px solid var(--dk-grey-400)!important}
+.feedbackNote{font-size:12px;color:var(--dk-grey-600);line-height:16px;margin-top:10px}
+.feedbackStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--dk-white);font-size:14px}
+.feedbackStatus.ok{color:#00753A}.feedbackStatus.err{color:var(--dk-error-dark)}
+
+.footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
 @media(max-width:700px){
- .wrap{margin:12px auto 30px;padding:0 12px}
- .brandTop{margin-bottom:12px}.brandLogo{width:160px}.brandTopTag{font-size:8px;letter-spacing:1px}
- .hero{padding:22px 19px;border-radius:17px}.hero h1{font-size:28px}
- .heroPills{margin-top:14px}.heroPills span{font-size:10px}
- .card{padding:10px;border-radius:17px}
- .accHead{min-height:54px;padding:13px 14px}
- .accMeta{max-width:45%}
- .accBody{padding:12px}
- .grid,.filters{grid-template-columns:1fr;gap:9px}
- input,select,button{min-height:48px;font-size:16px}
+ .brandTop{padding:16px 0}
+ .brandLogo{width:104px}
+ .card{padding:28px 16px 20px;border-radius:24px}
+ .hero h1{font-size:40px;line-height:44px}
+ .hero p{font-size:15px}
+ .grid,.filters{grid-template-columns:1fr;gap:10px}
+ .accHead{padding:12px}
+ .accBody{padding:0 12px 12px}
+ .accMeta{max-width:40%}
  .suggestions{max-height:46vh}
- .suggestion{padding:13px}
  .top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
  .place{font-size:16px;overflow-wrap:anywhere}
  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
- .day{text-align:center;font-size:10px;padding:6px 2px}
- .weatherPanel{padding:12px}.weatherTitle{font-size:15px}
+ .day{min-width:0;font-size:11px;padding:8px 0}
+ .weatherPanel{padding:12px}.weatherTitle{font-size:16px}
  .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
- .weatherSimple{font-size:12px;min-width:590px}
+ .weatherSimple{font-size:13px;min-width:560px}
  .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
 @media(max-width:380px){
- .hero h1{font-size:24px}
- .badge{white-space:normal;text-align:center;max-width:92px}
- .day{font-size:9px}
+ .hero h1{font-size:34px;line-height:38px}
+ .badge{white-space:normal;text-align:center;max-width:96px}
 }
 @media(hover:none){button,.result,.suggestion{cursor:default}}
 </style>
 </head>
 <body>
 <div class="wrap">
- <div class="brandTop">
-  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo_seffaf.png" alt="dijital.kurye logo" width="286" height="65"></a>
-  <span class="brandTopTag">SAHA OPERASYONLARI</span>
- </div>
+ <header class="brandTop">
+  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo_seffaf.png" alt="dijital.kurye" width="286" height="65"></a>
+  <button type="button" id="contactBtn" class="pillBtn">Bize Ulaş</button>
+ </header>
 
- <div class="hero">
-  <span class="eyebrow">DİJİTAL KURYE · OPERASYON PLATFORMU</span>
-  <h1>Dağıtım Günü <em>Sorgulama</em></h1>
-  <p>Mahalle veya adres yazın; seçtiğiniz tarihten itibaren ilk dağıtım gününü görün.</p>
-  <div class="heroPills"><span>81 İl</span><span>Adres bazlı sorgulama</span><span>Güncel saha bilgisi</span></div>
- </div>
+ <main class="card">
+  <div class="hero">
+   <h1>Size Ne Zaman Gelebiliriz?</h1>
+   <p>Mahalle veya açık adresinizi yazın, seçtiğiniz tarihten itibaren ilk dağıtım gününü gösterelim.</p>
+  </div>
 
- <div class="card">
   <section id="querySection" class="accordion open">
-   <button type="button" class="accHead" aria-expanded="true"><span>🔎 Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <button type="button" class="accHead" aria-expanded="true"><span>Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span></button>
    <div class="accBody">
     <div class="grid">
      <div class="searchwrap">
+      <svg class="inIco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
       <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli" aria-label="Mahalle veya açık adres" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
       <div id="suggestions" class="suggestions" role="listbox"></div>
      </div>
      <input id="date" type="date" aria-label="Başlangıç tarihi">
      <button id="btn" type="button">Sorgula</button>
     </div>
-    <div class="hint">Açık adresinizi (mahalle, sokak, no, ilçe, il) yazıp <b>Sorgula</b>’ya basın. En az 3 karakterde mahalle önerileri görünür; dilerseniz İl / İlçe / Mahalle seçerek de sorgulayabilirsiniz.</div>
-    <div class="dataBar"><div id="dataInfo">Merkezi veriye bağlanılıyor…</div></div>
-    <div class="filters">
-     <div class="field"><label for="il">İl</label><select id="il" disabled><option value="">Tüm iller</option></select></div>
-     <div class="field"><label for="ilce">İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
-     <div class="field"><label for="mah">Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
-    </div>
+    <div class="hint">En az 3 karakter yazınca mahalle önerileri görünür. Tam adres yazarsanız sonuç daha kesin olur.</div>
+    <div class="dataBar"><span id="dataInfo">Merkezi veriye bağlanılıyor…</span></div>
+    <details class="filtersToggle">
+     <summary>İl / İlçe / Mahalle listesinden seç</summary>
+     <div class="filters">
+      <div class="field"><label for="il">İl</label><select id="il" disabled><option value="">Tüm iller</option></select></div>
+      <div class="field"><label for="ilce">İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
+      <div class="field"><label for="mah">Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
+     </div>
+    </details>
    </div>
   </section>
 
   <section id="deliverySection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span>📦 Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
    <div class="accBody"><div id="results" aria-live="polite"></div></div>
   </section>
 
   <section id="opsSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span>🚚 Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><span class="accChevron">▼</span></button>
+   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 7h11v9h-11zM13.5 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
    <div class="accBody"><div id="opsBox"></div></div>
   </section>
 
   <section id="weatherSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span>🌤️ Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><span class="accChevron">▼</span></button>
+   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg></span>Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
    <div class="accBody"><div id="weatherBox"></div></div>
   </section>
 
-  <button type="button" id="feedbackLaunch" class="feedbackLaunch">💬 Öneri / Talep Gönder</button>
   <section id="feedbackSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span>Öneri / Talep Formu</span><span class="accChevron">▼</span></button>
+   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Öneri / Talep Formu</span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
    <div class="accBody">
     <form id="feedbackForm" novalidate>
      <div class="feedbackGrid">
@@ -245,7 +275,9 @@ button:hover{filter:brightness(.96)}button:disabled{opacity:.6;cursor:default}
     </form>
    </div>
   </section>
- </div>
+
+  <button type="button" id="feedbackLaunch" class="feedbackLaunch">Öneri / Talep Gönder</button>
+ </main>
 </div>
 
 <script>
@@ -665,11 +697,13 @@ async function loadWeather(il,ilce){
 // ===================================================================
 // Öneri / talep formu → D1 (/api/oneri). Admin paneli buradan okur.
 // ===================================================================
-$('feedbackLaunch').addEventListener('click',()=>{
+const openFeedback=()=>{
  const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
  s.scrollIntoView({behavior:'smooth',block:'start'});
  setTimeout(()=>$('fbName').focus(),300);
-});
+};
+$('feedbackLaunch').addEventListener('click',openFeedback);
+$('contactBtn').addEventListener('click',openFeedback);
 $('feedbackClose').addEventListener('click',()=>{const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent')});
 $('feedbackForm').addEventListener('submit',async e=>{
  e.preventDefault();
