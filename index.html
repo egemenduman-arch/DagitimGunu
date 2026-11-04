@@ -396,7 +396,7 @@ let LIVE_ON=false,TABLE_DATE='';
 // ---- Optymus (canlı) – worker üzerinden; token tarayıcıya hiç gelmez ----
 function mahalleAddress(r){
  const m=String(r.mahalle||'').trim();
- return m+(/\b(mah|mahalle|mahallesi|köy|köyü|koyu)\b\.?$/i.test(m)?'':' Mah.')+' '+r.ilce+'/'+r.il;
+ return m+(/(^|\s)(mh|mah|mahalle|mahallesi|köy|köyü|koyu)\.?$/i.test(m)?'':' Mah.')+' '+r.ilce+'/'+r.il;
 }
 async function liveLookup(address){
  if(!LIVE_ON||!address)return null;
