@@ -790,11 +790,19 @@ export default {
           const bit = v => (Number(v) === 1 ? 1 : 0);
           const valid = rows.filter(r => Array.isArray(r) && r[0] && r[1] && r[2] && Array.isArray(r[3]) && r[3].length === 7);
           if (valid.length !== rows.length) return json({ ok: false, error: "Geçersiz satır biçimi" }, 400);
-          const stmts = valid.map(r => env.DB.prepare(`
-            INSERT INTO dagitim_yeni (il, ilce, mahalle, pazartesi, sali, carsamba, persembe, cuma, cumartesi, pazar)
-            VALUES (?,?,?,?,?,?,?,?,?,?)`).bind(
-            String(r[0]).trim().slice(0, 80), String(r[1]).trim().slice(0, 80), String(r[2]).trim().slice(0, 160),
-            ...r[3].map(bit)));
+          // Çok satırlı INSERT: D1'de sorgu başına en fazla 100 parametre var (satır başına 10 → 10 satır).
+          // 250 satır 250 yerine 25 sorgu olur; ücretsiz planın istek başına sorgu sınırına takılmaz.
+          const ROWS_PER_STMT = 10;
+          const stmts = [];
+          for (let i = 0; i < valid.length; i += ROWS_PER_STMT) {
+            const part = valid.slice(i, i + ROWS_PER_STMT);
+            stmts.push(env.DB.prepare(`
+              INSERT INTO dagitim_yeni (il, ilce, mahalle, pazartesi, sali, carsamba, persembe, cuma, cumartesi, pazar)
+              VALUES ${part.map(() => "(?,?,?,?,?,?,?,?,?,?)").join(",")}`).bind(
+              ...part.flatMap(r => [
+                String(r[0]).trim().slice(0, 80), String(r[1]).trim().slice(0, 80), String(r[2]).trim().slice(0, 160),
+                ...r[3].map(bit)])));
+          }
           await env.DB.batch(stmts);
           return json({ ok: true, inserted: valid.length });
         }

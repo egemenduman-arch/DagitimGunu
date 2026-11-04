@@ -1,8 +1,14 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<!-- İçerik Güvenliği Politikası: sayfa yalnızca dağıtım API'sine bağlanabilir. Üçüncü taraf bir betik
+     (ör. ele geçirilmiş bir CDN dosyası) admin şifresini başka bir sunucuya fetch/görsel ile gönderemez. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.sheetjs.com; connect-src https://dagitimveri.egemenduman.workers.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <title>Dağıtım Verisi Yönetimi</title>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<!-- SRI için: curl -s https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js | openssl dgst -sha384 -binary | openssl base64 -A
+     çıktısını integrity="sha384-..." crossorigin="anonymous" olarak ekleyin (bkz. README). -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" referrerpolicy="no-referrer"></script>
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">

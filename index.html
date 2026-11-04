@@ -13,13 +13,17 @@
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
+<!-- Google Analytics: KVKK gereği yalnızca kullanıcı onay verirse yüklenir (bkz. #consentBar). -->
 <script>
 window.dataLayer=window.dataLayer||[];
 function gtag(){dataLayer.push(arguments);}
-gtag('js',new Date());
-gtag('config','G-PV9GWK34V8');
+window.loadAnalytics=function(){
+ if(window.__gaLoaded)return;window.__gaLoaded=true;
+ var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8';
+ document.head.appendChild(s);
+ gtag('js',new Date());gtag('config','G-PV9GWK34V8',{anonymize_ip:true});
+};
+try{if(localStorage.getItem('dk_cerez_onay')==='kabul')window.loadAnalytics()}catch(e){}
 </script>
 <style>
 /* Kurumsal font: Biennale (lisanslı). woff2 dosyaları fonts/ klasörüne konunca otomatik kullanılır. */
@@ -182,6 +186,16 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .feedbackStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--dk-white);font-size:14px}
 .feedbackStatus.ok{color:#00753A}.feedbackStatus.err{color:var(--dk-error-dark)}
 
+/* Çerez onayı */
+.consentBar{position:fixed;left:16px;right:16px;bottom:16px;z-index:50;max-width:640px;margin:0 auto;display:none;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:var(--dk-radius-16);background:var(--dk-white);box-shadow:var(--dk-shadow);border:1px solid var(--dk-grey-300);font-size:13px;line-height:18px;color:var(--dk-black-60)}
+.consentBar.show{display:flex}
+.consentBar p{margin:0;flex:1 1 260px}
+.consentBar .cBtns{display:flex;gap:8px;flex:0 0 auto}
+.consentBar button{height:40px;padding:0 16px;font-size:14px}
+.consentBar .cNo{background:var(--dk-white);border:1px solid var(--dk-grey-400)}
+.cookieLink{background:none;border:0;height:auto;padding:0;font-size:12px;font-weight:500;color:var(--dk-grey-600);text-decoration:underline;cursor:pointer}
+.cookieLink:hover{filter:none;color:var(--dk-black)}
+
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
 @media(max-width:700px){
@@ -284,6 +298,12 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 
   <button type="button" id="feedbackLaunch" class="feedbackLaunch">Öneri / Talep Gönder</button>
  </main>
+ <div class="footNote"><button type="button" id="cookieSettings" class="cookieLink">Çerez tercihleri</button></div>
+</div>
+
+<div id="consentBar" class="consentBar" role="region" aria-label="Çerez tercihi">
+ <p>Hizmeti iyileştirmek için, onay vermeniz halinde Google Analytics ile anonim kullanım istatistikleri topluyoruz. Zorunlu olmayan bu çerezleri reddedebilirsiniz; sorgulama her durumda çalışır.</p>
+ <div class="cBtns"><button type="button" id="consentNo" class="cNo">Reddet</button><button type="button" id="consentYes">Kabul et</button></div>
 </div>
 
 <script>
@@ -744,6 +764,27 @@ $('feedbackForm').addEventListener('submit',async e=>{
   show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');
  }finally{btn.disabled=false}
 });
+
+// ===================================================================
+// Çerez onayı (Google Analytics yalnızca "Kabul et" sonrası yüklenir)
+// ===================================================================
+const CONSENT_KEY='dk_cerez_onay';
+const getConsent=()=>{try{return localStorage.getItem(CONSENT_KEY)}catch(e){return null}};
+const setConsent=v=>{try{localStorage.setItem(CONSENT_KEY,v)}catch(e){}};
+const bar=$('consentBar');
+if(!getConsent())bar.classList.add('show');
+$('consentYes').addEventListener('click',()=>{setConsent('kabul');bar.classList.remove('show');window.loadAnalytics()});
+$('consentNo').addEventListener('click',()=>{
+ const wasOn=getConsent()==='kabul';
+ setConsent('ret');bar.classList.remove('show');
+ // Mevcut Analytics çerezlerini (_ga, _ga_*) sil
+ const host=location.hostname,doms=['',host,'.'+host,'.'+host.split('.').slice(-2).join('.')];
+ document.cookie.split(';').map(c=>c.split('=')[0].trim()).filter(n=>/^_ga(_|$)|^_gid$/.test(n))
+  .forEach(n=>doms.forEach(d=>{document.cookie=n+'=; Max-Age=0; path=/'+(d?'; domain='+d:'')}));
+ // Daha önce kabul edilmişse yüklü betiği kaldırmak için sayfa yenilenir
+ if(wasOn&&window.__gaLoaded)location.reload();
+});
+$('cookieSettings').addEventListener('click',()=>bar.classList.add('show'));
 
 // ===================================================================
 // Service worker (yalnızca uygulama kabuğunu önbelleğe alır, API verisini değil)

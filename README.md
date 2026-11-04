@@ -58,3 +58,17 @@ Kaynak: `docs/optymus-work-days.postman_collection.json`
   worker bunu `422 {ok:false, adresHatasi:true, error}` olarak iletir.
 - Rezervasyon en erken **ertesi gün** olabilir; ekranda gösterilen
   `ReservationDate` (YYYY-MM-DD) iş emrinde kullanılır.
+
+## Güvenlik ve gizlilik notları
+
+- **Google Analytics** yalnızca kullanıcı çerez bandında "Kabul et" derse yüklenir
+  (tercih `localStorage` içinde `dk_cerez_onay` anahtarında tutulur; alt kısımdaki
+  "Çerez tercihleri" ile değiştirilebilir).
+- **admin.html** bir İçerik Güvenliği Politikası (CSP) ile yalnızca dağıtım API'sine
+  bağlanabilir. API adresi değişirse CSP'deki `connect-src` de güncellenmelidir.
+- **SheetJS bütünlük kontrolü (SRI):** dosyanın hash'i şu komutla alınıp `admin.html`'deki
+  `<script>` etiketine `integrity="sha384-..." crossorigin="anonymous"` olarak eklenebilir:
+
+  ```bash
+  curl -s https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js | openssl dgst -sha384 -binary | openssl base64 -A
+  ```
