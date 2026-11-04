@@ -1,7 +1,7 @@
 {
   "name": "Dijital Kurye – Dağıtım Günü",
   "short_name": "Dağıtım Günü",
-  "description": "Mahalle ve açık adrese göre en erken dağıtım gününü sorgular.",
+  "description": "Operasyon ve çağrı merkezi ekipleri için dağıtım günü sorgulama aracı.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
