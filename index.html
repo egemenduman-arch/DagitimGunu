@@ -31,7 +31,10 @@ gtag('config','G-PV9GWK34V8');
 :root{
  --dk-primary:#8BAF2E;--dk-primary-soft:#EEF3DF;--dk-primary-ink:#4F6613;
  --dk-black:#0C0C0C;--dk-black-60:#0C0C0C99;--dk-white:#FFFFFF;
- --dk-grey-100:#FAFAFA;--dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-500:#A4A4A4;--dk-grey-600:#7F7F7F;
+ /* grey-600: WCAG 1.4.3 için #7F7F7F (4.0:1) yerine #666666 (beyazda 5.7:1, #F0F0F0'da 5.0:1) */
+ --dk-grey-100:#FAFAFA;--dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-500:#A4A4A4;--dk-grey-600:#666666;
+ /* form alanı kenarlığı: WCAG 1.4.11 için en az 3:1 */
+ --dk-border:#8A8A8A;--dk-success-ink:#00753A;
  --dk-success:#00BF5F;--dk-error:#FF1B1B;--dk-error-dark:#B71D18;--dk-warning:#FEC84B;--dk-warning-ink:#7A5200;--dk-info:#00B8D9;--dk-info-dark:#006C9C;
  --dk-radius-12:12px;--dk-radius-16:16px;--dk-radius-card:32px;
  --dk-shadow:0 18px 34px #00000014;
@@ -44,17 +47,21 @@ gtag('config','G-PV9GWK34V8');
 body{margin:0;font-family:var(--dk-font);color:var(--dk-black);background:var(--dk-grey-200);min-height:100vh;-webkit-text-size-adjust:100%;font-size:14px;line-height:20px}
 .wrap{max-width:900px;margin:0 auto 48px;padding:0 16px}
 button,input,select,textarea{font:inherit}
-input,select{border-radius:var(--dk-radius-12);border:1px solid var(--dk-grey-400);padding:0 16px;height:56px;background:var(--dk-white);color:var(--dk-black);width:100%;min-width:0;font-size:16px}
+input,select{border-radius:var(--dk-radius-12);border:1px solid var(--dk-border);padding:0 16px;height:56px;background:var(--dk-white);color:var(--dk-black);width:100%;min-width:0;font-size:16px}
 input::placeholder{color:var(--dk-grey-600)}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--dk-primary);outline-offset:-1px;border-color:var(--dk-primary)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--dk-primary-ink);outline-offset:1px;border-color:var(--dk-primary-ink)}
+input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--dk-error-dark)}
 button{border-radius:var(--dk-radius-12);border:0;padding:0 20px;height:56px;background:var(--dk-primary);color:var(--dk-black);font-weight:600;font-size:16px;cursor:pointer}
 button:hover{filter:brightness(.95)}button:disabled{opacity:.5;cursor:default}
-button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 
 /* Üst bar */
 .brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px 4px 24px}
 .brandLogo{display:block;width:118px;height:auto}
-.pillBtn{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--dk-grey-600);background:transparent;color:var(--dk-black);font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center}
+.pillBtn{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--dk-grey-600);background:transparent;color:var(--dk-black);font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;position:relative}
+.pillBtn:after{content:'';position:absolute;inset:-6px -2px} /* görünüm 32px, dokunma alanı 44px */
 .pillBtn:hover{background:var(--dk-white);filter:none}
 
 /* Ana kart + başlık */
@@ -66,8 +73,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 /* Bölümler (Figma: Gönderici / Alıcı Bilgisi kutuları) */
 .accordion{margin-top:12px;border-radius:var(--dk-radius-16);background:var(--dk-grey-200)}
 #querySection{margin-top:0;background:transparent}
-#querySection>.accHead{display:none}
+#querySection>.accH{display:none}
 #querySection>.accBody{display:block!important;padding:0}
+.accH{margin:0;font:inherit}
 .accHead{width:100%;height:auto;min-height:56px;border:0;border-radius:var(--dk-radius-16);background:transparent;color:var(--dk-black);padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;text-align:left}
 .accHead:hover{filter:none}
 .accTitle{display:flex;align-items:center;gap:12px}
@@ -75,14 +83,14 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .ico svg{width:22px;height:22px;stroke:var(--dk-black);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .accMeta{font-size:12px;line-height:16px;font-weight:500;color:var(--dk-grey-600);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
 .accChevron{width:20px;height:20px;transition:transform .2s ease;flex:0 0 auto;stroke:var(--dk-black);fill:none;stroke-width:2}
-.accordion.open>.accHead .accChevron{transform:rotate(180deg)}
+.accordion.open>.accH .accChevron{transform:rotate(180deg)}
 .accBody{display:none;padding:0 16px 16px}
 .accordion.open>.accBody{display:block}
 #deliverySection,#opsSection,#weatherSection,#feedbackSection{display:none}
 #deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
 
 /* Sorgu alanı */
-.grid{display:grid;grid-template-columns:1fr 180px 140px;gap:12px}
+.grid{display:grid;grid-template-columns:1fr 180px 140px;gap:12px;align-items:end}
 .searchwrap{position:relative}
 .searchwrap .inIco{position:absolute;left:16px;top:18px;width:20px;height:20px;stroke:var(--dk-black);fill:none;stroke-width:1.8;pointer-events:none}
 .searchwrap input{padding-left:48px}
@@ -98,7 +106,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .dataBar:has(.statusErr):before{background:var(--dk-error)}
 .statusOk{color:var(--dk-grey-600)}.statusErr{color:var(--dk-error-dark)}
 .filtersToggle{margin-top:14px;font-size:14px}
-.filtersToggle summary{cursor:pointer;font-weight:500;color:var(--dk-black);list-style:none;display:inline-flex;align-items:center;gap:6px}
+.filtersToggle summary{cursor:pointer;font-weight:500;color:var(--dk-black);list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;border-radius:8px}
 .filtersToggle summary::-webkit-details-marker{display:none}
 .filtersToggle summary:after{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
 .filtersToggle[open] summary:after{transform:rotate(225deg)}
@@ -116,12 +124,13 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .badge{font-size:12px;line-height:16px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--dk-primary);color:var(--dk-black);white-space:nowrap}
 .badge.closed{background:var(--danger-soft);color:var(--dk-error-dark)}
 .days{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
-.day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-500);min-width:44px;text-align:center}
-.day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink)}
-.day.first{background:var(--dk-black);color:var(--dk-white)}
+/* Dağıtım olmayan gün: yalnızca renge dayanmamak için üstü çizili (WCAG 1.4.1) ve 5:1 kontrast */
+.day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-600);min-width:44px;text-align:center;text-decoration:line-through}
+.day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink);text-decoration:none;box-shadow:inset 0 0 0 1px var(--dk-primary-ink)}
+.day.first{background:var(--dk-black);color:var(--dk-white);box-shadow:none}
 .srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
-.src.live{border-color:var(--dk-success);color:#00753A}
+.src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
 .note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
 .groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
 .groupTitle:first-child{margin-top:0}
@@ -130,11 +139,12 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 
 /* Operasyon (Figma: Notification – Inline) */
 .opsPanel{position:relative;border-radius:var(--dk-radius-12);padding:14px 16px 14px 48px;background:var(--dk-white);box-shadow:var(--dk-shadow)}
-.opsPanel:before{content:'i';position:absolute;left:16px;top:14px;width:20px;height:20px;border-radius:50%;background:var(--dk-info-dark);color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center}
+/* İkonlar dekoratiftir: "/ ''" ile ekran okuyucuda okunmaz (desteklemeyen tarayıcı ilk satırı kullanır) */
+.opsPanel:before{content:'i';content:'i' / '';position:absolute;left:16px;top:14px;width:20px;height:20px;border-radius:50%;background:var(--dk-info-dark);color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center}
 .opsTitle{font-weight:700;margin-bottom:2px}.opsText{font-size:14px;line-height:20px;color:var(--dk-black-60)}
-.opsOk:before{content:'✓';background:var(--dk-success)}
-.opsWarn:before{content:'!';background:var(--dk-warning);color:var(--dk-black)}
-.opsDanger:before{content:'!';background:var(--dk-error)}
+.opsOk:before{content:'✓';content:'✓' / '';background:var(--dk-success-ink)}
+.opsWarn:before{content:'!';content:'!' / '';background:var(--dk-warning);color:var(--dk-black)}
+.opsDanger:before{content:'!';content:'!' / '';background:var(--dk-error)}
 .opsNeutral:before{background:var(--dk-grey-500)}
 .opsItem{margin-top:10px;padding-top:10px;border-top:1px solid var(--dk-grey-300);color:var(--dk-black)}
 .opsItem div{color:var(--dk-black-60)}
@@ -147,7 +157,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .weatherFallback{font-size:14px;line-height:20px;color:var(--dk-grey-600)}
 .weatherFallback a{font-weight:500;color:var(--dk-black)}
 .weatherNotice{position:relative;margin:0 0 12px;padding:12px 14px 12px 46px;border-radius:var(--dk-radius-12);background:var(--dk-white);box-shadow:var(--dk-shadow);font-size:14px;line-height:20px;color:var(--dk-black-60)}
-.weatherNotice:before{content:'!';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.weatherNotice:before{content:'!';content:'!' / '';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
 .weatherNotice strong{display:block;font-size:14px;margin-bottom:2px;color:var(--dk-black)}
 .weatherToday{margin:0 0 12px;padding:14px;border-radius:var(--dk-radius-12);background:var(--dk-grey-200)}
 .weatherTodayHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
@@ -157,12 +167,14 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .weatherMetric{background:var(--dk-white);border-radius:10px;padding:10px}
 .weatherMetric span{display:block;font-size:12px;color:var(--dk-grey-600)}.weatherMetric b{font-size:16px;font-weight:600}
-.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+.weatherSimpleWrap:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
 .weatherSimple{width:100%;min-width:620px;border-collapse:collapse;font-size:14px}
 .weatherSimple th,.weatherSimple td{border-bottom:1px solid var(--dk-grey-300);padding:10px;text-align:center;vertical-align:middle}
 .weatherSimple tr:last-child th,.weatherSimple tr:last-child td{border-bottom:0}
 .weatherSimple th{width:90px;text-align:left;font-weight:500;color:var(--dk-grey-600)}
 .weatherSimple .dateCell{font-weight:600;white-space:nowrap}
+.weatherSimple thead th.dateCell{width:auto;text-align:center;color:var(--dk-black);font-weight:600}
 .conditionInner{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .conditionInner img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
 .conditionName{font-weight:500}
@@ -173,14 +185,17 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 .feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .feedbackGrid .full{grid-column:1/-1}
 .feedbackGrid label{display:block;font-size:12px;font-weight:500;color:var(--dk-grey-600);margin-bottom:6px}
-.feedbackGrid textarea{width:100%;border:1px solid var(--dk-grey-400);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:110px;resize:vertical;font-size:16px}
+.feedbackGrid .req{color:var(--dk-error-dark)}
+.fieldErr{font-size:12px;line-height:16px;color:var(--dk-error-dark);margin-top:6px}
+.fieldErr:empty{display:none}
+.feedbackGrid textarea{width:100%;border:1px solid var(--dk-border);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:110px;resize:vertical;font-size:16px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .feedbackActions{display:flex;gap:8px;margin-top:12px}
 .feedbackActions button{flex:1;height:48px}
-.feedbackClose{background:var(--dk-white);color:var(--dk-black);border:1px solid var(--dk-grey-400)!important}
+.feedbackClose{background:var(--dk-white);color:var(--dk-black);border:1px solid var(--dk-border)!important}
 .feedbackNote{font-size:12px;color:var(--dk-grey-600);line-height:16px;margin-top:10px}
 .feedbackStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--dk-white);font-size:14px}
-.feedbackStatus.ok{color:#00753A}.feedbackStatus.err{color:var(--dk-error-dark)}
+.feedbackStatus.ok{color:var(--dk-success-ink)}.feedbackStatus.err{color:var(--dk-error-dark)}
 
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
@@ -214,7 +229,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
 <body>
 <div class="wrap">
  <header class="brandTop">
-  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye"><img class="brandLogo" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"></a>
+  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye (yeni sekmede açılır)"><img class="brandLogo" src="dijitalkurye_logo.svg" alt="" width="102" height="24"></a>
   <button type="button" id="contactBtn" class="pillBtn">Bize Ulaş</button>
  </header>
 
@@ -224,20 +239,28 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
    <p>Mahalle veya açık adresinizi yazın, seçtiğiniz tarihten itibaren ilk dağıtım gününü gösterelim.</p>
   </div>
 
-  <section id="querySection" class="accordion open">
-   <button type="button" class="accHead" aria-expanded="true"><span>Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span></button>
-   <div class="accBody">
+  <div id="srStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <section id="querySection" class="accordion open" aria-label="Sorgu alanı">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="true" aria-controls="queryBody" tabindex="-1"><span>Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span></button></h2>
+   <div class="accBody" id="queryBody">
     <div class="grid">
-     <div class="searchwrap">
-      <svg class="inIco" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
-      <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli" aria-label="Mahalle veya açık adres" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false">
-      <div id="suggestions" class="suggestions" role="listbox"></div>
+     <div class="field">
+      <label for="q">Mahalle veya açık adres</label>
+      <div class="searchwrap">
+       <svg class="inIco" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+       <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" aria-describedby="qHint">
+       <div id="suggestions" class="suggestions" role="listbox" aria-label="Mahalle önerileri"></div>
+      </div>
      </div>
-     <input id="date" type="date" aria-label="Başlangıç tarihi">
+     <div class="field">
+      <label for="date">Başlangıç tarihi</label>
+      <input id="date" type="date">
+     </div>
      <button id="btn" type="button">Sorgula</button>
     </div>
-    <div class="hint">En az 3 karakter yazınca mahalle önerileri görünür. Tam adres yazarsanız sonuç daha kesin olur.</div>
-    <div class="dataBar"><span id="dataInfo">Merkezi veriye bağlanılıyor…</span></div>
+    <div class="hint" id="qHint">En az 3 karakter yazınca mahalle önerileri görünür; ok tuşlarıyla seçip Enter'a basın. Tam adres yazarsanız sonuç daha kesin olur.</div>
+    <div class="dataBar" role="status"><span id="dataInfo">Merkezi veriye bağlanılıyor…</span></div>
     <details class="filtersToggle">
      <summary>İl / İlçe / Mahalle listesinden seç</summary>
      <div class="filters">
@@ -250,33 +273,34 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--dk-black);outline-o
   </section>
 
   <section id="deliverySection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-   <div class="accBody"><div id="results" aria-live="polite"></div></div>
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="deliveryBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="deliveryBody"><div id="results"></div></div>
   </section>
 
   <section id="opsSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M2.5 7h11v9h-11zM13.5 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-   <div class="accBody"><div id="opsBox"></div></div>
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="opsBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.5 7h11v9h-11zM13.5 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="opsBody"><div id="opsBox"></div></div>
   </section>
 
   <section id="weatherSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg></span>Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-   <div class="accBody"><div id="weatherBox"></div></div>
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="weatherBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg></span>Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="weatherBody"><div id="weatherBox"></div></div>
   </section>
 
   <section id="feedbackSection" class="accordion">
-   <button type="button" class="accHead" aria-expanded="false"><span class="accTitle"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Öneri / Talep Formu</span><svg class="accChevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-   <div class="accBody">
-    <form id="feedbackForm" novalidate>
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="feedbackBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Öneri / Talep Formu</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="feedbackBody">
+    <form id="feedbackForm" novalidate aria-describedby="fbReqNote">
+     <p class="feedbackNote" id="fbReqNote" style="margin:0 0 12px"><span class="req" aria-hidden="true">*</span> ile işaretli tüm alanlar zorunludur.</p>
      <div class="feedbackGrid">
-      <div><label for="fbName">Ad Soyad</label><input id="fbName" name="name" autocomplete="name" maxlength="120" required></div>
-      <div><label for="fbPhone">GSM</label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required></div>
-      <div class="full"><label for="fbEmail">E-posta</label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required></div>
-      <div class="full"><label for="fbMessage">Açıklama</label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Öneri veya talebinizi yazın" required></textarea></div>
+      <div><label for="fbName">Ad Soyad <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
+      <div><label for="fbPhone">GSM <span class="req" aria-hidden="true">*</span></label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required aria-describedby="fbPhoneErr"><div id="fbPhoneErr" class="fieldErr"></div></div>
+      <div class="full"><label for="fbEmail">E-posta <span class="req" aria-hidden="true">*</span></label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required aria-describedby="fbEmailErr"><div id="fbEmailErr" class="fieldErr"></div></div>
+      <div class="full"><label for="fbMessage">Açıklama <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Öneri veya talebinizi yazın" required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
       <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
      </div>
      <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
-     <div id="feedbackStatus" class="feedbackStatus" role="status"></div>
+     <div id="feedbackStatus" class="feedbackStatus" role="status" aria-live="polite"></div>
      <div class="feedbackNote">Gönderdiğiniz bilgiler yalnızca öneri/talebinizin değerlendirilmesi ve gerektiğinde sizinle iletişim kurulması amacıyla kaydedilir.</div>
     </form>
    </div>
@@ -345,14 +369,23 @@ async function apiList(path,key){
 function setAccordion(section,open){
  if(!section)return;
  section.classList.toggle('open',!!open);
- const b=section.querySelector(':scope > .accHead');
+ const b=section.querySelector(':scope > .accH > .accHead');
  if(b)b.setAttribute('aria-expanded',open?'true':'false');
 }
 function showSection(id,open){const s=$(id);s.classList.add('hasContent');if(open!==undefined)setAccordion(s,open)}
 function hideSection(id){const s=$(id);s.classList.remove('hasContent');setAccordion(s,false)}
-document.querySelectorAll('.accordion > .accHead').forEach(b=>{
- b.addEventListener('click',()=>setAccordion(b.parentElement,!b.parentElement.classList.contains('open')));
+document.querySelectorAll('.accordion > .accH > .accHead').forEach(b=>{
+ b.addEventListener('click',()=>{const s=b.closest('.accordion');setAccordion(s,!s.classList.contains('open'))});
 });
+
+// Ekran okuyucu duyurusu (görünmez canlı bölge). Aynı metin tekrar gelse de okunması için önce temizlenir.
+let announceTimer=null;
+function announce(msg){
+ const el=$('srStatus');clearTimeout(announceTimer);el.textContent='';
+ announceTimer=setTimeout(()=>{el.textContent=msg},60);
+}
+const reduceMotion=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NEW_TAB='<span class="sr-only"> (yeni sekmede açılır)</span>';
 
 // ===================================================================
 // Durum çubuğu
@@ -396,6 +429,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  if(!records.length){
   box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
   $('deliveryMeta').textContent='';
+  announce(emptyMsg);
   hideSection('opsSection');hideSection('weatherSection');
   return;
  }
@@ -406,8 +440,11 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken rezervasyon':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
    (n&&r.kaynak==='live'?'<div class="small">ReservationDate: <code>'+isoOf(n.date)+'</code></div>':'')+
-   '<div class="days">'+DAY_NAMES.map((d,j)=>'<span class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+d+'">'+DAY_SHORT[j]+'</span>').join('')+'</div>'+
-   (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live">● Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
+   '<div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
+     const lbl=d+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
+     return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
+   }).join('')+'</div>'+
+   (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live"><span aria-hidden="true">● </span>Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
  };
  box.innerHTML=records.slice(0,30).map((r,i)=>(r.group&&(i===0||records[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('');
@@ -416,6 +453,11 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  const label=first.mahalle||first.title||'';
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
+ {
+  const fn=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
+  announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
+   (fn?(first.kaynak==='live'?'en erken rezervasyon ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
+ }
  const geo=records.find(r=>r.il&&r.ilce);
  if(geo){loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}
  else{hideSection('opsSection');hideSection('weatherSection')}
@@ -463,7 +505,7 @@ async function run(){
  closeSuggestions();
  try{
   if(il&&ic&&m){
-   showSection('deliverySection',true);box.innerHTML='<div class="loading">Sorgulanıyor…</div>';
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Sorgulanıyor…</div>';announce('Sorgulanıyor…');
    const base={il,ilce:ic,mahalle:m};
    const [tab,live]=await Promise.all([
     dataApi('/api/mahalle?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ic)+'&mahalle='+encodeURIComponent(m)).then(j=>(j.row?[j.row]:apiRows(j)).map(toRecord)).catch(()=>[]),
@@ -476,7 +518,7 @@ async function run(){
    return;
   }
   if(norm(text).length>=3){
-   showSection('deliverySection',true);box.innerHTML='<div class="loading">Adres aranıyor…</div>';
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Adres aranıyor…</div>';announce('Adres aranıyor…');
    const [tab,live]=await Promise.all([
     dataApi('/api/ara?q='+encodeURIComponent(text)).then(j=>apiRows(j).map(toRecord)).catch(()=>[]),
     norm(text).length>=8?liveLookup(text):Promise.resolve(null)
@@ -496,9 +538,11 @@ async function run(){
   }
   showSection('deliverySection',true);
   box.innerHTML='<div class="empty">Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.</div>';
+  announce('Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.');
+  q.focus();
  }catch(e){
   if(my!==runNo)return;
-  box.innerHTML='<div class="error">Sorgu yapılamadı: '+esc(e.message)+'</div>';
+  box.innerHTML='<div class="error" role="alert">Sorgu yapılamadı: '+esc(e.message)+'</div>';
  }
 }
 
@@ -508,6 +552,7 @@ function closeSuggestions(){
  if(sugCtrl){sugCtrl.abort();sugCtrl=null}
  sugBox.style.display='none';sugBox.innerHTML='';activeSug=-1;
  q.setAttribute('aria-expanded','false');
+ q.removeAttribute('aria-activedescendant');
 }
 async function showSuggestions(){
  const raw=q.value.trim();
@@ -518,10 +563,11 @@ async function showSuggestions(){
   const j=await dataApi('/api/ara?q='+encodeURIComponent(raw),{signal:ctrl.signal});
   if(ctrl!==sugCtrl)return; // daha yeni bir istek var
   SUGGESTIONS=apiRows(j).slice(0,10).map(toRecord);
-  activeSug=-1;
-  if(!SUGGESTIONS.length){sugBox.style.display='none';sugBox.innerHTML='';return}
-  sugBox.innerHTML=SUGGESTIONS.map((r,i)=>'<div class="suggestion" role="option" data-i="'+i+'"><b>'+esc(r.mahalle)+'</b><span>'+esc(r.ilce)+' / '+esc(r.il)+'</span></div>').join('');
+  activeSug=-1;q.removeAttribute('aria-activedescendant');
+  if(!SUGGESTIONS.length){sugBox.style.display='none';sugBox.innerHTML='';q.setAttribute('aria-expanded','false');return}
+  sugBox.innerHTML=SUGGESTIONS.map((r,i)=>'<div class="suggestion" role="option" id="sug-'+i+'" aria-selected="false" data-i="'+i+'"><b>'+esc(r.mahalle)+'</b><span>'+esc(r.ilce)+' / '+esc(r.il)+'</span></div>').join('');
   sugBox.style.display='block';q.setAttribute('aria-expanded','true');
+  announce(SUGGESTIONS.length+' öneri var. Ok tuşlarıyla gezinin.');
  }catch(e){if(ctrl===sugCtrl){sugBox.style.display='none'}}
 }
 sugBox.addEventListener('mousedown',e=>{
@@ -532,9 +578,10 @@ async function selectSuggestion(i){
  const r=SUGGESTIONS[i];if(!r)return;
  closeSuggestions();
  q.value=r.mahalle+', '+r.ilce+', '+r.il;
- q.blur();
  const my=++runNo;
  renderRecords([{...r,kaynak:'tablo'}]);
+ // Odağı kaybetmek yerine sonuç başlığına taşı (mobilde klavye de kapanır)
+ const resHead=$('deliverySection').querySelector('.accHead');if(resHead)resHead.focus();
  if(LIVE_ON){
   liveLookup(mahalleAddress(r)).then(live=>{if(my===runNo&&live&&!live.error)renderRecords([withLive(r,live)])});
  }
@@ -559,7 +606,8 @@ q.addEventListener('keydown',e=>{
  if((e.key==='ArrowDown'||e.key==='ArrowUp')&&open&&els.length){
   e.preventDefault();
   activeSug=(activeSug+(e.key==='ArrowDown'?1:-1)+els.length)%els.length;
-  els.forEach((x,j)=>x.classList.toggle('active',j===activeSug));
+  els.forEach((x,j)=>{x.classList.toggle('active',j===activeSug);x.setAttribute('aria-selected',j===activeSug?'true':'false')});
+  q.setAttribute('aria-activedescendant',els[activeSug].id);
   els[activeSug].scrollIntoView({block:'nearest'});
  }else if(e.key==='Enter'){
   e.preventDefault();
@@ -619,14 +667,14 @@ async function loadOperationalAlerts(il,ilce){
   const a=Array.isArray(data.alerts)?data.alerts:[];
   const where=esc(ilce?ilce+' / '+il:il);
   if(!a.length){
-   box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">✓ Aktif operasyon uyarısı bulunamadı</div><div class="opsText">'+where+' için eşleşen güncel uyarı bulunmadı.</div></div>';
+   box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">Aktif operasyon uyarısı bulunamadı</div><div class="opsText">'+where+' için eşleşen güncel uyarı bulunmadı.</div></div>';
    $('opsMeta').textContent='Uyarı yok';
    return;
   }
   const severe=a.some(x=>x.type==='MOTOSIKLET_YASAGI'||x.type==='YOL_KAPALI');
   const safeUrl=u=>/^https:\/\//i.test(String(u||''))?u:'';
-  const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+esc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+esc(x.summary)+'</div>':'')+(safeUrl(x.url)?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">Resmî kaynağı aç ↗</a>':'')+'</div>').join('');
-  box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle">⚠ Operasyon uyarısı – '+where+'</div><div class="opsText">'+items+'</div></div>';
+  const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+esc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+esc(x.summary)+'</div>':'')+(safeUrl(x.url)?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">Resmî kaynağı aç<span aria-hidden="true"> ↗</span>'+NEW_TAB+'</a>':'')+'</div>').join('');
+  box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle"><span aria-hidden="true">⚠ </span>'+(severe?'Ciddi operasyon uyarısı':'Operasyon uyarısı')+' – '+where+'</div><div class="opsText">'+items+'</div></div>';
   $('opsMeta').textContent=a.length+' uyarı';
   setAccordion($('opsSection'),true);
  }catch(e){
@@ -681,21 +729,21 @@ async function loadWeather(il,ilce){
   }
   const alerts=rows.filter(r=>isRisky(pick(r,['hadise','hadiseKodu','weather']))).map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
   if(cur&&isRisky(pick(cur,['hadise','hadiseKodu','weather'])))alerts.unshift('Bugün – '+esc(weatherName(pick(cur,['hadise','hadiseKodu','weather']))));
-  if(alerts.length)html+='<div class="weatherNotice weatherRisk"><strong>⚠ Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>';
+  if(alerts.length)html+='<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>';
 
   const five=rows.slice(0,5);
   const temp=r=>{const lo=pick(r,['enDusuk']),hi=pick(r,['enYuksek']);return lo===null&&hi===null?'—':esc((lo??'—')+'° / '+(hi??'—')+'°')};
-  html+='<div class="weatherSimpleWrap"><table class="weatherSimple"><tbody>'+
-   '<tr><th>Tarih</th>'+five.map(r=>'<td class="dateCell">'+esc(dotDate(pick(r,['tarih','date'])))+'</td>').join('')+'</tr>'+
-   '<tr><th>Durum</th>'+five.map(r=>{const h=pick(r,['hadise','hadiseKodu','weather']);return '<td><div class="conditionInner">'+wIcon(h)+'<span class="conditionName">'+esc(weatherName(h))+'</span></div></td>'}).join('')+'</tr>'+
-   '<tr><th>Min / Maks</th>'+five.map(r=>'<td>'+temp(r)+'</td>').join('')+'</tr>'+
+  html+='<div class="weatherSimpleWrap" role="region" aria-label="5 günlük tahmin tablosu" tabindex="0"><table class="weatherSimple"><caption class="sr-only">'+where+' için 5 günlük hava tahmini</caption>'+
+   '<thead><tr><th scope="col">Tarih</th>'+five.map(r=>'<th scope="col" class="dateCell">'+esc(dotDate(pick(r,['tarih','date'])))+'</th>').join('')+'</tr></thead><tbody>'+
+   '<tr><th scope="row">Durum</th>'+five.map(r=>{const h=pick(r,['hadise','hadiseKodu','weather']);return '<td><div class="conditionInner">'+wIcon(h)+'<span class="conditionName">'+esc(weatherName(h))+'</span></div></td>'}).join('')+'</tr>'+
+   '<tr><th scope="row">Min / Maks</th>'+five.map(r=>'<td>'+temp(r)+'</td>').join('')+'</tr>'+
    '</tbody></table></div>';
 
   box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • Meteoroloji Genel Müdürlüğü</div>'+html+'</div>';
-  $('weatherMeta').textContent=alerts.length?'⚠ '+alerts.length+' uyarı':'5 günlük';
+  $('weatherMeta').innerHTML=alerts.length?'<span aria-hidden="true">⚠ </span>'+alerts.length+' uyarı':'5 günlük';
  }catch(e){
   if(my!==weatherNo)return;
-  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü sorgusu çalışmaya devam ediyor. <a target="_blank" rel="noopener noreferrer" href="'+MGM_PAGE+'?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce)+'">MGM tahminlerini aç ↗</a></div></div>';
+  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü sorgusu çalışmaya devam ediyor. <a target="_blank" rel="noopener noreferrer" href="'+MGM_PAGE+'?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce)+'">MGM tahminlerini aç<span aria-hidden="true"> ↗</span>'+NEW_TAB+'</a></div></div>';
   $('weatherMeta').textContent='5 günlük';
  }
 }
@@ -703,33 +751,59 @@ async function loadWeather(il,ilce){
 // ===================================================================
 // Öneri / talep formu → D1 (/api/oneri). Admin paneli buradan okur.
 // ===================================================================
-const openFeedback=()=>{
+let feedbackOpener=null;
+const openFeedback=e=>{
+ feedbackOpener=e&&e.currentTarget||null;
  const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
- s.scrollIntoView({behavior:'smooth',block:'start'});
- setTimeout(()=>$('fbName').focus(),300);
+ s.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});
+ setTimeout(()=>$('fbName').focus({preventScroll:true}),reduceMotion()?0:300);
+};
+const closeFeedback=()=>{
+ const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent');
+ // Gizlenen bölümde odak kaybolmasın: formu açan butona (yoksa "Öneri / Talep Gönder"e) dön
+ (feedbackOpener&&document.body.contains(feedbackOpener)?feedbackOpener:$('feedbackLaunch')).focus();
 };
 $('feedbackLaunch').addEventListener('click',openFeedback);
 $('contactBtn').addEventListener('click',openFeedback);
-$('feedbackClose').addEventListener('click',()=>{const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent')});
+$('feedbackClose').addEventListener('click',closeFeedback);
+$('feedbackSection').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('feedbackSection').classList.contains('open')){e.preventDefault();closeFeedback()}});
+const FB_FIELDS=['fbName','fbPhone','fbEmail','fbMessage'];
+function setFieldError(id,msg){
+ const el=$(id),err=$(id+'Err');
+ err.textContent=msg||'';
+ if(msg)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');
+}
+FB_FIELDS.forEach(id=>$(id).addEventListener('input',()=>{if($(id).getAttribute('aria-invalid'))setFieldError(id,'')}));
 $('feedbackForm').addEventListener('submit',async e=>{
  e.preventDefault();
  const form=e.currentTarget,st=$('feedbackStatus'),btn=form.querySelector('.feedbackSend');
- const show=(msg,cls='')=>{st.style.display='block';st.className='feedbackStatus '+cls;st.textContent=msg};
+ // Hata mesajları role=alert ile hemen, diğerleri role=status ile sırayla okunur
+ const show=(msg,cls='')=>{st.setAttribute('role',cls==='err'?'alert':'status');st.style.display='block';st.className='feedbackStatus '+cls;st.textContent=msg};
  const payload={
   ad_soyad:$('fbName').value.trim(),gsm:$('fbPhone').value.trim(),
   email:$('fbEmail').value.trim(),aciklama:$('fbMessage').value.trim(),
   website:$('fbWebsite').value
  };
- if(!payload.ad_soyad||!payload.gsm||!payload.email||!payload.aciklama)return show('Lütfen tüm alanları doldurun.','err');
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email))return show('Geçerli bir e-posta adresi girin.','err');
  const digits=payload.gsm.replace(/\D/g,'');
- if(digits.length<10||digits.length>13)return show('Geçerli bir GSM numarası girin.','err');
+ const errors={
+  fbName:payload.ad_soyad?'':'Ad Soyad alanını doldurun.',
+  fbPhone:!payload.gsm?'GSM alanını doldurun.':(digits.length<10||digits.length>13?'Geçerli bir GSM numarası girin (örn. 05xx xxx xx xx).':''),
+  fbEmail:!payload.email?'E-posta alanını doldurun.':(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)?'Geçerli bir e-posta adresi girin (örn. ad@ornek.com).':''),
+  fbMessage:payload.aciklama?'':'Açıklama alanını doldurun.'
+ };
+ FB_FIELDS.forEach(id=>setFieldError(id,errors[id]));
+ const bad=FB_FIELDS.filter(id=>errors[id]);
+ if(bad.length){
+  show(bad.length===1?'1 alanda hata var: '+errors[bad[0]]:bad.length+' alanda hata var. Lütfen işaretli alanları düzeltin.','err');
+  $(bad[0]).focus();
+  return;
+ }
  show('Gönderiliyor…');btn.disabled=true;
  try{
   const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
-  show('✓ Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.','ok');
+  show('Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.','ok');
   form.reset();
   if(typeof gtag==='function')gtag('event','oneri_gonder');
  }catch(err){

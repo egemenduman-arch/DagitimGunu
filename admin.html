@@ -11,7 +11,7 @@
 @font-face{font-family:"Biennale";font-weight:500;font-display:swap;src:local("Biennale Medium"),local("Biennale-Medium")}
 @font-face{font-family:"Biennale";font-weight:600;font-display:swap;src:local("Biennale SemiBold"),local("Biennale-SemiBold")}
 :root{--dk-primary:#8BAF2E;--dk-primary-soft:#EEF3DF;--dk-primary-ink:#4F6613;--dk-black:#0C0C0C;--dk-black-60:#0C0C0C99;--dk-white:#fff;
- --dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-600:#7F7F7F;--dk-error-dark:#B71D18;--dk-success-ink:#00753A;--dk-info-dark:#006C9C}
+ --dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-600:#666666;--dk-border:#8A8A8A;--dk-error-dark:#B71D18;--dk-success-ink:#00753A;--dk-info-dark:#006C9C}
 *{box-sizing:border-box}
 body{margin:0;background:var(--dk-grey-200);color:var(--dk-black);font-family:"Biennale","Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:20px}
 .wrap{max-width:760px;margin:0 auto;padding:24px 16px 48px}
@@ -21,18 +21,20 @@ h1{margin:0 0 6px;font-size:32px;line-height:36px;font-weight:600;letter-spacing
 p{color:var(--dk-black-60);margin:0}
 label{display:block;font-weight:500;font-size:12px;line-height:16px;color:var(--dk-grey-600);margin:18px 0 6px}
 input,button{width:100%;min-height:52px;border-radius:12px;font:inherit;font-size:16px}
-input{border:1px solid var(--dk-grey-400);padding:12px 16px;background:var(--dk-white);color:var(--dk-black)}
+input{border:1px solid var(--dk-border);padding:12px 16px;background:var(--dk-white);color:var(--dk-black)}
 input[type=file]{padding:13px 16px;font-size:14px}
-input:focus{outline:2px solid var(--dk-primary);outline-offset:-1px;border-color:var(--dk-primary)}
+input:focus,select:focus{outline:2px solid var(--dk-primary-ink);outline-offset:1px;border-color:var(--dk-primary-ink)}
 button{border:0;background:var(--dk-primary);color:var(--dk-black);font-weight:600;margin-top:14px;cursor:pointer}
 button:hover{filter:brightness(.95)}button:disabled{opacity:.5;cursor:default}
-button:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+button:focus-visible,a:focus-visible,[role=tabpanel]:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+h1[tabindex]:focus{outline:none}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .status{margin-top:16px;padding:12px 16px;border-radius:12px;background:var(--dk-grey-200);line-height:20px}
 .ok{background:var(--dk-primary-soft);color:var(--dk-primary-ink)}.err{background:#FFF0F0;color:var(--dk-error-dark)}
 progress{width:100%;height:8px;margin-top:14px;accent-color:var(--dk-primary);border-radius:999px}
 .small{font-size:12px;line-height:16px;color:var(--dk-grey-600);margin-top:10px}
 .tabs{display:flex;gap:4px;margin:24px 0 8px;padding:4px;background:var(--dk-grey-200);border-radius:999px;width:max-content;max-width:100%;overflow-x:auto}
-.tabs button{margin:0;width:auto;min-height:36px;padding:0 16px;border-radius:999px;background:transparent;color:var(--dk-black-60);font-size:14px;font-weight:500;white-space:nowrap}
+.tabs button{margin:0;width:auto;min-height:44px;padding:0 16px;border-radius:999px;background:transparent;color:#555555;font-size:14px;font-weight:500;white-space:nowrap}
 .tabs button.active{background:var(--dk-white);color:var(--dk-black);box-shadow:0 2px 8px #0000000f}
 .tabs button:hover{filter:none;color:var(--dk-black)}
 .panel{display:none}.panel.active{display:block}
@@ -41,7 +43,7 @@ progress{width:100%;height:8px;margin-top:14px;accent-color:var(--dk-primary);bo
 .badge{font-size:12px;line-height:16px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-grey-300)}
 .reqmeta{font-size:12px;color:var(--dk-grey-600);line-height:18px;margin-top:6px}.reqmeta a{color:var(--dk-black)}
 .reqmsg{margin-top:10px;white-space:pre-wrap;line-height:20px}
-.req select{width:100%;min-height:44px;border:1px solid var(--dk-grey-400);border-radius:12px;padding:6px 12px;margin-top:12px;background:var(--dk-white);font:inherit}
+.req select{width:100%;min-height:44px;border:1px solid var(--dk-border);border-radius:12px;padding:6px 12px;margin-top:12px;background:var(--dk-white);font:inherit}
 .loginScreen{position:fixed;inset:0;background:var(--dk-grey-200);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
 .loginScreen .brand{margin:0 0 20px}
 .loginBox{width:min(420px,100%);background:var(--dk-white);border-radius:32px;padding:32px}
@@ -49,41 +51,42 @@ progress{width:100%;height:8px;margin-top:14px;accent-color:var(--dk-primary);bo
 .loginError{display:none;margin-top:12px;padding:10px 14px;border-radius:12px;background:#FFF0F0;color:var(--dk-error-dark)}
 .adminApp{display:none}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.logout{width:auto;min-height:32px;margin:0;padding:0 14px;border-radius:999px;background:transparent;border:1px solid var(--dk-grey-600);color:var(--dk-black);font-size:14px;font-weight:500}
+.logout{position:relative;width:auto;min-height:32px;margin:0;padding:0 14px;border-radius:999px;background:transparent;border:1px solid var(--dk-grey-600);color:var(--dk-black);font-size:14px;font-weight:500}
+.logout:after{content:'';position:absolute;inset:-6px -2px} /* dokunma alanı 44px */
 .logout:hover{background:var(--dk-grey-200);filter:none}
 pre#apiRaw{background:var(--dk-black)!important;color:#E7E7E7!important;border-radius:12px!important}
 @media(max-width:600px){.card{padding:24px 16px;border-radius:24px}.loginBox{padding:24px 18px;border-radius:24px}h1{font-size:26px;line-height:30px}}
 </style></head><body>
-<div id="loginScreen" class="loginScreen"><img class="brand" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"><div class="loginBox">
+<main id="loginScreen" class="loginScreen"><img class="brand" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"><div class="loginBox">
 <h1>Admin Girişi</h1><p>Dağıtım yönetim paneline erişmek için admin şifrenizi girin.</p>
-<label for="loginPw">Admin şifresi</label><input id="loginPw" type="password" autocomplete="current-password">
+<label for="loginPw">Admin şifresi</label><input id="loginPw" type="password" autocomplete="current-password" aria-describedby="loginError">
 <button id="loginBtn" type="button">Giriş Yap</button>
-<div id="loginError" class="loginError"></div>
-</div></div>
-<div id="adminApp" class="adminApp"><div class="wrap"><img class="brand" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"><div class="card">
-<div class="topbar"><div><h1>Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
-<div class="tabs"><button id="tabData" class="active" type="button">Dağıtım Verisi</button><button id="tabReq" type="button">Öneri / Talepler</button><button id="tabApi" type="button">Optymus Test</button></div>
-<div id="dataPanel" class="panel active">
+<div id="loginError" class="loginError" role="alert"></div>
+</div></main>
+<main id="adminApp" class="adminApp"><div class="wrap"><img class="brand" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"><div class="card">
+<div class="topbar"><div><h1 id="appTitle" tabindex="-1">Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
+<div class="tabs" role="tablist" aria-label="Yönetim bölümleri"><button id="tabData" class="active" type="button" role="tab" aria-selected="true" aria-controls="dataPanel">Dağıtım Verisi</button><button id="tabReq" type="button" role="tab" aria-selected="false" aria-controls="reqPanel" tabindex="-1">Öneri / Talepler</button><button id="tabApi" type="button" role="tab" aria-selected="false" aria-controls="apiPanel" tabindex="-1">Optymus Test</button></div>
+<div id="dataPanel" class="panel active" role="tabpanel" aria-labelledby="tabData" tabindex="0">
 <div id="metaInfo" class="small" style="margin-top:4px"></div>
 <label for="file">Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
-<button id="upload">Veriyi Güncelle</button>
-<progress id="prog" value="0" max="100" style="display:none"></progress>
-<div id="status" class="status">Dosya seçip güncellemeyi başlatın.</div>
+<button id="upload" type="button">Veriyi Güncelle</button>
+<progress id="prog" value="0" max="100" style="display:none" aria-label="Yükleme ilerlemesi"></progress>
+<div id="status" class="status" role="status">Dosya seçip güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
 </div>
-<div id="apiPanel" class="panel">
-  <div id="apiState" class="small"></div>
+<div id="apiPanel" class="panel" role="tabpanel" aria-labelledby="tabApi" tabindex="0" hidden>
+  <div id="apiState" class="small" role="status"></div>
   <label for="apiAddr">Tam adres</label><input id="apiAddr" placeholder="Örn: Caferağa Mah. Moda Cad. No:10, Kadıköy, İstanbul">
   <button id="apiTest" type="button">Sorgula</button>
-  <div id="apiStatus" class="status">Canlı servisin döndürdüğü ham yanıtı ve çözümlenen günleri görmek için adres girin.</div>
+  <div id="apiStatus" class="status" role="status">Canlı servisin döndürdüğü ham yanıtı ve çözümlenen günleri görmek için adres girin.</div>
   <pre id="apiRaw" style="display:none;white-space:pre-wrap;word-break:break-word;padding:14px;font-size:12px;max-height:420px;overflow:auto"></pre>
 </div>
-<div id="reqPanel" class="panel">
+<div id="reqPanel" class="panel" role="tabpanel" aria-labelledby="tabReq" tabindex="0" hidden>
   <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
-  <div id="reqStatus" class="status">Talepleri görüntülemek için butona basın.</div>
+  <div id="reqStatus" class="status" role="status">Talepleri görüntülemek için butona basın.</div>
   <div id="reqList"></div>
 </div>
-</div></div></div>
+</div></div></main>
 <script>
 const API="https://dagitimveri.egemenduman.workers.dev";
 let ADMIN_PW="";
@@ -113,11 +116,13 @@ async function adminLogin(){
    loginPw.value='';
    loginScreen.style.display='none';
    adminApp.style.display='block';
+   document.getElementById('appTitle').focus();
    loadMeta();
  }catch(e){
    ADMIN_PW='';
    loginError.textContent=e.message||'Giriş yapılamadı.';
    loginError.style.display='block';
+   loginPw.setAttribute('aria-invalid','true');loginPw.focus();
  }finally{loginBtn.disabled=false;loginBtn.textContent='Giriş Yap';}
 }
 async function loadMeta(){
@@ -127,6 +132,8 @@ async function loadMeta(){
  }catch(e){el.textContent='Mevcut veri bilgisi alınamadı.'}
 }
 loginBtn.addEventListener('click',adminLogin);
+loginPw.addEventListener('input',()=>loginPw.removeAttribute('aria-invalid'));
+loginPw.focus();
 loginPw.addEventListener('keydown',e=>{if(e.key==='Enter')adminLogin();});
 document.getElementById('logoutBtn').addEventListener('click',()=>{
  ADMIN_PW='';adminApp.style.display='none';loginScreen.style.display='flex';loginPw.focus();
@@ -182,8 +189,16 @@ document.getElementById('upload').onclick=async()=>{
 <script>
 (()=>{
  const tabs={data:['tabData','dataPanel'],req:['tabReq','reqPanel'],api:['tabApi','apiPanel']};
- function tab(which){for(const [k,[b,p]] of Object.entries(tabs)){document.getElementById(b).classList.toggle('active',k===which);document.getElementById(p).classList.toggle('active',k===which)}}
- for(const k of Object.keys(tabs))document.getElementById(tabs[k][0]).onclick=()=>tab(k);
+ // ARIA Tabs deseni: sekmeler arasında ←/→, Home/End; yalnızca seçili sekme Tab sırasında
+ function tab(which,focus){for(const [k,[b,p]] of Object.entries(tabs)){const on=k===which,bt=document.getElementById(b),pn=document.getElementById(p);
+   bt.classList.toggle('active',on);bt.setAttribute('aria-selected',on?'true':'false');bt.tabIndex=on?0:-1;
+   pn.classList.toggle('active',on);pn.hidden=!on;if(on&&focus)bt.focus()}}
+ const order=Object.keys(tabs);
+ for(const k of order){const bt=document.getElementById(tabs[k][0]);bt.onclick=()=>tab(k);
+   bt.addEventListener('keydown',e=>{const i=order.indexOf(k);let n=null;
+     if(e.key==='ArrowRight')n=(i+1)%order.length;else if(e.key==='ArrowLeft')n=(i-1+order.length)%order.length;
+     else if(e.key==='Home')n=0;else if(e.key==='End')n=order.length-1;
+     if(n!==null){e.preventDefault();tab(order[n],true)}});}
  const DN=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
  async function apiTest(){
    const addr=document.getElementById('apiAddr').value.trim(),st=document.getElementById('apiStatus'),raw=document.getElementById('apiRaw');
@@ -205,29 +220,32 @@ document.getElementById('upload').onclick=async()=>{
  document.getElementById('apiTest').onclick=apiTest;
  document.getElementById('apiAddr').addEventListener('keydown',e=>{if(e.key==='Enter')apiTest()});
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- async function getReq(){
+ async function getReq(focusId){
    const pw=ADMIN_PW,st=document.getElementById('reqStatus'),list=document.getElementById('reqList');
    st.textContent='Yükleniyor…';list.innerHTML='';
    try{
      const r=await fetch(API+'/admin/oneriler',{headers:{'X-Admin-Password':pw}});
      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
-     const rows=j.rows||[];st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz öneri / talep yok.';
+     const rows=j.rows||[];st.className='status';st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz öneri / talep yok.';
      list.innerHTML=rows.map(x=>`<div class="req">
        <div class="reqtop"><b>${esc(x.ad_soyad)}</b><span class="badge">${esc(x.durum)}</span></div>
        <div class="reqmeta"><a href="tel:${esc(String(x.gsm).replace(/[^\d+]/g,''))}">${esc(x.gsm)}</a> • <a href="mailto:${esc(x.email)}">${esc(x.email)}</a><br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
        <div class="reqmsg">${esc(x.aciklama)}</div>
-       <select data-id="${x.id}">
+       <label class="sr-only" for="durum-${x.id}">Durum: ${esc(x.ad_soyad)}</label>
+       <select id="durum-${x.id}" data-id="${x.id}">
          ${['Yeni','İnceleniyor','Tamamlandı'].map(d=>`<option ${d===x.durum?'selected':''}>${d}</option>`).join('')}
        </select>
      </div>`).join('');
      list.querySelectorAll('select[data-id]').forEach(sel=>sel.onchange=async()=>{
        sel.disabled=true;
        const rr=await fetch(API+'/admin/oneri-durum',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({id:Number(sel.dataset.id),durum:sel.value})});
-       const jj=await rr.json().catch(()=>({}));sel.disabled=false;if(!rr.ok){alert(jj.error||'Durum güncellenemedi');return}getReq();
+       const jj=await rr.json().catch(()=>({}));sel.disabled=false;if(!rr.ok){alert(jj.error||'Durum güncellenemedi');sel.focus();return}getReq(sel.dataset.id);
      });
-   }catch(e){st.textContent='Hata: '+e.message;}
+     // Liste yenilenince odak kaybolmasın: değiştirilen talebin seçimine geri dön
+     if(focusId){const f=document.getElementById('durum-'+focusId);if(f)f.focus()}
+   }catch(e){st.className='status err';st.textContent='Hata: '+e.message;}
  }
- document.getElementById('loadReq').onclick=getReq;
+ document.getElementById('loadReq').onclick=()=>getReq();
 })();
 </script>
 </body></html>
