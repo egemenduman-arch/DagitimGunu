@@ -498,8 +498,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
   const n=nextOpen(r.days,from);
   return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
-   (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken rezervasyon':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
-   (n&&r.kaynak==='live'?'<div class="small">ReservationDate: <code>'+isoOf(n.date)+'</code></div>':'')+
+   (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
    '<div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
      const lbl=d+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
@@ -524,7 +523,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  {
   const fn=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
   announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
-   (fn?(first.kaynak==='live'?'en erken rezervasyon ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
+   (fn?(first.kaynak==='live'?'en erken teslimat ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
  }
  const geo=records.find(r=>r.il&&r.ilce);
  if(geo){loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}

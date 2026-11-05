@@ -56,5 +56,5 @@ Kaynak: `docs/optymus-work-days.postman_collection.json`
 - Yanıt: `{"days":[1,4],"errors":[]}` — `days`: 0=Pazar … 6=Cumartesi
 - `errors` doluysa adrese randevu verilemez (Optymus yine HTTP 200 döner);
   worker bunu `422 {ok:false, adresHatasi:true, error}` olarak iletir.
-- Rezervasyon en erken **ertesi gün** olabilir; ekranda gösterilen
-  `ReservationDate` (YYYY-MM-DD) iş emrinde kullanılır.
+- Canlı sorguda en erken teslimat hesabı **ertesi günden** başlar.
+  Ekranda “En erken teslimat” gösterilir; teknik tarih alanı kullanıcıya gösterilmez.
