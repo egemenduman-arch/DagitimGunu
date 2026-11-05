@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dijital Kurye | Dağıtım Günü Sorgulama</title>
-<meta name="description" content="Mahalle veya açık adrese göre en erken dağıtım gününü sorgulayın.">
+<meta name="description" content="Operasyon ve çağrı merkezi ekipleri için mahalle / açık adres bazlı dağıtım günü sorgulama aracı.">
+<meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#F0F0F0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,11 +65,8 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .pillBtn:after{content:'';position:absolute;inset:-6px -2px} /* görünüm 32px, dokunma alanı 44px */
 .pillBtn:hover{background:var(--dk-white);filter:none}
 
-/* Ana kart + başlık */
-.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:48px 36px 36px}
-.hero{text-align:center;margin:0 auto 28px;max-width:640px}
-.hero h1{font-size:48px;line-height:52px;font-weight:600;letter-spacing:-.5px;margin:0 0 16px}
-.hero p{font-size:16px;line-height:20px;color:var(--dk-black-60);margin:0}
+/* Ana kart */
+.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:36px}
 
 /* Bölümler (Figma: Gönderici / Alıcı Bilgisi kutuları) */
 .accordion{margin-top:12px;border-radius:var(--dk-radius-16);background:var(--dk-grey-200)}
@@ -131,6 +129,13 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
 .src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
+/* Müşteriye okunacak hazır cümle */
+.script{margin-top:12px;padding:12px 12px 12px 14px;border-radius:var(--dk-radius-12);background:var(--dk-primary-soft);display:flex;gap:12px;align-items:center}
+.scriptBody{flex:1;min-width:0}
+.scriptLabel{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--dk-primary-ink);margin-bottom:2px}
+.scriptText{font-size:15px;line-height:22px;font-weight:500;color:var(--dk-black);margin:0}
+.copyBtn{flex:0 0 auto;height:44px;padding:0 14px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-primary-ink);color:var(--dk-black);font-size:14px;font-weight:600}
+.copyBtn:hover{filter:none;background:var(--dk-grey-100)}
 .note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
 .groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
 .groupTitle:first-child{margin-top:0}
@@ -203,8 +208,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  .brandTop{padding:16px 0}
  .brandLogo{width:104px}
  .card{padding:28px 16px 20px;border-radius:24px}
- .hero h1{font-size:40px;line-height:44px}
- .hero p{font-size:15px}
  .grid,.filters{grid-template-columns:1fr;gap:10px}
  .accHead{padding:12px}
  .accBody{padding:0 12px 12px}
@@ -220,7 +223,6 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
 @media(max-width:380px){
- .hero h1{font-size:34px;line-height:38px}
  .badge{white-space:normal;text-align:center;max-width:96px}
 }
 @media(hover:none){button,.result,.suggestion{cursor:default}}
@@ -230,14 +232,11 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 <div class="wrap">
  <header class="brandTop">
   <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye (yeni sekmede açılır)"><img class="brandLogo" src="dijitalkurye_logo.svg" alt="" width="102" height="24"></a>
-  <button type="button" id="contactBtn" class="pillBtn">Bize Ulaş</button>
+  <button type="button" id="contactBtn" class="pillBtn">Hata Bildir</button>
  </header>
 
  <main class="card">
-  <div class="hero">
-   <h1>Size Ne Zaman Gelebiliriz?</h1>
-   <p>Mahalle veya açık adresinizi yazın, seçtiğiniz tarihten itibaren ilk dağıtım gününü gösterelim.</p>
-  </div>
+  <h1 class="sr-only">Dağıtım Günü Sorgulama</h1>
 
   <div id="srStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
@@ -260,7 +259,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
      <button id="btn" type="button">Sorgula</button>
     </div>
     <div class="hint" id="qHint">En az 3 karakter yazınca mahalle önerileri görünür; ok tuşlarıyla seçip Enter'a basın. Tam adres yazarsanız sonuç daha kesin olur.</div>
-    <div class="dataBar" role="status"><span id="dataInfo">Merkezi veriye bağlanılıyor…</span></div>
+    <div class="dataBar" id="dataBar" role="alert" hidden><span id="dataInfo"></span></div>
     <details class="filtersToggle">
      <summary>İl / İlçe / Mahalle listesinden seç</summary>
      <div class="filters">
@@ -288,25 +287,25 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
   </section>
 
   <section id="feedbackSection" class="accordion">
-   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="feedbackBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Öneri / Talep Formu</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="feedbackBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Hata / Veri Bildirimi</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
    <div class="accBody" id="feedbackBody">
     <form id="feedbackForm" novalidate aria-describedby="fbReqNote">
-     <p class="feedbackNote" id="fbReqNote" style="margin:0 0 12px"><span class="req" aria-hidden="true">*</span> ile işaretli tüm alanlar zorunludur.</p>
+     <p class="feedbackNote" id="fbReqNote" style="margin:0 0 12px">Yanlış dağıtım günü, eksik mahalle veya hatalı uyarı gördüyseniz bildirin. Son sorgunun bilgileri bildirime otomatik eklenir. <span class="req" aria-hidden="true">*</span> ile işaretli tüm alanlar zorunludur.</p>
      <div class="feedbackGrid">
-      <div><label for="fbName">Ad Soyad <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
-      <div><label for="fbPhone">GSM <span class="req" aria-hidden="true">*</span></label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required aria-describedby="fbPhoneErr"><div id="fbPhoneErr" class="fieldErr"></div></div>
+      <div><label for="fbName">Adınız Soyadınız <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
+      <div><label for="fbPhone">Telefon (GSM) <span class="req" aria-hidden="true">*</span></label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required aria-describedby="fbPhoneErr"><div id="fbPhoneErr" class="fieldErr"></div></div>
       <div class="full"><label for="fbEmail">E-posta <span class="req" aria-hidden="true">*</span></label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required aria-describedby="fbEmailErr"><div id="fbEmailErr" class="fieldErr"></div></div>
-      <div class="full"><label for="fbMessage">Açıklama <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Öneri veya talebinizi yazın" required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
+      <div class="full"><label for="fbMessage">Sorun açıklaması <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Örn: Cami Mah. için Salı günü de dağıtım var, tabloda görünmüyor." required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
       <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
      </div>
      <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
      <div id="feedbackStatus" class="feedbackStatus" role="status" aria-live="polite"></div>
-     <div class="feedbackNote">Gönderdiğiniz bilgiler yalnızca öneri/talebinizin değerlendirilmesi ve gerektiğinde sizinle iletişim kurulması amacıyla kaydedilir.</div>
+     <div class="feedbackNote">İletişim bilgileriniz yalnızca bildirimle ilgili size dönüş yapılması için kaydedilir ve bu cihazda hatırlanır.</div>
     </form>
    </div>
   </section>
 
-  <button type="button" id="feedbackLaunch" class="feedbackLaunch">Öneri / Talep Gönder</button>
+  <button type="button" id="feedbackLaunch" class="feedbackLaunch">Hata / Veri Bildir</button>
  </main>
 </div>
 
@@ -390,7 +389,8 @@ const NEW_TAB='<span class="sr-only"> (yeni sekmede açılır)</span>';
 // ===================================================================
 // Durum çubuğu
 // ===================================================================
-function setInfo(msg,ok=true){$('dataInfo').innerHTML='<span class="'+(ok?'statusOk':'statusErr')+'">'+esc(msg)+'</span>'}
+// Durum çubuğu yalnızca bağlantı/liste hatalarında görünür; başarılı durumda gizli kalır.
+function setInfo(msg,ok=true){$('dataBar').hidden=ok;$('dataInfo').innerHTML=ok?'':'<span class="statusErr">'+esc(msg)+'</span>'}
 
 // ===================================================================
 // Dağıtım günü hesaplama + gösterim
@@ -420,6 +420,18 @@ function badgeText(n,isoDate){
  return n.add+' gün sonra';
 }
 
+// Müşteriye okunacak hazır cümle
+const joinTr=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' ve '+a[a.length-1];
+const fmtDayMonth=d=>d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+function customerSentence(r,n){
+ const open=DAY_NAMES.filter((_,j)=>r.days[j]);
+ if(!n||!open.length)return 'Bu adrese şu anda tanımlı bir dağıtım günümüz bulunmuyor.';
+ const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+ const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
+ return 'Bölgenize '+days+' dağıtım yapıyoruz. Size en erken '+when+' günü gelebiliriz.';
+}
+let lastQuery='';
+
 let currentRecords=[];
 function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  currentRecords=records;
@@ -445,6 +457,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div>'+
    (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live"><span aria-hidden="true">● </span>Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
+   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
  };
  box.innerHTML=records.slice(0,30).map((r,i)=>(r.group&&(i===0||records[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('');
@@ -453,6 +466,13 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  const label=first.mahalle||first.title||'';
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
+ {
+  const fd=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
+  lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
+   'Başlangıç tarihi: '+isoDate,
+   'Sonuç: '+[first.mahalle||first.title,first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
+   'Günler: '+(DAY_SHORT.filter((_,j)=>first.days[j]).join(', ')||'yok')+' • İlk uygun gün: '+(fd?isoOf(fd.date):'yok')].join('\n');
+ }
  {
   const fn=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
   announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
@@ -527,8 +547,8 @@ async function run(){
    if(live&&!live.error){
     // Canlı sonuç: yazılan tam adrese göre. Konum bilgisi yoksa en iyi tablo eşleşmesinden alınır.
     const geo=live.il&&live.ilce?{il:live.il,ilce:live.ilce,mahalle:live.mahalle||''}:(tab[0]?{il:tab[0].il,ilce:tab[0].ilce,mahalle:''}:{});
-    const rec={...withLive({...geo,title:text},live),group:'Adresinize göre'};
-    renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',group:'Kayıtlı tablodaki benzer mahalleler'}))]);
+    const rec={...withLive({...geo,title:text},live),group:'Girilen adrese göre'};
+    renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
     return;
    }
    const recs=tab.map(r=>({...r,kaynak:'tablo'}));
@@ -749,7 +769,7 @@ async function loadWeather(il,ilce){
 }
 
 // ===================================================================
-// Öneri / talep formu → D1 (/api/oneri). Admin paneli buradan okur.
+// Hata / veri bildirimi → D1 (/api/oneri). Admin paneli buradan okur.
 // ===================================================================
 let feedbackOpener=null;
 const openFeedback=e=>{
@@ -760,13 +780,26 @@ const openFeedback=e=>{
 };
 const closeFeedback=()=>{
  const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent');
- // Gizlenen bölümde odak kaybolmasın: formu açan butona (yoksa "Öneri / Talep Gönder"e) dön
+ // Gizlenen bölümde odak kaybolmasın: formu açan butona (yoksa "Hata / Veri Bildir"e) dön
  (feedbackOpener&&document.body.contains(feedbackOpener)?feedbackOpener:$('feedbackLaunch')).focus();
 };
 $('feedbackLaunch').addEventListener('click',openFeedback);
 $('contactBtn').addEventListener('click',openFeedback);
 $('feedbackClose').addEventListener('click',closeFeedback);
 $('feedbackSection').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('feedbackSection').classList.contains('open')){e.preventDefault();closeFeedback()}});
+// "Kopyala" butonu: hazır cümleyi panoya kopyalar
+$('results').addEventListener('click',async e=>{
+ const b=e.target.closest('.copyBtn');if(!b)return;
+ const t=b.dataset.copy;let ok=false;
+ try{await navigator.clipboard.writeText(t);ok=true}catch(_){
+  try{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove()}catch(__){}
+ }
+ b.textContent=ok?'Kopyalandı':'Kopyalanamadı';announce(ok?'Cümle panoya kopyalandı.':'Kopyalanamadı.');
+ setTimeout(()=>{b.textContent='Kopyala'},2000);
+});
+// Personel iletişim bilgileri bu cihazda hatırlanır (yalnızca kolaylık; erişilemezse sessizce yok sayılır)
+const CONTACT_KEY='dk_bildirim_iletisim';
+try{const c=JSON.parse(localStorage.getItem(CONTACT_KEY)||'{}');if(c.name)$('fbName').value=c.name;if(c.phone)$('fbPhone').value=c.phone;if(c.email)$('fbEmail').value=c.email}catch(_){}
 const FB_FIELDS=['fbName','fbPhone','fbEmail','fbMessage'];
 function setFieldError(id,msg){
  const el=$(id),err=$(id+'Err');
@@ -798,13 +831,16 @@ $('feedbackForm').addEventListener('submit',async e=>{
   $(bad[0]).focus();
   return;
  }
+ // Son sorgunun bilgisini ekle (backend sınırı 3000 karakter)
+ if(lastQuery){const ctx='\n\n--- Son sorgu ---\n'+lastQuery;payload.aciklama=payload.aciklama.slice(0,3000-ctx.length)+ctx}
  show('Gönderiliyor…');btn.disabled=true;
  try{
   const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
-  show('Öneri / talebiniz başarıyla alındı. Teşekkür ederiz.','ok');
-  form.reset();
+  show('Bildiriminiz alındı. Teşekkürler.','ok');
+  try{localStorage.setItem(CONTACT_KEY,JSON.stringify({name:payload.ad_soyad,phone:payload.gsm,email:payload.email}))}catch(_){}
+  $('fbMessage').value='';
   if(typeof gtag==='function')gtag('event','oneri_gonder');
  }catch(err){
   show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');

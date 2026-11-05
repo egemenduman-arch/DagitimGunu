@@ -65,7 +65,7 @@ pre#apiRaw{background:var(--dk-black)!important;color:#E7E7E7!important;border-r
 </div></main>
 <main id="adminApp" class="adminApp"><div class="wrap"><img class="brand" src="dijitalkurye_logo.svg" alt="dijital.kurye" width="102" height="24"><div class="card">
 <div class="topbar"><div><h1 id="appTitle" tabindex="-1">Dağıtım Yönetimi</h1><p>Bu ekran yalnızca yetkili kullanım içindir.</p></div><button id="logoutBtn" class="logout" type="button">Çıkış</button></div>
-<div class="tabs" role="tablist" aria-label="Yönetim bölümleri"><button id="tabData" class="active" type="button" role="tab" aria-selected="true" aria-controls="dataPanel">Dağıtım Verisi</button><button id="tabReq" type="button" role="tab" aria-selected="false" aria-controls="reqPanel" tabindex="-1">Öneri / Talepler</button><button id="tabApi" type="button" role="tab" aria-selected="false" aria-controls="apiPanel" tabindex="-1">Optymus Test</button></div>
+<div class="tabs" role="tablist" aria-label="Yönetim bölümleri"><button id="tabData" class="active" type="button" role="tab" aria-selected="true" aria-controls="dataPanel">Dağıtım Verisi</button><button id="tabReq" type="button" role="tab" aria-selected="false" aria-controls="reqPanel" tabindex="-1">Hata Bildirimleri</button><button id="tabApi" type="button" role="tab" aria-selected="false" aria-controls="apiPanel" tabindex="-1">Optymus Test</button></div>
 <div id="dataPanel" class="panel active" role="tabpanel" aria-labelledby="tabData" tabindex="0">
 <div id="metaInfo" class="small" style="margin-top:4px"></div>
 <label for="file">Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
@@ -82,8 +82,8 @@ pre#apiRaw{background:var(--dk-black)!important;color:#E7E7E7!important;border-r
   <pre id="apiRaw" style="display:none;white-space:pre-wrap;word-break:break-word;padding:14px;font-size:12px;max-height:420px;overflow:auto"></pre>
 </div>
 <div id="reqPanel" class="panel" role="tabpanel" aria-labelledby="tabReq" tabindex="0" hidden>
-  <button id="loadReq" type="button">Öneri / Talepleri Getir</button>
-  <div id="reqStatus" class="status" role="status">Talepleri görüntülemek için butona basın.</div>
+  <button id="loadReq" type="button">Bildirimleri Getir</button>
+  <div id="reqStatus" class="status" role="status">Bildirimleri görüntülemek için butona basın.</div>
   <div id="reqList"></div>
 </div>
 </div></div></main>
@@ -226,7 +226,7 @@ document.getElementById('upload').onclick=async()=>{
    try{
      const r=await fetch(API+'/admin/oneriler',{headers:{'X-Admin-Password':pw}});
      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
-     const rows=j.rows||[];st.className='status';st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz öneri / talep yok.';
+     const rows=j.rows||[];st.className='status';st.textContent=rows.length?rows.length+' kayıt bulundu.':'Henüz bildirim yok.';
      list.innerHTML=rows.map(x=>`<div class="req">
        <div class="reqtop"><b>${esc(x.ad_soyad)}</b><span class="badge">${esc(x.durum)}</span></div>
        <div class="reqmeta"><a href="tel:${esc(String(x.gsm).replace(/[^\d+]/g,''))}">${esc(x.gsm)}</a> • <a href="mailto:${esc(x.email)}">${esc(x.email)}</a><br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
