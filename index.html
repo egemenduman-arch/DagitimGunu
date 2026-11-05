@@ -88,7 +88,12 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 #deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
 
 /* Sorgu alanı */
-.grid{display:grid;grid-template-columns:1fr 180px 140px;gap:12px;align-items:end}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 180px 140px;gap:12px;align-items:end}
+/* Izgara hücreleri içeriğe göre genişlemesin (iOS tarih kutusu taşmasını önler) */
+.grid>*,.filters>*{min-width:0}
+/* iOS Safari tarih kutusunu yerel genişlikte çizer ve width:100%'ü yok sayar */
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .searchwrap{position:relative}
 .searchwrap .inIco{position:absolute;left:16px;top:18px;width:20px;height:20px;stroke:var(--dk-black);fill:none;stroke-width:1.8;pointer-events:none}
 .searchwrap input{padding-left:48px}
@@ -208,7 +213,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
  .brandTop{padding:16px 0}
  .brandLogo{width:104px}
  .card{padding:28px 16px 20px;border-radius:24px}
- .grid,.filters{grid-template-columns:1fr;gap:10px}
+ .grid,.filters{grid-template-columns:minmax(0,1fr);gap:10px}
  .accHead{padding:12px}
  .accBody{padding:0 12px 12px}
  .accMeta{max-width:40%}
