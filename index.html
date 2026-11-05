@@ -243,6 +243,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  .weatherPanel{padding:12px}.weatherTitle{font-size:16px}
  .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
  .weatherSimple{font-size:13px;min-width:560px}
+ .script{flex-direction:column;align-items:stretch}
+ .copyBtn{align-self:flex-end}
  .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
 @media(max-width:380px){
@@ -442,6 +444,11 @@ const joinTr=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' ve '+a[a.length
 const fmtDayMonth=d=>d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
 function customerSentence(r,n){
  const open=DAY_NAMES.filter((_,j)=>r.days[j]);
+ if(r.kaynak==='tablo'){
+  if(!n||!open.length)return 'Kayıtlı bölge planında bu mahalle için ziyaret günü bulunmuyor. Adresinize özel hizmet durumu ayrıca teyit edilmelidir.';
+  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+  return 'Kayıtlı bölge planına göre '+days+' ziyaret gerçekleştiriyoruz. Adresinize özel ziyaret tarihi ayrıca teyit edilmelidir.';
+ }
  if(!n||!open.length)return 'Bu adrese şu anda tanımlı bir dağıtım günümüz bulunmuyor.';
  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
  const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
@@ -496,7 +503,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
   return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
-   '<div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
+   '<div class="small">Bölgenin ziyaret günleri</div><div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
      const lbl=d+(j===todayIdx?' (bugün)':'')+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(j===todayIdx?' today':'')+'"'+(j===todayIdx?' aria-current="date"':'')+' title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
@@ -504,7 +511,9 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
  };
- box.innerHTML=records.slice(0,30).map((r,i)=>(r.group&&(i===0||records[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('');
+ const visible=records.slice(0,30),primary=visible.filter(r=>!r.similar),similar=visible.filter(r=>r.similar);
+ box.innerHTML=primary.map((r,i)=>(r.group&&(i===0||primary[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('')+
+  (similar.length?'<details class="filtersToggle"><summary>Diğer mahalle eşleşmeleri ('+similar.length+')</summary>'+similar.map(card).join('')+'</details>':'');
  const first=records[0];
  setAccordion($('querySection'),false);
  const label=first.mahalle||first.title||'';
@@ -544,8 +553,11 @@ async function liveLookup(address){
  if(!LIVE_ON||!address)return null;
  try{
   const j=await dataApi('/api/adres-gun?adres='+encodeURIComponent(address),{timeout:15000});
-  return j.ok&&Array.isArray(j.days)?j:{error:j.error||'Yanıt çözümlenemedi'};
+  return j.ok&&Array.isArray(j.days)?j:{error:j.error||'Yanıt çözümlenemedi',notFound:!!j.adresHatasi};
  }catch(e){return {error:e.message,notFound:e.status===404||e.status===422}}
+}
+function renderAddressRejection(live){
+ renderRecords([],{emptyMsg:'Adres doğrulanamadı veya bu adres için ziyaret planlanamıyor: '+live.error+'. Adresi kontrol edin; hizmet durumunu teyit etmeden teslimat tarihi paylaşmayın.'});
 }
 function tableNote(){return 'Kayıtlı tablo'+(TABLE_DATE?' • güncelleme '+TABLE_DATE:'')}
 function withLive(rec,live){
@@ -564,6 +576,7 @@ async function run(){
  const my=++runNo;
  const text=q.value.trim(),il=selIl.value,ic=selIlce.value,m=selMah.value;
  const box=$('results');
+ clearResults();
  closeSuggestions();
  try{
   if(il&&ic&&m){
@@ -574,7 +587,8 @@ async function run(){
     liveLookup(mahalleAddress(base))
    ]);
    if(my!==runNo)return;
-   if(live&&!live.error)renderRecords([withLive(tab[0]||base,live)]);
+   if(live&&live.notFound)renderAddressRejection(live);
+   else if(live&&!live.error)renderRecords([withLive(tab[0]||base,live)]);
    else if(tab.length)renderRecords([withLive(tab[0],live)]);
    else throw new Error('Mahalle bulunamadı');
    return;
@@ -586,6 +600,7 @@ async function run(){
     norm(text).length>=8?liveLookup(text):Promise.resolve(null)
    ]);
    if(my!==runNo)return;
+   if(live&&live.notFound){renderAddressRejection(live);return}
    if(live&&!live.error){
     // Canlı sonuç: yazılan tam adrese göre. Konum bilgisi yoksa en iyi tablo eşleşmesinden alınır.
     const geo=live.il&&live.ilce?{il:live.il,ilce:live.ilce,mahalle:live.mahalle||''}:(tab[0]?{il:tab[0].il,ilce:tab[0].ilce,mahalle:''}:{});
@@ -595,7 +610,7 @@ async function run(){
    }
    const recs=tab.map(r=>({...r,kaynak:'tablo'}));
    if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
-   renderRecords(recs,{emptyMsg:live&&live.notFound?'Bu adrese hizmet verilemiyor: '+live.error:'Eşleşen mahalle bulunamadı.'});
+   renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Eşleşen mahalle bulunamadı.'});
    return;
   }
   showSection('deliverySection',true);
@@ -641,22 +656,33 @@ async function selectSuggestion(i){
  closeSuggestions();
  q.value=r.mahalle+', '+r.ilce+', '+r.il;
  const my=++runNo;
- renderRecords([{...r,kaynak:'tablo'}]);
- // Odağı kaybetmek yerine sonuç başlığına taşı (mobilde klavye de kapanır)
+ clearResults();
+ showSection('deliverySection',true);
+ $('results').innerHTML='<div class="loading">Adres doğrulanıyor…</div>';
+ announce('Adres doğrulanıyor…');
+ const live=await liveLookup(mahalleAddress(r));
+ if(my!==runNo)return;
+ if(live&&live.notFound)renderAddressRejection(live);
+ else renderRecords([withLive(r,live)]);
+ // Sonuç hazır olduğunda mobil klavyeyi kapat ve odağı başlığa taşı.
  const resHead=$('deliverySection').querySelector('.accHead');if(resHead)resHead.focus();
- if(LIVE_ON){
-  liveLookup(mahalleAddress(r)).then(live=>{if(my===runNo&&live&&!live.error)renderRecords([withLive(r,live)])});
- }
- // Filtreleri seçilen kayda göre doldur (sonucu bekletmeden)
+ // Filtreleri yalnızca hâlâ geçerli olan seçilen kayda göre doldur.
  if(![...selIl.options].some(o=>o.value===r.il))fillSelect(selIl,uniqSorted([...[...selIl.options].map(o=>o.value),r.il]),'Tüm iller');
  selIl.value=r.il;
  try{
-  fillSelect(selIlce,await apiList('/api/ilceler?il='+encodeURIComponent(r.il),'ilce'),'Tüm ilçeler');selIlce.value=r.ilce;
-  fillSelect(selMah,await apiList('/api/mahalleler?il='+encodeURIComponent(r.il)+'&ilce='+encodeURIComponent(r.ilce),'mahalle'),'Tüm mahalleler');selMah.value=r.mahalle;
+  const ilceler=await apiList('/api/ilceler?il='+encodeURIComponent(r.il),'ilce');
+  if(my!==runNo)return;
+  fillSelect(selIlce,ilceler,'Tüm ilçeler');selIlce.value=r.ilce;
+  const mahalleler=await apiList('/api/mahalleler?il='+encodeURIComponent(r.il)+'&ilce='+encodeURIComponent(r.ilce),'mahalle');
+  if(my!==runNo)return;
+  fillSelect(selMah,mahalleler,'Tüm mahalleler');selMah.value=r.mahalle;
  }catch(e){}
 }
 
 q.addEventListener('input',()=>{
+ ++runNo; // Önceki adresin bekleyen sorgusu yeni adresi değiştirmesin.
+ clearResults();
+ closeSuggestions();
  // Serbest yazım başlayınca açılır liste filtrelerini sıfırla
  if(selIl.value||selIlce.value||selMah.value){selIl.value='';fillSelect(selIlce,[],'Tüm ilçeler');fillSelect(selMah,[],'Tüm mahalleler')}
  clearTimeout(suggestTimer);
@@ -681,22 +707,42 @@ $('btn').addEventListener('click',run);
 
 // ---- İl / İlçe / Mahalle filtreleri ----
 function clearResults(){
- currentRecords=[];$('results').innerHTML='';
+ ++opsNo;++weatherNo;
+ currentRecords=[];lastQuery='';
+ resultWarnings.weather='';resultWarnings.ops='';
+ if(alertDialog.open)alertDialog.close();
+ $('results').innerHTML='';
+ $('deliveryMeta').textContent='';
+ $('queryMeta').textContent='';
+ clearTimeout(announceTimer);$('srStatus').textContent='';
  hideSection('deliverySection');hideSection('opsSection');hideSection('weatherSection');
 }
 selIl.addEventListener('change',async()=>{
- clearResults();fillSelect(selMah,[],'Tüm mahalleler');
- if(!selIl.value){fillSelect(selIlce,[],'Tüm ilçeler');return}
- try{fillSelect(selIlce,await apiList('/api/ilceler?il='+encodeURIComponent(selIl.value),'ilce'),'Tüm ilçeler')}
- catch(e){setInfo('İlçe listesi alınamadı: '+e.message,false)}
+ const my=++runNo,il=selIl.value;
+ clearResults();closeSuggestions();q.value='';
+ fillSelect(selIlce,[],'Tüm ilçeler');fillSelect(selMah,[],'Tüm mahalleler');
+ if(!il)return;
+ try{
+  const items=await apiList('/api/ilceler?il='+encodeURIComponent(il),'ilce');
+  if(my!==runNo)return;
+  fillSelect(selIlce,items,'Tüm ilçeler');
+ }catch(e){if(my===runNo)setInfo('İlçe listesi alınamadı: '+e.message,false)}
 });
 selIlce.addEventListener('change',async()=>{
- clearResults();
- if(!selIlce.value){fillSelect(selMah,[],'Tüm mahalleler');return}
- try{fillSelect(selMah,await apiList('/api/mahalleler?il='+encodeURIComponent(selIl.value)+'&ilce='+encodeURIComponent(selIlce.value),'mahalle'),'Tüm mahalleler')}
- catch(e){setInfo('Mahalle listesi alınamadı: '+e.message,false)}
+ const my=++runNo,il=selIl.value,ilce=selIlce.value;
+ clearResults();closeSuggestions();q.value='';
+ fillSelect(selMah,[],'Tüm mahalleler');
+ if(!ilce)return;
+ try{
+  const items=await apiList('/api/mahalleler?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),'mahalle');
+  if(my!==runNo)return;
+  fillSelect(selMah,items,'Tüm mahalleler');
+ }catch(e){if(my===runNo)setInfo('Mahalle listesi alınamadı: '+e.message,false)}
 });
-selMah.addEventListener('change',()=>{if(selMah.value){q.value='';run()}});
+selMah.addEventListener('change',()=>{
+ ++runNo;clearResults();closeSuggestions();q.value='';
+ if(selMah.value)run();
+});
 
 async function init(){
  setInfo('Merkezi veriye bağlanılıyor…');
@@ -909,3 +955,4 @@ init();
 </script>
 </body>
 </html>
+
