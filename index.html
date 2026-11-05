@@ -792,7 +792,12 @@ async function loadWeather(il,ilce){
   const alerts=rows.filter(r=>isRisky(pick(r,['hadise','hadiseKodu','weather']))).map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
   if(cur&&isRisky(pick(cur,['hadise','hadiseKodu','weather'])))alerts.unshift('Bugün – '+esc(weatherName(pick(cur,['hadise','hadiseKodu','weather']))));
   const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>':'';
-  resultWarnings.weather=warningHtml;
+  let todayHtml=html;
+  if(!cur){
+   const today=rows.find(r=>String(pick(r,['tarih','date'])).slice(0,10)===localISODate());
+   todayHtml=today?'<div class="weatherToday"><div class="weatherTodayTitle">Bugün • '+esc(weatherName(pick(today,['hadise','hadiseKodu','weather'])))+'</div><div class="weatherTodayDesc">'+where+' • MGM günlük tahmini</div><div class="weatherMetric"><span>En düşük / En yüksek</span><b>'+esc(pick(today,['enDusuk'])??'—')+'° / '+esc(pick(today,['enYuksek'])??'—')+'°</b></div></div>':'<div class="weatherToday"><div class="weatherTodayTitle">Bugün</div><div class="weatherFallback">Bugüne ait hava durumu bilgisi alınamadı.</div></div>';
+  }
+  resultWarnings.weather=warningHtml?todayHtml+warningHtml:'';
   updateResultWarnings();
 
   const five=rows.slice(0,5);
