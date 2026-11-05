@@ -16,6 +16,10 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PV9GWK34V8"></script>
+<dialog id="alertDialog" class="alertDialog" aria-labelledby="alertDialogTitle">
+ <div class="alertDialogHead"><h2 id="alertDialogTitle"></h2><button type="button" id="alertDialogClose" aria-label="Uyarı penceresini kapat">Kapat</button></div>
+ <div id="alertDialogContent"></div>
+</dialog>
 <script>
 window.dataLayer=window.dataLayer||[];
 function gtag(){dataLayer.push(arguments);}
@@ -160,6 +164,18 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .opsItem div{color:var(--dk-black-60)}
 .opsLink{display:inline-block;margin-top:4px;color:var(--dk-black);font-weight:500}
 
+/* Dağıtım kartındaki uyarılar ve detay penceresi */
+.resultAlerts{display:flex;align-items:center;gap:6px}
+.resultAlerts:empty{display:none}
+.resultAlert{width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;display:inline-flex;align-items:center;justify-content:center}
+.resultAlert span{display:block;width:22px;height:22px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:16px;font-weight:700;line-height:22px}
+.resultAlert.opsAlert span{background:var(--dk-error);color:#fff}
+.resultAlert:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+.alertDialog{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 48px);box-sizing:border-box;border:0;border-radius:16px;padding:20px;background:var(--dk-white);color:var(--dk-black)}
+.alertDialog::backdrop{background:rgba(0,0,0,.45)}
+.alertDialogHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.alertDialogHead h2{font-size:18px;margin:0}
+.alertDialogHead button{min-width:44px;min-height:44px;border:1px solid var(--dk-grey-300);border-radius:999px;background:var(--dk-white);color:var(--dk-black)}
 /* Hava durumu */
 .weatherPanel{border-radius:var(--dk-radius-12);padding:16px;background:var(--dk-white)}
 .weatherTitle{font-weight:600;font-size:18px;line-height:24px;margin-bottom:2px}
@@ -437,9 +453,36 @@ function customerSentence(r,n){
 }
 let lastQuery='';
 
+// Yalnızca mevcut sorguya ait uyarıları göster; yeni sorguda eski yanıtları geçersiz kıl.
+const resultWarnings={weather:'',ops:''};
+function updateResultWarnings(){
+ const geo=currentRecords.find(r=>r.il&&r.ilce);
+ document.querySelectorAll('.resultAlerts').forEach(slot=>{
+  if(!geo||slot.dataset.il!==geo.il||slot.dataset.ilce!==geo.ilce){slot.innerHTML='';return}
+  slot.innerHTML=['weather','ops'].filter(kind=>resultWarnings[kind]).map(kind=>{
+   const label=kind==='weather'?'Hava durumu uyarısını göster':'Operasyon kısıtlamasını göster';
+   return '<button type="button" class="resultAlert '+(kind==='ops'?'opsAlert':'')+'" data-warning="'+kind+'" aria-label="'+label+'" title="'+label+'" aria-haspopup="dialog"><span aria-hidden="true">!</span></button>';
+  }).join('');
+ });
+}
+const alertDialog=$('alertDialog');
+$('alertDialogClose').addEventListener('click',()=>alertDialog.close());
+alertDialog.addEventListener('click',e=>{if(e.target===alertDialog){const r=alertDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)alertDialog.close()}});
+$('results').addEventListener('click',e=>{
+ const button=e.target.closest('[data-warning]');
+ if(!button)return;
+ const kind=button.dataset.warning;
+ if(!resultWarnings[kind])return;
+ $('alertDialogTitle').textContent=kind==='weather'?'Hava durumu uyarısı':'Operasyon kısıtlaması';
+ $('alertDialogContent').innerHTML=resultWarnings[kind];
+ alertDialog.showModal();
+});
 let currentRecords=[];
 function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  currentRecords=records;
+ ++opsNo;++weatherNo;
+ resultWarnings.weather='';resultWarnings.ops='';
+ if(alertDialog.open)alertDialog.close();
  const box=$('results');
  const isoDate=$('date').value||localISODate();
  showSection('deliverySection',true);
@@ -460,7 +503,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    '<div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
      const lbl=d+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
-   }).join('')+'</div>'+
+   }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live"><span aria-hidden="true">● </span>Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
@@ -701,7 +744,8 @@ async function loadOperationalAlerts(il,ilce){
   const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+esc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+esc(x.summary)+'</div>':'')+(safeUrl(x.url)?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">Resmî kaynağı aç<span aria-hidden="true"> ↗</span>'+NEW_TAB+'</a>':'')+'</div>').join('');
   box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle"><span aria-hidden="true">⚠ </span>'+(severe?'Ciddi operasyon uyarısı':'Operasyon uyarısı')+' – '+where+'</div><div class="opsText">'+items+'</div></div>';
   $('opsMeta').textContent=a.length+' uyarı';
-  setAccordion($('opsSection'),true);
+  resultWarnings.ops=box.innerHTML;
+  updateResultWarnings();
  }catch(e){
   if(my!==opsNo)return;
   // Hata durumunda "uyarı yok" DEMİYORUZ: kontrol yapılamadığını açıkça belirtiyoruz.
@@ -754,7 +798,9 @@ async function loadWeather(il,ilce){
   }
   const alerts=rows.filter(r=>isRisky(pick(r,['hadise','hadiseKodu','weather']))).map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
   if(cur&&isRisky(pick(cur,['hadise','hadiseKodu','weather'])))alerts.unshift('Bugün – '+esc(weatherName(pick(cur,['hadise','hadiseKodu','weather']))));
-  if(alerts.length)html+='<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>';
+  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+alerts.join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>':'';
+  resultWarnings.weather=warningHtml;
+  updateResultWarnings();
 
   const five=rows.slice(0,5);
   const temp=r=>{const lo=pick(r,['enDusuk']),hi=pick(r,['enYuksek']);return lo===null&&hi===null?'—':esc((lo??'—')+'° / '+(hi??'—')+'°')};
