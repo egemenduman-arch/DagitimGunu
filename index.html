@@ -503,7 +503,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
      const lbl=d+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
-   (r.kaynak?'<div class="srcLine">'+(r.kaynak==='live'?'<span class="src live"><span aria-hidden="true">● </span>Canlı veri</span>'+(r.bolge?' Bölge: '+esc(r.bolge):''):'<span class="src">'+esc(tableNote())+'</span>')+'</div>':'')+
+   (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
  };
@@ -725,7 +725,7 @@ async function init(){
 let opsNo=0;
 async function loadOperationalAlerts(il,ilce){
  const box=$('opsBox'),my=++opsNo;
- showSection('opsSection');
+ // Uyarı ayrıntıları yalnızca dağıtım kartındaki ünlemden açılır.
  $('opsMeta').textContent='';
  box.innerHTML='<div class="opsPanel opsNeutral"><div class="opsTitle">Operasyon Durumu</div><div class="opsText">Resmî kaynak uyarıları kontrol ediliyor…</div></div>';
  try{
@@ -777,7 +777,7 @@ const dotDate=s=>{const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/
 let weatherNo=0;
 async function loadWeather(il,ilce){
  const box=$('weatherBox'),my=++weatherNo,where=esc(ilce+' / '+il);
- showSection('weatherSection');
+ // Hava uyarıları arka planda yüklenir; ayrı sekme gösterilmez.
  const head='<div class="weatherTitle">5 Günlük Hava Tahmini</div>';
  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • MGM verisi yükleniyor…</div></div>';
  try{
@@ -909,3 +909,4 @@ init();
 </script>
 </body>
 </html>
+
