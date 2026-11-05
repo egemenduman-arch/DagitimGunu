@@ -424,8 +424,6 @@ function nextOpen(days,isoDate){
  }
  return null;
 }
-// Canlı (Optymus) sonuçlarda rezervasyon en erken ertesi gün olabilir.
-function liveStart(isoDate){const t=new Date();t.setDate(t.getDate()+1);const tm=localISODate(t);return isoDate>tm?isoDate:tm}
 const isoOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const fmtDate=d=>d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
@@ -494,8 +492,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
   return;
  }
  const card=r=>{
-  const from=r.kaynak==='live'?liveStart(isoDate):isoDate;
-  const n=nextOpen(r.days,from);
+  const n=nextOpen(r.days,isoDate);
   return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
@@ -514,14 +511,14 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
  {
-  const fd=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
+  const fd=nextOpen(first.days,isoDate);
   lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
    'Sorgu tarihi: '+isoDate,
    'Sonuç: '+[first.mahalle||first.title,first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
    'Günler: '+(DAY_SHORT.filter((_,j)=>first.days[j]).join(', ')||'yok')+' • İlk uygun gün: '+(fd?isoOf(fd.date):'yok')].join('\n');
  }
  {
-  const fn=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
+  const fn=nextOpen(first.days,isoDate);
   announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
    (fn?(first.kaynak==='live'?'en erken teslimat ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
  }
