@@ -165,11 +165,13 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .opsLink{display:inline-block;margin-top:4px;color:var(--dk-black);font-weight:500}
 
 /* Dağıtım kartındaki uyarılar ve detay penceresi */
-.resultAlerts{display:flex;align-items:center;gap:6px}
+.resultAlerts{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .resultAlerts:empty{display:none}
-.resultAlert{width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;display:inline-flex;align-items:center;justify-content:center}
-.resultAlert span{display:block;width:22px;height:22px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:16px;font-weight:700;line-height:22px}
-.resultAlert.opsAlert span{background:var(--dk-error);color:#fff}
+.resultAlert{min-height:44px;padding:0 6px;border:0;border-radius:10px;background:transparent;color:var(--dk-black);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.resultAlert .ico{width:32px;height:32px}
+.resultAlert .warningSeparator{font-size:16px;font-weight:600}
+.resultAlert .warningMark{display:block;width:22px;height:22px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:16px;font-weight:700;line-height:22px}
+.resultAlert.opsAlert .warningMark{background:var(--dk-error);color:#fff}
 .resultAlert:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
 .alertDialog{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 48px);box-sizing:border-box;border:0;border-radius:16px;padding:20px;background:var(--dk-white);color:var(--dk-black)}
 .alertDialog::backdrop{background:rgba(0,0,0,.45)}
@@ -457,7 +459,8 @@ function updateResultWarnings(){
   if(!geo||slot.dataset.il!==geo.il||slot.dataset.ilce!==geo.ilce){slot.innerHTML='';return}
   slot.innerHTML=['weather','ops'].filter(kind=>resultWarnings[kind]).map(kind=>{
    const label=kind==='weather'?'Hava durumu uyarısını göster':'Operasyon kısıtlamasını göster';
-   return '<button type="button" class="resultAlert '+(kind==='ops'?'opsAlert':'')+'" data-warning="'+kind+'" aria-label="'+label+'" title="'+label+'" aria-haspopup="dialog"><span aria-hidden="true">!</span></button>';
+   const icon=$(kind==='weather'?'weatherSection':'opsSection').querySelector('.accTitle .ico').outerHTML;
+   return '<button type="button" class="resultAlert '+(kind==='ops'?'opsAlert':'')+'" data-warning="'+kind+'" aria-label="'+label+'" title="'+label+'" aria-haspopup="dialog">'+icon+'<span class="warningSeparator" aria-hidden="true">:</span><span class="warningMark" aria-hidden="true">!</span></button>';
   }).join('');
  });
 }
