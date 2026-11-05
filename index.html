@@ -92,7 +92,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 #deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
 
 /* Sorgu alanı */
-.grid{display:grid;grid-template-columns:minmax(0,1fr) 180px 140px;gap:12px;align-items:end}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:12px;align-items:end}
 /* Izgara hücreleri içeriğe göre genişlemesin (iOS tarih kutusu taşmasını önler) */
 .grid>*,.filters>*{min-width:0}
 /* iOS Safari tarih kutusunu yerel genişlikte çizer ve width:100%'ü yok sayar */
@@ -134,7 +134,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 /* Dağıtım olmayan gün: yalnızca renge dayanmamak için üstü çizili (WCAG 1.4.1) ve 5:1 kontrast */
 .day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-600);min-width:44px;text-align:center;text-decoration:line-through}
 .day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink);text-decoration:none;box-shadow:inset 0 0 0 1px var(--dk-primary-ink)}
-.day.first{background:var(--dk-black);color:var(--dk-white);box-shadow:none}
+.day.today{background:var(--dk-warning);color:var(--dk-warning-ink);box-shadow:inset 0 0 0 1px var(--dk-warning-ink)}
 .srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
 .src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
@@ -272,10 +272,6 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
        <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Cami Mah. Atatürk Cad. No:12 Darıca/Kocaeli" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" aria-describedby="qHint">
        <div id="suggestions" class="suggestions" role="listbox" aria-label="Mahalle önerileri"></div>
       </div>
-     </div>
-     <div class="field">
-      <label for="date">Başlangıç tarihi</label>
-      <input id="date" type="date">
      </div>
      <button id="btn" type="button">Sorgula</button>
     </div>
@@ -484,7 +480,8 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  resultWarnings.weather='';resultWarnings.ops='';
  if(alertDialog.open)alertDialog.close();
  const box=$('results');
- const isoDate=$('date').value||localISODate();
+ const isoDate=localISODate();
+ const todayIdx=(new Date().getDay()+6)%7;
  showSection('deliverySection',true);
  if(!records.length){
   box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
@@ -500,8 +497,8 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
    '<div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
-     const lbl=d+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
-     return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(n&&n.idx===j?' first':'')+'" title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
+     const lbl=d+(j===todayIdx?' (bugün)':'')+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
+     return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(j===todayIdx?' today':'')+'"'+(j===todayIdx?' aria-current="date"':'')+' title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
@@ -516,7 +513,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  {
   const fd=nextOpen(first.days,first.kaynak==='live'?liveStart(isoDate):isoDate);
   lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
-   'Başlangıç tarihi: '+isoDate,
+   'Sorgu tarihi: '+isoDate,
    'Sonuç: '+[first.mahalle||first.title,first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
    'Günler: '+(DAY_SHORT.filter((_,j)=>first.days[j]).join(', ')||'yok')+' • İlk uygun gün: '+(fd?isoOf(fd.date):'yok')].join('\n');
  }
@@ -530,8 +527,6 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  else{hideSection('opsSection');hideSection('weatherSection')}
 }
 
-// Tarih değişince mevcut sonuçları yeniden hesapla (yeniden sorgu atmadan)
-$('date').addEventListener('change',()=>{if(currentRecords.length)renderRecords(currentRecords)});
 
 // ===================================================================
 // Sorgu
@@ -704,7 +699,6 @@ selIlce.addEventListener('change',async()=>{
 selMah.addEventListener('change',()=>{if(selMah.value){q.value='';run()}});
 
 async function init(){
- $('date').value=localISODate();
  setInfo('Merkezi veriye bağlanılıyor…');
  try{
   const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);
@@ -909,4 +903,3 @@ init();
 </script>
 </body>
 </html>
-
