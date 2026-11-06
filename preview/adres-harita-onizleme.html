@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dijital Kurye | Dağıtım Günü Sorgulama</title>
+<meta name="description" content="Operasyon ve çağrı merkezi ekipleri için mahalle / açık adres bazlı dağıtım günü sorgulama aracı.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#F0F0F0">
+
+
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!-- Google tag (gtag.js) -->
+
+<dialog id="alertDialog" class="alertDialog" aria-labelledby="alertDialogTitle">
+ <div class="alertDialogHead"><h2 id="alertDialogTitle"></h2><button type="button" id="alertDialogClose" aria-label="Uyarı penceresini kapat">Kapat</button></div>
+ <div id="alertDialogContent"></div>
+</dialog>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-PV9GWK34V8');
+</script>
+<style>
+/* Kurumsal font: Biennale (lisanslı). Yalnızca cihazda kuruluysa kullanılır; web font eklemek için fonts/README.md */
+@font-face{font-family:"Biennale";font-weight:400;font-display:swap;src:local("Biennale Regular"),local("Biennale-Regular")}
+@font-face{font-family:"Biennale";font-weight:500;font-display:swap;src:local("Biennale Medium"),local("Biennale-Medium")}
+@font-face{font-family:"Biennale";font-weight:600;font-display:swap;src:local("Biennale SemiBold"),local("Biennale-SemiBold")}
+@font-face{font-family:"Biennale";font-weight:700;font-display:swap;src:local("Biennale Bold"),local("Biennale-Bold")}
+/* Dijital Kurye Design System (Figma: Foundations / Color, Typography) */
+:root{
+ --dk-primary:#8BAF2E;--dk-primary-soft:#EEF3DF;--dk-primary-ink:#4F6613;
+ --dk-black:#0C0C0C;--dk-black-60:#0C0C0C99;--dk-white:#FFFFFF;
+ /* grey-600: WCAG 1.4.3 için #7F7F7F (4.0:1) yerine #666666 (beyazda 5.7:1, #F0F0F0'da 5.0:1) */
+ --dk-grey-100:#FAFAFA;--dk-grey-200:#F0F0F0;--dk-grey-300:#E7E7E7;--dk-grey-400:#CACACA;--dk-grey-500:#A4A4A4;--dk-grey-600:#666666;
+ /* form alanı kenarlığı: WCAG 1.4.11 için en az 3:1 */
+ --dk-border:#8A8A8A;--dk-success-ink:#00753A;
+ --dk-success:#00BF5F;--dk-error:#FF1B1B;--dk-error-dark:#B71D18;--dk-warning:#FEC84B;--dk-warning-ink:#7A5200;--dk-info:#00B8D9;--dk-info-dark:#006C9C;
+ --dk-radius-12:12px;--dk-radius-16:16px;--dk-radius-card:32px;
+ --dk-shadow:0 18px 34px #00000014;
+ --dk-font:"Biennale","Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+ /* eski isimler (JS/HTML içi kullanım için) */
+ --ink:var(--dk-black);--muted:var(--dk-grey-600);--accent:var(--dk-primary);--line:var(--dk-grey-300);
+ --danger:var(--dk-error-dark);--danger-soft:#FFF0F0;--warn:var(--dk-warning-ink);--warn-soft:#FFF8E6
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--dk-font);color:var(--dk-black);background:var(--dk-grey-200);min-height:100vh;-webkit-text-size-adjust:100%;font-size:14px;line-height:20px}
+.wrap{max-width:900px;margin:0 auto 48px;padding:0 16px}
+button,input,select,textarea{font:inherit}
+input,select{border-radius:var(--dk-radius-12);border:1px solid var(--dk-border);padding:0 16px;height:56px;background:var(--dk-white);color:var(--dk-black);width:100%;min-width:0;font-size:16px}
+input::placeholder{color:var(--dk-grey-600)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--dk-primary-ink);outline-offset:1px;border-color:var(--dk-primary-ink)}
+input[aria-invalid="true"],textarea[aria-invalid="true"]{border-color:var(--dk-error-dark)}
+button{border-radius:var(--dk-radius-12);border:0;padding:0 20px;height:56px;background:var(--dk-primary);color:var(--dk-black);font-weight:600;font-size:16px;cursor:pointer}
+button:hover{filter:brightness(.95)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+.sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* Üst bar */
+.brandTop{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px 4px 24px}
+.brandLogo{display:block;width:118px;height:auto}
+.pillBtn{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--dk-grey-600);background:transparent;color:var(--dk-black);font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;position:relative}
+.pillBtn:after{content:'';position:absolute;inset:-6px -2px} /* görünüm 32px, dokunma alanı 44px */
+.pillBtn:hover{background:var(--dk-white);filter:none}
+
+/* Ana kart */
+.card{background:var(--dk-white);border-radius:var(--dk-radius-card);padding:36px}
+
+/* Bölümler (Figma: Gönderici / Alıcı Bilgisi kutuları) */
+.accordion{margin-top:12px;border-radius:var(--dk-radius-16);background:var(--dk-grey-200)}
+#querySection{margin-top:0;background:transparent}
+#querySection>.accH{display:none}
+#querySection>.accBody{display:block!important;padding:0}
+.accH{margin:0;font:inherit}
+.accHead{width:100%;height:auto;min-height:56px;border:0;border-radius:var(--dk-radius-16);background:transparent;color:var(--dk-black);padding:12px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;text-align:left}
+.accHead:hover{filter:none}
+.accTitle{display:flex;align-items:center;gap:12px}
+.ico{width:40px;height:40px;border-radius:10px;background:var(--dk-white);display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
+.ico svg{width:22px;height:22px;stroke:var(--dk-black);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.accMeta{font-size:12px;line-height:16px;font-weight:500;color:var(--dk-grey-600);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.accChevron{width:20px;height:20px;transition:transform .2s ease;flex:0 0 auto;stroke:var(--dk-black);fill:none;stroke-width:2}
+.accordion.open>.accH .accChevron{transform:rotate(180deg)}
+.accBody{display:none;padding:0 16px 16px}
+.accordion.open>.accBody{display:block}
+#deliverySection,#opsSection,#weatherSection,#feedbackSection{display:none}
+#deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
+
+/* Sorgu alanı */
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:12px;align-items:end}
+/* Izgara hücreleri içeriğe göre genişlemesin (iOS tarih kutusu taşmasını önler) */
+.grid>*,.filters>*{min-width:0}
+/* iOS Safari tarih kutusunu yerel genişlikte çizer ve width:100%'ü yok sayar */
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+.searchwrap{position:relative}
+.searchwrap .inIco{position:absolute;left:16px;top:18px;width:20px;height:20px;stroke:var(--dk-black);fill:none;stroke-width:1.8;pointer-events:none}
+.searchwrap input{padding-left:48px}
+.suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:var(--dk-white);border-radius:var(--dk-radius-12);box-shadow:var(--dk-shadow);border:1px solid var(--dk-grey-300);max-height:330px;overflow:auto;display:none}
+.suggestion{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--dk-grey-300)}
+.suggestion:last-child{border-bottom:0}
+.suggestion:hover,.suggestion.active{background:var(--dk-primary-soft)}
+.suggestion b{display:block;font-size:14px;font-weight:600}.suggestion span{font-size:12px;color:var(--dk-grey-600)}
+.hint{font-size:12px;line-height:16px;color:var(--dk-grey-600);margin-top:10px}
+.dataBar{margin-top:12px;font-size:12px;line-height:16px;color:var(--dk-grey-600)}
+.dataBar:before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dk-grey-400);margin-right:8px;vertical-align:1px}
+.dataBar:has(.statusOk):before{background:var(--dk-success)}
+.dataBar:has(.statusErr):before{background:var(--dk-error)}
+.statusOk{color:var(--dk-grey-600)}.statusErr{color:var(--dk-error-dark)}
+.filtersToggle{margin-top:14px;font-size:14px}
+.filtersToggle summary{cursor:pointer;font-weight:500;color:var(--dk-black);list-style:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;border-radius:8px}
+.filtersToggle summary::-webkit-details-marker{display:none}
+.filtersToggle summary:after{content:'';width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-2px);transition:transform .2s}
+.filtersToggle[open] summary:after{transform:rotate(225deg)}
+.filters{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px}
+.field label{display:block;font-size:12px;line-height:16px;font-weight:500;color:var(--dk-grey-600);margin:0 0 6px}
+
+/* Sonuçlar */
+.result{border-radius:var(--dk-radius-12);padding:16px;margin-top:8px;background:var(--dk-white)}
+.result:first-child{margin-top:0}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.place{font-size:18px;line-height:24px;font-weight:600}
+.small{font-size:14px;color:var(--dk-grey-600);margin-top:4px;line-height:20px}
+.small b{color:var(--dk-black);font-weight:500}
+.small code{font-size:12px;background:var(--dk-grey-200);padding:1px 6px;border-radius:6px;color:var(--dk-black)}
+.badge{font-size:12px;line-height:16px;font-weight:600;padding:6px 12px;border-radius:999px;background:var(--dk-primary);color:var(--dk-black);white-space:nowrap}
+.badge.closed{background:var(--danger-soft);color:var(--dk-error-dark)}
+.days{display:flex;gap:6px;margin-top:14px;flex-wrap:wrap}
+/* Dağıtım olmayan gün: yalnızca renge dayanmamak için üstü çizili (WCAG 1.4.1) ve 5:1 kontrast */
+.day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-600);min-width:44px;text-align:center;text-decoration:line-through}
+.day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink);text-decoration:none;box-shadow:inset 0 0 0 1px var(--dk-primary-ink)}
+.day.today{background:var(--dk-warning);color:var(--dk-warning-ink);box-shadow:inset 0 0 0 1px var(--dk-warning-ink)}
+.srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
+.src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
+.src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
+/* Müşteriye okunacak hazır cümle */
+.script{margin-top:12px;padding:12px 12px 12px 14px;border-radius:var(--dk-radius-12);background:var(--dk-primary-soft);display:flex;gap:12px;align-items:center}
+.scriptBody{flex:1;min-width:0}
+.scriptLabel{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--dk-primary-ink);margin-bottom:2px}
+.scriptText{font-size:15px;line-height:22px;font-weight:500;color:var(--dk-black);margin:0}
+.copyBtn{flex:0 0 auto;height:44px;padding:0 14px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-primary-ink);color:var(--dk-black);font-size:14px;font-weight:600}
+.copyBtn:hover{filter:none;background:var(--dk-grey-100)}
+.mapLink{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;margin-top:14px;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600;text-decoration:none}
+.mapLink:hover{background:var(--dk-primary-soft)}
+.mapLink svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex:0 0 auto}
+.note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
+.groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
+.groupTitle:first-child{margin-top:0}
+.empty,.loading,.error{padding:14px 16px;border-radius:var(--dk-radius-12);background:var(--dk-white);color:var(--dk-grey-600);font-size:14px}
+.error{color:var(--dk-error-dark)}
+
+/* Operasyon (Figma: Notification – Inline) */
+.opsPanel{position:relative;border-radius:var(--dk-radius-12);padding:14px 16px 14px 48px;background:var(--dk-white);box-shadow:var(--dk-shadow)}
+/* İkonlar dekoratiftir: "/ ''" ile ekran okuyucuda okunmaz (desteklemeyen tarayıcı ilk satırı kullanır) */
+.opsPanel:before{content:'i';content:'i' / '';position:absolute;left:16px;top:14px;width:20px;height:20px;border-radius:50%;background:var(--dk-info-dark);color:#fff;font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.opsTitle{font-weight:700;margin-bottom:2px}.opsText{font-size:14px;line-height:20px;color:var(--dk-black-60)}
+.opsOk:before{content:'✓';content:'✓' / '';background:var(--dk-success-ink)}
+.opsWarn:before{content:'!';content:'!' / '';background:var(--dk-warning);color:var(--dk-black)}
+.opsDanger:before{content:'!';content:'!' / '';background:var(--dk-error)}
+.opsNeutral:before{background:var(--dk-grey-500)}
+.opsItem{margin-top:10px;padding-top:10px;border-top:1px solid var(--dk-grey-300);color:var(--dk-black)}
+.opsItem div{color:var(--dk-black-60)}
+.opsLink{display:inline-block;margin-top:4px;color:var(--dk-black);font-weight:500}
+
+/* Dağıtım kartındaki uyarılar ve detay penceresi */
+.resultAlerts{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.resultAlerts:empty{display:none}
+.resultAlert{min-height:44px;padding:0 6px;border:0;border-radius:10px;background:transparent;color:var(--dk-black);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.resultAlert .ico{width:32px;height:32px}
+.resultAlert .warningSeparator{font-size:16px;font-weight:600}
+.resultAlert .warningMark{display:block;width:22px;height:22px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:16px;font-weight:700;line-height:22px}
+.resultAlert.opsAlert .warningMark{background:var(--dk-error);color:#fff}
+.resultAlert:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+.alertDialog{width:min(560px,calc(100% - 32px));max-height:calc(100dvh - 48px);box-sizing:border-box;border:0;border-radius:16px;padding:20px;background:var(--dk-white);color:var(--dk-black)}
+.alertDialog::backdrop{background:rgba(0,0,0,.45)}
+.alertDialogHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.alertDialogHead h2{font-size:18px;margin:0}
+.alertDialogHead button{min-width:44px;min-height:44px;border:1px solid var(--dk-grey-300);border-radius:999px;background:var(--dk-white);color:var(--dk-black)}
+/* Hava durumu */
+.weatherPanel{border-radius:var(--dk-radius-12);padding:16px;background:var(--dk-white)}
+.weatherTitle{font-weight:600;font-size:18px;line-height:24px;margin-bottom:2px}
+.weatherSub{font-size:12px;color:var(--dk-grey-600);margin-bottom:12px}
+.weatherFallback{font-size:14px;line-height:20px;color:var(--dk-grey-600)}
+.weatherFallback a{font-weight:500;color:var(--dk-black)}
+.weatherNotice{position:relative;margin:0 0 12px;padding:12px 14px 12px 46px;border-radius:var(--dk-radius-12);background:var(--dk-white);box-shadow:var(--dk-shadow);font-size:14px;line-height:20px;color:var(--dk-black-60)}
+.weatherNotice:before{content:'!';content:'!' / '';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.weatherNotice strong{display:block;font-size:14px;margin-bottom:2px;color:var(--dk-black)}
+.weatherToday{margin:0 0 12px;padding:14px;border-radius:var(--dk-radius-12);background:var(--dk-grey-200)}
+.weatherTodayHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.weatherTodayIcon{width:44px;height:44px;object-fit:contain}
+.weatherTodayTitle{font-size:16px;font-weight:600}
+.weatherTodayDesc{font-size:12px;color:var(--dk-grey-600);margin-top:2px}
+.weatherTodayGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.weatherMetric{background:var(--dk-white);border-radius:10px;padding:10px}
+.weatherMetric span{display:block;font-size:12px;color:var(--dk-grey-600)}.weatherMetric b{font-size:16px;font-weight:600}
+.weatherSimpleWrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
+.weatherSimpleWrap:focus-visible{outline:2px solid var(--dk-black);outline-offset:2px}
+.weatherSimple{width:100%;min-width:620px;border-collapse:collapse;font-size:14px}
+.weatherSimple th,.weatherSimple td{border-bottom:1px solid var(--dk-grey-300);padding:10px;text-align:center;vertical-align:middle}
+.weatherSimple tr:last-child th,.weatherSimple tr:last-child td{border-bottom:0}
+.weatherSimple th{width:90px;text-align:left;font-weight:500;color:var(--dk-grey-600)}
+.weatherSimple .dateCell{font-weight:600;white-space:nowrap}
+.weatherSimple thead th.dateCell{width:auto;text-align:center;color:var(--dk-black);font-weight:600}
+.conditionInner{display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.conditionInner img{width:28px;height:28px;object-fit:contain;flex:0 0 auto}
+.conditionName{font-weight:500}
+
+/* Öneri / talep */
+.feedbackLaunch{display:none;margin:20px auto 0;height:40px;padding:0 18px;border:1px solid var(--dk-black);border-radius:999px;background:var(--dk-white);color:var(--dk-black);font-weight:500;font-size:14px;align-items:center}
+.feedbackLaunch:hover{background:var(--dk-grey-100);filter:none}
+.feedbackGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.feedbackGrid .full{grid-column:1/-1}
+.feedbackGrid label{display:block;font-size:12px;font-weight:500;color:var(--dk-grey-600);margin-bottom:6px}
+.feedbackGrid .req{color:var(--dk-error-dark)}
+.fieldErr{font-size:12px;line-height:16px;color:var(--dk-error-dark);margin-top:6px}
+.fieldErr:empty{display:none}
+.feedbackGrid textarea{width:100%;border:1px solid var(--dk-border);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:110px;resize:vertical;font-size:16px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.feedbackActions{display:flex;gap:8px;margin-top:12px}
+.feedbackActions button{flex:1;height:48px}
+.feedbackClose{background:var(--dk-white);color:var(--dk-black);border:1px solid var(--dk-border)!important}
+.feedbackNote{font-size:12px;color:var(--dk-grey-600);line-height:16px;margin-top:10px}
+.feedbackStatus{display:none;margin-top:10px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--dk-white);font-size:14px}
+.feedbackStatus.ok{color:var(--dk-success-ink)}.feedbackStatus.err{color:var(--dk-error-dark)}
+
+.footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
+
+@media(max-width:700px){
+ .brandTop{padding:16px 0}
+ .brandLogo{width:104px}
+ .card{padding:28px 16px 20px;border-radius:24px}
+ .grid,.filters{grid-template-columns:minmax(0,1fr);gap:10px}
+ .accHead{padding:12px}
+ .accBody{padding:0 12px 12px}
+ .accMeta{max-width:40%}
+ .suggestions{max-height:46vh}
+ .top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .place{font-size:16px;overflow-wrap:anywhere}
+ .days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+ .day{min-width:0;font-size:11px;padding:8px 0}
+ .weatherPanel{padding:12px}.weatherTitle{font-size:16px}
+ .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
+ .weatherSimple{font-size:13px;min-width:560px}
+ .script{flex-direction:column;align-items:stretch}
+ .copyBtn{align-self:flex-end}
+ .mapLink{width:100%}
+ .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
+}
+@media(max-width:380px){
+ .badge{white-space:normal;text-align:center;max-width:96px}
+}
+@media(hover:none){button,.result,.suggestion{cursor:default}}
+</style>
+</head>
+<body><div style="background:#17211b;color:white;padding:14px 20px;text-align:center;font-size:13px;line-height:20px"><b style="color:#cbe78b">Harita düğmesi önizlemesi</b><br>Adresi değiştirip Sorgula’ya basabilirsin. Ziyaret günleri örnektir; Google Haritalar bağlantısı gerçektir.</div>
+<div class="wrap">
+ <header class="brandTop">
+  <a href="https://www.dijitalkurye.com.tr/" target="_blank" rel="noopener" aria-label="Dijital Kurye (yeni sekmede açılır)"><img class="brandLogo" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAyIiBoZWlnaHQ9IjI0IiB2aWV3Qm94PSIwIDAgMTAyIDI0IiBmaWxsPSIjMEMwQzBDIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iZGlqaXRhbC5rdXJ5ZSI+CjxwYXRoIGQ9Ik03LjM5NDQ5IDYuNDc3NzFWMi4zMDI3Nkg5LjRWMTcuMzE5NEwyLjY4MTEgMTcuMzE3N0MyLjQyNTEgMTcuMzE3NyAyLjE3OTcyIDE3LjIxNTkgMS45OTg4MiAxNy4wMzVMMS40NzQyNyAxNi41MTA1TDIuNjgyODMgMTUuMzAxOUw3LjM5NDI5IDE1LjI5ODNWOC40ODI0NUwyLjQ4NzI2IDguNDc1MzFMMS40Njc1MiA3LjI2MjVMMS45Njk0OCA2Ljc2MDU0QzIuMTUwNTcgNi41Nzk0NSAyLjM5NjE0IDYuNDc3NzEgMi42NTIxNCA2LjQ3NzcxSDcuMzk0NDlaIi8+CjxwYXRoIGQ9Ik0xMS4xNzggMi4zMDI3NkgxMy4zODcyVjQuMzg5OTVIMTEuMTc4VjIuMzAyNzZaIi8+CjxwYXRoIGQ9Ik0xOC45NzY4IDIuMzAyNzZIMjEuMTg2VjQuMzg5OTVIMTguOTc2OFYyLjMwMjc2WiIvPgo8cGF0aCBkPSJNNDUuNjA5NCAxNy4zMTk2VjIuMzAyNzZINDMuNjEzOVYxNy4zMTk2SDQ1LjYwOTRaIi8+CjxwYXRoIGQ9Ik03NS43MzAxIDE3LjMxOTZWOC40ODI2N0g3OS44NjM3VjEwLjMxNTJIODEuODY5MlY4LjQ4MjY3QzgxLjg2OTIgOC4yMDQyNyA4MS44MTUgNy45NDMwNiA4MS43MDY1IDcuNjk4NjVDODEuNjA0NSA3LjQ1NDIzIDgxLjQ2MjEgNy4yNDM3OSA4MS4yNzg4IDcuMDY3MzRDODEuMDk1NCA2Ljg4NDEyIDgwLjg4MTcgNi43NDE0NSA4MC42MzczIDYuNjM5NzFDODAuMzk5OCA2LjUzMTIxIDgwLjE0MTkgNi40NzY3NiA3OS44NjM3IDYuNDc2NzZINzcuNzM1OEM3Ny40NjQzIDYuNDc2NzYgNzcuMjA5NyA2LjUyNzczIDc2Ljk3MjIgNi42Mjk0N0M3Ni43MzQ4IDYuNzI0NDYgNzYuNTI0MyA2Ljg2MDE4IDc2LjM0MDkgNy4wMzY2NEM3Ni4xNjQ1IDcuMjA2MzQgNzYuMDIyIDcuNDEwMDIgNzUuOTEzNSA3LjY0NzQ4Qzc1LjgwNDggNy44NzgxOSA3NS43NDM4IDguMTI2MDggNzUuNzMwMSA4LjM5MDc3VjYuNDc2NzZINzMuNzM0NlYxNy4zMTk0TDc1LjczMDEgMTcuMzE5NloiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMDIgMTIuOTIxNUg5NC44MjI0VjE1LjMxNDFIMTAyVjE3LjMxOThIOTQuODIyNEM5NC41NTA5IDE3LjMxOTggOTQuMjkzIDE3LjI2ODkgOTQuMDQ4NiAxNy4xNjcxQzkzLjgwNDQgMTcuMDU4NCA5My41OTA0IDE2LjkxNTkgOTMuNDA3MiAxNi43Mzk1QzkzLjIzMDggMTYuNTU2MyA5My4wODgzIDE2LjM0MjYgOTIuOTc5NiAxNi4wOTgxQzkyLjg3NzkgMTUuODUzNyA5Mi44MjY5IDE1LjU5MjMgOTIuODI2OSAxNS4zMTQxVjguNDgyNjdDOTIuODI2OSA4LjIwNDI3IDkyLjg3NzkgNy45NDMwNiA5Mi45Nzk2IDcuNjk4NjVDOTMuMDg4MyA3LjQ1NDIzIDkzLjIzMDggNy4yNDM3OSA5My40MDcyIDcuMDY3MzRDOTMuNTkwNCA2Ljg4NDEyIDkzLjgwNDQgNi43NDE0NSA5NC4wNDg2IDYuNjM5NzFDOTQuMjkzIDYuNTMxMDEgOTQuNTUwOSA2LjQ3Njc2IDk0LjgyMjQgNi40NzY3Nkg5OS45OTQzQzEwMC4yNzIgNi40NzY3NiAxMDAuNTM0IDYuNTMxMjEgMTAwLjc3OCA2LjYzOTcxQzEwMS4wMjMgNi43NDE0NSAxMDEuMjMzIDYuODg0MTIgMTAxLjQwOSA3LjA2NzM0QzEwMS41OTMgNy4yNDM3OSAxMDEuNzM1IDcuNDU0MjMgMTAxLjgzNyA3LjY5ODY1QzEwMS45NDYgNy45NDMwNiAxMDIgOC4yMDQyNyAxMDIgOC40ODI2N1YxMi45MjE1Wk05NC44MjI0IDguNDgyNDdWMTAuOTE1OEg5OS45OTQzVjguNDgyNDdIOTQuODIyNFoiLz4KPHBhdGggZD0iTTg1LjkwNzYgMTYuMzQyNEw4My42MzcyIDIxLjY5NzVIODUuNjMyN0w5Mi4xOTk1IDYuNDc2OTVIOTAuMDkyTDg2LjkyNTggMTMuOTM5NUw4My43NTk0IDYuNDc2OTVIODEuNjUyTDg1LjkwNzYgMTYuMzQyNFoiLz4KPHBhdGggZD0iTTY0LjI1OTkgNi40NzY5NUg2Mi4yNjQ1VjE1LjMxMzlDNjIuMjY0NSAxNS41OTIzIDYyLjMxNTQgMTUuODUzNSA2Mi40MTcyIDE2LjA5NzlDNjIuNTI1OSAxNi4zNDIyIDYyLjY2ODMgMTYuNTU2MSA2Mi44NDQ4IDE2LjczOTNDNjMuMDI4IDE2LjkxNTggNjMuMjQxOSAxNy4wNTg0IDYzLjQ4NjEgMTcuMTY2OUM2My43MzA2IDE3LjI2ODcgNjMuOTg4NSAxNy4zMTk2IDY0LjI1OTkgMTcuMzE5Nkg2Ny44NTRDNjguMTExNyAxNy4zMTk2IDY4LjM1NjEgMTcuMjcyMSA2OC41ODY4IDE3LjE3NzJDNjguODE3NyAxNy4wODIyIDY5LjAyMTIgMTYuOTUzMiA2OS4xOTc3IDE2Ljc5MDNDNjkuMzgxMSAxNi42MjA2IDY5LjUzMDMgMTYuNDIzNiA2OS42NDU4IDE2LjE5OTdDNjkuNzYxIDE1Ljk3NTcgNjkuODI5IDE1LjczODMgNjkuODQ5MiAxNS40ODcxVjE3LjMxOTZINzEuODU0OVY2LjQ3Njk1SDY5Ljg0OTJWMTUuMzEzOUg2NC4yNTk5VjYuNDc2OTVaIi8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMzIuNzAzNSAxMS44MTE4QzMyLjYwMTggMTIuMDQ5NSAzMi41NTA4IDEyLjMwNzQgMzIuNTUwOCAxMi41ODU2VjE1LjMxNDFDMzIuNTUwOCAxNS41OTI1IDMyLjYwMTggMTUuODUzNyAzMi43MDM1IDE2LjA5ODFDMzIuODEyMiAxNi4zNDI0IDMyLjk1NDcgMTYuNTU2MyAzMy4xMzExIDE2LjczOTVDMzMuMzE0NCAxNi45MTU5IDMzLjUyODMgMTcuMDU4NiAzMy43NzI1IDE3LjE2NzFDMzQuMDE2OSAxNy4yNjg5IDM0LjI3NDggMTcuMzE5OCAzNC41NDYzIDE3LjMxOThIMzcuNzIyN0MzNy45ODA2IDE3LjMxOTggMzguMjI1MSAxNy4yNzIzIDM4LjQ1NTggMTcuMTc3M0MzOC42ODY1IDE3LjA4MjQgMzguODkwMSAxNi45NTM0IDM5LjA2NjYgMTYuNzkwNUMzOS4yNDk4IDE2LjYyMDggMzkuMzk5MyAxNi40MjM4IDM5LjUxNDcgMTYuMTk5OUMzOS42MyAxNS45NzU5IDM5LjY5NzkgMTUuNzM4NSAzOS43MTgyIDE1LjQ4NzNWMTcuMzE5OEg0MS43MjM5VjguNDgyODVDNDEuNzIzOSA4LjIwNDQ2IDQxLjY2OTYgNy45NDMyNSA0MS41NjEgNy42OTg4M0M0MS40NTkyIDcuNDU0NDIgNDEuMzE2NSA3LjI0Mzk4IDQxLjEzMzMgNy4wNjc1MkM0MC45NTY5IDYuODg0MzEgNDAuNzQ2NCA2Ljc0MTY0IDQwLjUwMjIgNi42Mzk4OUM0MC4yNTc4IDYuNTMxMiAzOS45OTY2IDYuNDc2OTUgMzkuNzE4MiA2LjQ3Njk1SDMzLjE3MTlWOC40ODI2NkgzOS43MTgyVjEwLjU3OTlIMzQuNTQ2M0MzNC4yNzQ4IDEwLjU3OTkgMzQuMDE2OSAxMC42MzQzIDMzLjc3MjUgMTAuNzQyOEMzMy41MjgzIDEwLjg0NDYgMzMuMzE0NCAxMC45ODcyIDMzLjEzMTEgMTEuMTcwNUMzMi45NTQ3IDExLjM1MzcgMzIuODEyMiAxMS41Njc0IDMyLjcwMzUgMTEuODExOFpNMzkuNzE4MiAxNS4zMTQxSDM0LjU0NjNWMTIuNTg1NkgzOS43MTgyVjE1LjMxNDFaIi8+CjxwYXRoIGQ9Ik0yNS4wOTE4IDYuNDc2OThIMjIuNDQ0N1Y4LjQ4MjY4SDI1LjA5MThWMTUuMzE0MUMyNS4wOTE4IDE1LjU5MjMgMjUuMTQyNyAxNS44NTM4IDI1LjI0NDUgMTYuMDk4MkMyNS4zNTMyIDE2LjM0MjYgMjUuNDk5MSAxNi41NTYzIDI1LjY4MjMgMTYuNzM5NUMyNS44NjU2IDE2LjkxNiAyNi4wNzk1IDE3LjA1ODQgMjYuMzIzNyAxNy4xNjcxQzI2LjU2ODEgMTcuMjY4OSAyNi44MjYgMTcuMzE5OSAyNy4wOTc1IDE3LjMxOTlIMzAuNjYwOFYxNS4zMTQxSDI3LjA5NzVWOC40ODI2OEgzMC42NjA4VjYuNDc2OThIMjcuMDk3NVYzLjEzNzZIMjUuMDkxOFY2LjQ3Njk4WiIvPgo8cGF0aCBkPSJNMjEuMDg0MyAxNy4zMTk2VjYuNDc2OTVIMTkuMDc4NlYxNy4zMTk2SDIxLjA4NDNaIi8+CjxwYXRoIGQ9Ik0xNS4xOTc0IDE5LjY5MThWNi40NzY5NUgxNy4yMDMzVjE5LjY5MTZDMTcuMjAzMyAxOS45NyAxNy4xNDg4IDIwLjIzMTIgMTcuMDQwMyAyMC40NzU2QzE2LjkzODYgMjAuNzIgMTYuNzk1OSAyMC45MzA1IDE2LjYxMjcgMjEuMTA2OUMxNi40MzYgMjEuMjkwMSAxNi4yMjU4IDIxLjQzMjggMTUuOTgxNCAyMS41MzQ1QzE1LjczNyAyMS42NDMyIDE1LjQ3NTYgMjEuNjk3NSAxNS4xOTc0IDIxLjY5NzVIMTMuNjI5NVYxOS42OTE4SDE1LjE5NzRaIi8+CjxwYXRoIGQ9Ik0xNy4zMDUgMi4zMDI3NkgxNS4wOTU4VjQuMzg5OTVIMTcuMzA1VjIuMzAyNzZaIi8+CjxwYXRoIGQ9Ik0xMy4yODUzIDE3LjMxOTZWNi40NzY5NUgxMS4yNzk2VjE3LjMxOTZIMTMuMjg1M1oiLz4KPHBhdGggZD0iTTIuMDE3NzQgOS4zMTQ3NEwwLjgwOTE3OSA4LjEwNjE3TDAuMjg0NjMzIDguNjMwNzJDMC4xMDM3MzUgOC44MTE2MiAwLjAwMTk5MTY0IDkuMDU3IDAuMDAxOTkxNjQgOS4zMTNMNi4xMDM1MmUtMDUgMTQuNDM1MUM2LjEwMzUyZS0wNSAxNC42OTEzIDAuMTAxNjExIDE0LjkzNjkgMC4yODI3MDIgMTUuMTE4TDAuODA4OTg2IDE1LjY0NDJMMi4wMjE3OSAxNC40MzE0TDIuMDE3NTUgOS4zMTQ3NEgyLjAxNzc0WiIvPgo8cGF0aCBkPSJNNjEuODUwNyA2LjQ3NjkzTDU2LjAyNzMgMTEuNzFMNjIuMjY4MSAxNy4zMTk2SDU5LjQ0ODFMNTUuMDgyNCAxMy40MDk2SDU1LjA4NzZMNTIuMjgwNyAxMC45MDg4VjIuMzAyNzZINTQuMjc2VjEwLjc1MjhMNTkuMDMwNSA2LjQ3NjkzSDYxLjg1MDdaIi8+CjxwYXRoIGQ9Ik01NC4yNzYgMTMuNDA5Nkg1Mi4yODA3VjE3LjMxOTZINTQuMjc2VjEzLjQwOTZaIi8+CjxwYXRoIGQ9Ik00OC40Nzk2IDE3LjMxOTdINDkuNTkzNEw1MC41NTg1IDE2LjM1NDZWMTUuMjQwOUw0OS41OTM0IDE0LjI3NTdINDguNDc5Nkw0Ny41MTQ1IDE1LjI0MDlWMTYuMzU0Nkw0OC40Nzk2IDE3LjMxOTdaIi8+Cjwvc3ZnPgo=" alt="" width="102" height="24"></a>
+  <button type="button" id="contactBtn" class="pillBtn">Hata Bildir</button>
+ </header>
+
+ <main class="card">
+  <h1 class="sr-only">Dağıtım Günü Sorgulama</h1>
+
+  <div id="srStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <section id="querySection" class="accordion open" aria-label="Sorgu alanı">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="true" aria-controls="queryBody" tabindex="-1"><span>Sorgu Alanı</span><span id="queryMeta" class="accMeta"></span></button></h2>
+   <div class="accBody" id="queryBody">
+    <div class="grid">
+     <div class="field">
+      <label for="q">Mahalle veya açık adres</label>
+      <div class="searchwrap">
+       <svg class="inIco" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+       <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Atatürk Cad. No:12 Bostancı/İSTANBUL" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" aria-describedby="qHint">
+       <div id="suggestions" class="suggestions" role="listbox" aria-label="Mahalle önerileri"></div>
+      </div>
+     </div>
+     <button id="btn" type="button">Sorgula</button>
+    </div>
+    <div class="hint" id="qHint">En az 3 karakter yazınca mahalle önerileri görünür; ok tuşlarıyla seçip Enter'a basın. Tam adres yazarsanız sonuç daha kesin olur.</div>
+    <div class="dataBar" id="dataBar" role="alert" hidden><span id="dataInfo"></span></div>
+    <details class="filtersToggle">
+     <summary>İl / İlçe / Mahalle listesinden seç</summary>
+     <div class="filters">
+      <div class="field"><label for="il">İl</label><select id="il" disabled><option value="">Tüm iller</option></select></div>
+      <div class="field"><label for="ilce">İlçe</label><select id="ilce" disabled><option value="">Tüm ilçeler</option></select></div>
+      <div class="field"><label for="mah">Mahalle / Köy</label><select id="mah" disabled><option value="">Tüm mahalleler</option></select></div>
+     </div>
+    </details>
+   </div>
+  </section>
+
+  <section id="deliverySection" class="accordion">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="deliveryBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>Dağıtım Günleri</span><span id="deliveryMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="deliveryBody"><div id="results"></div></div>
+  </section>
+
+  <section id="opsSection" class="accordion">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="opsBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M2.5 7h11v9h-11zM13.5 10h4l3 3v3h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span>Operasyon Durumu</span><span id="opsMeta" class="accMeta"></span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="opsBody"><div id="opsBox"></div></div>
+  </section>
+
+  <section id="weatherSection" class="accordion">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="weatherBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6 11a3.5 3.5 0 0 0 1 7z"/></svg></span>Hava Durumu</span><span id="weatherMeta" class="accMeta">5 günlük</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="weatherBody"><div id="weatherBox"></div></div>
+  </section>
+
+  <section id="feedbackSection" class="accordion">
+   <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="feedbackBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Hata / Veri Bildirimi</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+   <div class="accBody" id="feedbackBody">
+    <form id="feedbackForm" novalidate aria-describedby="fbReqNote">
+     <p class="feedbackNote" id="fbReqNote" style="margin:0 0 12px">Yanlış dağıtım günü, eksik mahalle veya hatalı uyarı gördüyseniz bildirin.</p>
+     <div class="feedbackGrid">
+      <div><label for="fbName">Adınız Soyadınız <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
+      <div><label for="fbPhone">Telefon (GSM) <span class="req" aria-hidden="true">*</span></label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required aria-describedby="fbPhoneErr"><div id="fbPhoneErr" class="fieldErr"></div></div>
+      <div class="full"><label for="fbEmail">E-posta <span class="req" aria-hidden="true">*</span></label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required aria-describedby="fbEmailErr"><div id="fbEmailErr" class="fieldErr"></div></div>
+      <div class="full"><label for="fbMessage">Sorun açıklaması <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Örn: Rumeli Cad. için Salı günü de dağıtım var, tabloda görünmüyor." required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
+      <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
+     </div>
+     <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
+     <div id="feedbackStatus" class="feedbackStatus" role="status" aria-live="polite"></div>
+    </form>
+   </div>
+  </section>
+
+  <button type="button" id="feedbackLaunch" class="feedbackLaunch">Hata / Veri Bildir</button>
+ </main>
+</div>
+
+<script>
+(()=>{
+'use strict';
+
+// ===================================================================
+// Ayarlar
+// ===================================================================
+const DATA_API='https://dagitimveri.egemenduman.workers.dev';
+const OPS_API='https://dagitimuyari.egemenduman.workers.dev';
+const MGM_PAGE='https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx';
+const DAY_NAMES=['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+const DAY_SHORT=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+const DAY_KEYS=['pazartesi','sali','carsamba','persembe','cuma','cumartesi','pazar'];
+
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const pad=n=>String(n).padStart(2,'0');
+const trLower=s=>String(s??'').toLocaleLowerCase('tr-TR');
+// Türkçe karakter duyarsız anahtar (yalnızca istemci tarafı uzunluk kontrolleri için)
+const norm=s=>trLower(s).normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim();
+
+// Yerel tarih (UTC değil) – Türkiye'de 00:00-03:00 arası "dün" görünme hatasını giderir.
+function localISODate(d=new Date()){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+
+// ===================================================================
+// API yardımcıları
+// ===================================================================
+async function apiJSON(url,{signal,timeout=12000}={}){
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),timeout);
+ if(signal)signal.addEventListener('abort',()=>ctrl.abort(),{once:true});
+ try{
+  const r=await fetch(url,{cache:'no-store',signal:ctrl.signal});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error(j.error||('HTTP '+r.status));e.status=r.status;e.body=j;throw e}
+  return j;
+ }catch(e){
+  if(e.name==='AbortError'&&!(signal&&signal.aborted))throw new Error('Sunucu yanıt vermedi');
+  throw e;
+ }finally{clearTimeout(timer)}
+}
+const dataApi=(path,opts)=>apiJSON(DATA_API+path,opts);
+const apiRows=j=>Array.isArray(j)?j:(Array.isArray(j?.rows)?j.rows:(Array.isArray(j?.data)?j.data:[]));
+function toRecord(x){
+ if(Array.isArray(x))return {il:x[0],ilce:x[1],mahalle:x[2],days:x[3].map(Number)};
+ return {il:x.il,ilce:x.ilce,mahalle:x.mahalle,days:DAY_KEYS.map(k=>Number(x[k])===1?1:0)};
+}
+const uniqSorted=a=>[...new Set(a.filter(Boolean))].sort((x,y)=>x.localeCompare(y,'tr'));
+async function apiList(path,key){
+ const j=await dataApi(path);
+ return uniqSorted(apiRows(j).map(x=>typeof x==='string'?x:(x[key]||x.name||x.value)));
+}
+
+// ===================================================================
+// Akordeon
+// ===================================================================
+function setAccordion(section,open){
+ if(!section)return;
+ section.classList.toggle('open',!!open);
+ const b=section.querySelector(':scope > .accH > .accHead');
+ if(b)b.setAttribute('aria-expanded',open?'true':'false');
+}
+function showSection(id,open){const s=$(id);s.classList.add('hasContent');if(open!==undefined)setAccordion(s,open)}
+function hideSection(id){const s=$(id);s.classList.remove('hasContent');setAccordion(s,false)}
+document.querySelectorAll('.accordion > .accH > .accHead').forEach(b=>{
+ b.addEventListener('click',()=>{const s=b.closest('.accordion');setAccordion(s,!s.classList.contains('open'))});
+});
+
+// Ekran okuyucu duyurusu (görünmez canlı bölge). Aynı metin tekrar gelse de okunması için önce temizlenir.
+let announceTimer=null;
+function announce(msg){
+ const el=$('srStatus');clearTimeout(announceTimer);el.textContent='';
+ announceTimer=setTimeout(()=>{el.textContent=msg},60);
+}
+const reduceMotion=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NEW_TAB='<span class="sr-only"> (yeni sekmede açılır)</span>';
+
+// ===================================================================
+// Durum çubuğu
+// ===================================================================
+// Durum çubuğu yalnızca bağlantı/liste hatalarında görünür; başarılı durumda gizli kalır.
+function setInfo(msg,ok=true){$('dataBar').hidden=ok;$('dataInfo').innerHTML=ok?'':'<span class="statusErr">'+esc(msg)+'</span>'}
+
+// ===================================================================
+// Dağıtım günü hesaplama + gösterim
+// ===================================================================
+function nextOpen(days,isoDate){
+ const [y,m,d]=isoDate.split('-').map(Number);
+ const start=new Date(y,m-1,d,12);
+ for(let add=0;add<7;add++){
+  const x=new Date(start);x.setDate(start.getDate()+add);
+  const idx=(x.getDay()+6)%7;
+  if(days[idx])return {add,date:x,idx};
+ }
+ return null;
+}
+const isoOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const fmtDate=d=>d.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+function relText(date){
+ const t=new Date();t.setHours(12,0,0,0);const diff=Math.round((date-t)/864e5);
+ return diff<=0?'Bugün':diff===1?'Yarın':diff+' gün sonra';
+}
+function badgeText(n,isoDate){
+ if(!n)return 'Dağıtım günü yok';
+ if(n.add===0)return isoDate===localISODate()?'Bugün dağıtım var':'Seçilen gün dağıtım var';
+ return n.add+' gün sonra';
+}
+
+// Müşteriye okunacak hazır cümle
+const joinTr=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' ve '+a[a.length-1];
+const fmtDayMonth=d=>d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
+function customerSentence(r,n){
+ const open=DAY_NAMES.filter((_,j)=>r.days[j]);
+ if(r.kaynak==='tablo'){
+  if(!n||!open.length)return 'Kayıtlı bölge planında bu mahalle için ziyaret günü bulunmuyor. Adresinize özel hizmet durumu ayrıca teyit edilmelidir.';
+  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+  return 'Kayıtlı bölge planına göre '+days+' ziyaret gerçekleştiriyoruz. Adresinize özel ziyaret tarihi ayrıca teyit edilmelidir.';
+ }
+ if(!n||!open.length)return 'Bu adrese şu anda tanımlı bir dağıtım günümüz bulunmuyor.';
+ const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+ const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
+ return 'Bölgenize '+days+' dağıtım yapıyoruz. Size en erken '+when+' günü gelebiliriz.';
+}
+let lastQuery='';
+
+// Yalnızca mevcut sorguya ait uyarıları göster; yeni sorguda eski yanıtları geçersiz kıl.
+const resultWarnings={weather:'',ops:''};
+function updateResultWarnings(){
+ const geo=currentRecords.find(r=>r.il&&r.ilce);
+ document.querySelectorAll('.resultAlerts').forEach(slot=>{
+  if(!geo||slot.dataset.il!==geo.il||slot.dataset.ilce!==geo.ilce){slot.innerHTML='';return}
+  slot.innerHTML=['weather','ops'].filter(kind=>resultWarnings[kind]).map(kind=>{
+   const label=kind==='weather'?'Hava durumu uyarısını göster':'Operasyon kısıtlamasını göster';
+   const icon=$(kind==='weather'?'weatherSection':'opsSection').querySelector('.accTitle .ico').outerHTML;
+   return '<button type="button" class="resultAlert '+(kind==='ops'?'opsAlert':'')+'" data-warning="'+kind+'" aria-label="'+label+'" title="'+label+'" aria-haspopup="dialog">'+icon+'<span class="warningSeparator" aria-hidden="true">:</span><span class="warningMark" aria-hidden="true">!</span></button>';
+  }).join('');
+ });
+}
+const alertDialog=$('alertDialog');
+$('alertDialogClose').addEventListener('click',()=>alertDialog.close());
+alertDialog.addEventListener('click',e=>{if(e.target===alertDialog){const r=alertDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)alertDialog.close()}});
+$('results').addEventListener('click',e=>{
+ const button=e.target.closest('[data-warning]');
+ if(!button)return;
+ const kind=button.dataset.warning;
+ if(!resultWarnings[kind])return;
+ $('alertDialogTitle').textContent=kind==='weather'?'Hava durumu uyarısı':'Operasyon kısıtlaması';
+ $('alertDialogContent').innerHTML=resultWarnings[kind];
+ alertDialog.showModal();
+});
+let currentRecords=[];
+// Harita, yalnızca seçilen kartın adresiyle ve personel tıklayınca açılır.
+function mapAreaAddress(r){
+ // Yalnızca harita hedefini sadeleştir; ziyaret sorgusundaki adresi değiştirme.
+ const raw=String(r.title||r.mahalle||'');
+ const area=raw
+  .replace(/\b(?:no|numara|numarası|kapi|kapı)\.?\s*[:：#-]?\s*\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,' ')
+  .replace(/\b(?:daire|d|kat|blok|bina|iç\s*kapı|ic\s*kapi)\.?\s*[:：#-]?\s*(?:-?\d+[a-zçğıöşü]?|[a-z])\b/giu,' ')
+  .replace(/((?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?)[ \t]+\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,'$1 ')
+  .replace(/\s+/g,' ').replace(/\s*[,;]\s*/g,', ').replace(/^[\s,;]+|[\s,;]+$/g,'').trim();
+ const street=area.match(/^.*\b(?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?(?=\s|[,;]|$)/iu);
+ const parts=[street&&r.ilce&&r.il?street[0]:area];
+ for(const location of [r.mahalle,r.ilce,r.il]){
+  if(location&&!(' '+norm(parts.join(' '))+' ').includes(' '+norm(location)+' '))parts.push(location);
+ }
+ return parts.filter(Boolean).join(', ');
+}
+function addressMapLink(r){
+ const address=mapAreaAddress(r);
+ if(!address)return '';
+ const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
+ return '<a class="mapLink" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Sokak / mahalleyi haritada aç<span class="sr-only"> (Google Haritalar, yeni sekmede açılır)</span></a>';
+}
+function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
+ currentRecords=records;
+ ++opsNo;++weatherNo;
+ resultWarnings.weather='';resultWarnings.ops='';
+ if(alertDialog.open)alertDialog.close();
+ const box=$('results');
+ const isoDate=localISODate();
+ const todayIdx=(new Date().getDay()+6)%7;
+ showSection('deliverySection',true);
+ if(!records.length){
+  box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
+  $('deliveryMeta').textContent='';
+  announce(emptyMsg);
+  hideSection('opsSection');hideSection('weatherSection');
+  return;
+ }
+ const card=r=>{
+  const n=nextOpen(r.days,isoDate);
+  return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
+   '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
+   (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
+   '<div class="small">Bölgenin ziyaret günleri</div><div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
+     const lbl=d+(j===todayIdx?' (bugün)':'')+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
+     return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(j===todayIdx?' today':'')+'"'+(j===todayIdx?' aria-current="date"':'')+' title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
+   }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
+   (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
+   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
+   (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+addressMapLink(r)+'</div>';
+ };
+ const visible=records.slice(0,30),primary=visible.filter(r=>!r.similar),similar=visible.filter(r=>r.similar);
+ box.innerHTML=primary.map((r,i)=>(r.group&&(i===0||primary[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('')+
+  (similar.length?'<details class="filtersToggle"><summary>Diğer mahalle eşleşmeleri ('+similar.length+')</summary>'+similar.map(card).join('')+'</details>':'');
+ const first=records[0];
+ setAccordion($('querySection'),false);
+ const label=first.mahalle||first.title||'';
+ $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
+ $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
+ {
+  const fd=nextOpen(first.days,isoDate);
+  lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
+   'Sorgu tarihi: '+isoDate,
+   'Sonuç: '+[first.mahalle||first.title,first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
+   'Günler: '+(DAY_SHORT.filter((_,j)=>first.days[j]).join(', ')||'yok')+' • İlk uygun gün: '+(fd?isoOf(fd.date):'yok')].join('\n');
+ }
+ {
+  const fn=nextOpen(first.days,isoDate);
+  announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
+   (fn?(first.kaynak==='live'?'en erken teslimat ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
+ }
+ const geo=records.find(r=>r.il&&r.ilce);
+ if(geo){loadOperationalAlerts(geo.il,geo.ilce);loadWeather(geo.il,geo.ilce)}
+ else{hideSection('opsSection');hideSection('weatherSection')}
+}
+
+
+// ===================================================================
+// Sorgu
+// ===================================================================
+const q=$('q'),sugBox=$('suggestions'),selIl=$('il'),selIlce=$('ilce'),selMah=$('mah');
+let SUGGESTIONS=[],activeSug=-1,suggestTimer=null,sugCtrl=null,runNo=0;
+let LIVE_ON=false,TABLE_DATE='';
+
+// ---- Optymus (canlı) – worker üzerinden; token tarayıcıya hiç gelmez ----
+function mahalleAddress(r){
+ const m=String(r.mahalle||'').trim();
+ return m+(/(^|\s)(mh|mah|mahalle|mahallesi|köy|köyü|koyu)\.?$/i.test(m)?'':' Mah.')+' '+r.ilce+'/'+r.il;
+}
+async function liveLookup(address){
+ if(!LIVE_ON||!address)return null;
+ try{
+  const j=await dataApi('/api/adres-gun?adres='+encodeURIComponent(address),{timeout:15000});
+  return j.ok&&Array.isArray(j.days)?j:{error:j.error||'Yanıt çözümlenemedi',notFound:!!j.adresHatasi};
+ }catch(e){return {error:e.message,notFound:e.status===404||e.status===422}}
+}
+function renderAddressRejection(live){
+ renderRecords([],{emptyMsg:'Adres doğrulanamadı veya bu adres için ziyaret planlanamıyor: '+live.error+'. Adresi kontrol edin; hizmet durumunu teyit etmeden teslimat tarihi paylaşmayın.'});
+}
+function tableNote(){return 'Kayıtlı tablo'+(TABLE_DATE?' • güncelleme '+TABLE_DATE:'')}
+function withLive(rec,live){
+ if(live&&!live.error)return {...rec,days:live.days.map(Number),kaynak:'live',bolge:live.bolge||''};
+ const out={...rec,kaynak:'tablo'};
+ if(LIVE_ON&&live&&live.error)out.note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablo bilgisi gösteriliyor.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablo bilgisi gösteriliyor.';
+ return out;
+}
+
+function fillSelect(el,items,placeholder){
+ el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+items.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+ el.disabled=!items.length;
+}
+
+async function run(){
+ const my=++runNo;
+ const text=q.value.trim(),il=selIl.value,ic=selIlce.value,m=selMah.value;
+ const box=$('results');
+ clearResults();
+ closeSuggestions();
+ try{
+  if(il&&ic&&m){
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Sorgulanıyor…</div>';announce('Sorgulanıyor…');
+   const base={il,ilce:ic,mahalle:m};
+   const [tab,live]=await Promise.all([
+    dataApi('/api/mahalle?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ic)+'&mahalle='+encodeURIComponent(m)).then(j=>(j.row?[j.row]:apiRows(j)).map(toRecord)).catch(()=>[]),
+    liveLookup(mahalleAddress(base))
+   ]);
+   if(my!==runNo)return;
+   if(live&&live.notFound)renderAddressRejection(live);
+   else if(live&&!live.error)renderRecords([withLive(tab[0]||base,live)]);
+   else if(tab.length)renderRecords([withLive(tab[0],live)]);
+   else throw new Error('Mahalle bulunamadı');
+   return;
+  }
+  if(norm(text).length>=3){
+   showSection('deliverySection',true);box.innerHTML='<div class="loading">Adres aranıyor…</div>';announce('Adres aranıyor…');
+   const [tab,live]=await Promise.all([
+    dataApi('/api/ara?q='+encodeURIComponent(text)).then(j=>apiRows(j).map(toRecord)).catch(()=>[]),
+    norm(text).length>=8?liveLookup(text):Promise.resolve(null)
+   ]);
+   if(my!==runNo)return;
+   if(live&&live.notFound){renderAddressRejection(live);return}
+   if(live&&!live.error){
+    // Canlı sonuç: yazılan tam adrese göre. Konum bilgisi yoksa en iyi tablo eşleşmesinden alınır.
+    const geo=live.il&&live.ilce?{il:live.il,ilce:live.ilce,mahalle:live.mahalle||''}:(tab[0]?{il:tab[0].il,ilce:tab[0].ilce,mahalle:''}:{});
+    const rec={...withLive({...geo,title:text},live),group:'Girilen adrese göre'};
+    renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
+    return;
+   }
+   const recs=tab.map(r=>({...r,kaynak:'tablo'}));
+   if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
+   renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Eşleşen mahalle bulunamadı.'});
+   return;
+  }
+  showSection('deliverySection',true);
+  box.innerHTML='<div class="empty">Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.</div>';
+  announce('Mahalle veya adres yazın ya da İl / İlçe / Mahalle seçin.');
+  q.focus();
+ }catch(e){
+  if(my!==runNo)return;
+  box.innerHTML='<div class="error" role="alert">Sorgu yapılamadı: '+esc(e.message)+'</div>';
+ }
+}
+
+// ---- Öneriler ----
+function closeSuggestions(){
+ clearTimeout(suggestTimer);
+ if(sugCtrl){sugCtrl.abort();sugCtrl=null}
+ sugBox.style.display='none';sugBox.innerHTML='';activeSug=-1;
+ q.setAttribute('aria-expanded','false');
+ q.removeAttribute('aria-activedescendant');
+}
+async function showSuggestions(){
+ const raw=q.value.trim();
+ if(norm(raw).length<3){closeSuggestions();return}
+ if(sugCtrl)sugCtrl.abort();
+ const ctrl=sugCtrl=new AbortController();
+ try{
+  const j=await dataApi('/api/ara?q='+encodeURIComponent(raw),{signal:ctrl.signal});
+  if(ctrl!==sugCtrl)return; // daha yeni bir istek var
+  SUGGESTIONS=apiRows(j).slice(0,10).map(toRecord);
+  activeSug=-1;q.removeAttribute('aria-activedescendant');
+  if(!SUGGESTIONS.length){sugBox.style.display='none';sugBox.innerHTML='';q.setAttribute('aria-expanded','false');return}
+  sugBox.innerHTML=SUGGESTIONS.map((r,i)=>'<div class="suggestion" role="option" id="sug-'+i+'" aria-selected="false" data-i="'+i+'"><b>'+esc(r.mahalle)+'</b><span>'+esc(r.ilce)+' / '+esc(r.il)+'</span></div>').join('');
+  sugBox.style.display='block';q.setAttribute('aria-expanded','true');
+  announce(SUGGESTIONS.length+' öneri var. Ok tuşlarıyla gezinin.');
+ }catch(e){if(ctrl===sugCtrl){sugBox.style.display='none'}}
+}
+sugBox.addEventListener('mousedown',e=>{
+ const el=e.target.closest('.suggestion');if(!el)return;
+ e.preventDefault();selectSuggestion(+el.dataset.i);
+});
+async function selectSuggestion(i){
+ const r=SUGGESTIONS[i];if(!r)return;
+ closeSuggestions();
+ q.value=r.mahalle+', '+r.ilce+', '+r.il;
+ const my=++runNo;
+ clearResults();
+ showSection('deliverySection',true);
+ $('results').innerHTML='<div class="loading">Adres doğrulanıyor…</div>';
+ announce('Adres doğrulanıyor…');
+ const live=await liveLookup(mahalleAddress(r));
+ if(my!==runNo)return;
+ if(live&&live.notFound)renderAddressRejection(live);
+ else renderRecords([withLive(r,live)]);
+ // Sonuç hazır olduğunda mobil klavyeyi kapat ve odağı başlığa taşı.
+ const resHead=$('deliverySection').querySelector('.accHead');if(resHead)resHead.focus();
+ // Filtreleri yalnızca hâlâ geçerli olan seçilen kayda göre doldur.
+ if(![...selIl.options].some(o=>o.value===r.il))fillSelect(selIl,uniqSorted([...[...selIl.options].map(o=>o.value),r.il]),'Tüm iller');
+ selIl.value=r.il;
+ try{
+  const ilceler=await apiList('/api/ilceler?il='+encodeURIComponent(r.il),'ilce');
+  if(my!==runNo)return;
+  fillSelect(selIlce,ilceler,'Tüm ilçeler');selIlce.value=r.ilce;
+  const mahalleler=await apiList('/api/mahalleler?il='+encodeURIComponent(r.il)+'&ilce='+encodeURIComponent(r.ilce),'mahalle');
+  if(my!==runNo)return;
+  fillSelect(selMah,mahalleler,'Tüm mahalleler');selMah.value=r.mahalle;
+ }catch(e){}
+}
+
+q.addEventListener('input',()=>{
+ ++runNo; // Önceki adresin bekleyen sorgusu yeni adresi değiştirmesin.
+ clearResults();
+ closeSuggestions();
+ // Serbest yazım başlayınca açılır liste filtrelerini sıfırla
+ if(selIl.value||selIlce.value||selMah.value){selIl.value='';fillSelect(selIlce,[],'Tüm ilçeler');fillSelect(selMah,[],'Tüm mahalleler')}
+ clearTimeout(suggestTimer);
+ if(norm(q.value).length<3){closeSuggestions();return}
+ suggestTimer=setTimeout(showSuggestions,300);
+});
+q.addEventListener('keydown',e=>{
+ const els=[...sugBox.querySelectorAll('.suggestion')],open=sugBox.style.display==='block';
+ if((e.key==='ArrowDown'||e.key==='ArrowUp')&&open&&els.length){
+  e.preventDefault();
+  activeSug=(activeSug+(e.key==='ArrowDown'?1:-1)+els.length)%els.length;
+  els.forEach((x,j)=>{x.classList.toggle('active',j===activeSug);x.setAttribute('aria-selected',j===activeSug?'true':'false')});
+  q.setAttribute('aria-activedescendant',els[activeSug].id);
+  els[activeSug].scrollIntoView({block:'nearest'});
+ }else if(e.key==='Enter'){
+  e.preventDefault();
+  if(open&&activeSug>=0&&els[activeSug])selectSuggestion(+els[activeSug].dataset.i);else run();
+ }else if(e.key==='Escape')closeSuggestions();
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.searchwrap'))closeSuggestions()});
+$('btn').addEventListener('click',run);
+
+// ---- İl / İlçe / Mahalle filtreleri ----
+function clearResults(){
+ ++opsNo;++weatherNo;
+ currentRecords=[];lastQuery='';
+ resultWarnings.weather='';resultWarnings.ops='';
+ if(alertDialog.open)alertDialog.close();
+ $('results').innerHTML='';
+ $('deliveryMeta').textContent='';
+ $('queryMeta').textContent='';
+ clearTimeout(announceTimer);$('srStatus').textContent='';
+ hideSection('deliverySection');hideSection('opsSection');hideSection('weatherSection');
+}
+selIl.addEventListener('change',async()=>{
+ const my=++runNo,il=selIl.value;
+ clearResults();closeSuggestions();q.value='';
+ fillSelect(selIlce,[],'Tüm ilçeler');fillSelect(selMah,[],'Tüm mahalleler');
+ if(!il)return;
+ try{
+  const items=await apiList('/api/ilceler?il='+encodeURIComponent(il),'ilce');
+  if(my!==runNo)return;
+  fillSelect(selIlce,items,'Tüm ilçeler');
+ }catch(e){if(my===runNo)setInfo('İlçe listesi alınamadı: '+e.message,false)}
+});
+selIlce.addEventListener('change',async()=>{
+ const my=++runNo,il=selIl.value,ilce=selIlce.value;
+ clearResults();closeSuggestions();q.value='';
+ fillSelect(selMah,[],'Tüm mahalleler');
+ if(!ilce)return;
+ try{
+  const items=await apiList('/api/mahalleler?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),'mahalle');
+  if(my!==runNo)return;
+  fillSelect(selMah,items,'Tüm mahalleler');
+ }catch(e){if(my===runNo)setInfo('Mahalle listesi alınamadı: '+e.message,false)}
+});
+selMah.addEventListener('change',()=>{
+ ++runNo;clearResults();closeSuggestions();q.value='';
+ if(selMah.value)run();
+});
+
+async function init(){
+ setInfo('Merkezi veriye bağlanılıyor…');
+ try{
+  const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);
+  fillSelect(selIl,iller,'Tüm iller');
+  const m=meta&&meta.meta;
+  LIVE_ON=!!(meta&&meta.optymus);
+  if(m&&m.guncelleme_tarihi)TABLE_DATE=new Date(m.guncelleme_tarihi).toLocaleDateString('tr-TR');
+  let msg='Merkezi veri hazır • '+iller.length+' il';
+  if(m&&m.kayit_sayisi)msg+=' • '+Number(m.kayit_sayisi).toLocaleString('tr-TR')+' mahalle';
+  msg+=LIVE_ON?' • Canlı adres sorgusu aktif':(TABLE_DATE?' • Tablo güncelleme: '+TABLE_DATE:'');
+  setInfo(msg);
+ }catch(e){setInfo('Merkezi bağlantı kurulamadı: '+e.message,false)}
+}
+
+// ===================================================================
+// Operasyon uyarıları
+// ===================================================================
+let opsNo=0;
+async function loadOperationalAlerts(il,ilce){
+ const box=$('opsBox'),my=++opsNo;
+ // Uyarı ayrıntıları yalnızca dağıtım kartındaki ünlemden açılır.
+ $('opsMeta').textContent='';
+ box.innerHTML='<div class="opsPanel opsNeutral"><div class="opsTitle">Operasyon Durumu</div><div class="opsText">Resmî kaynak uyarıları kontrol ediliyor…</div></div>';
+ try{
+  const data=await apiJSON(OPS_API+'/?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce||''),{timeout:9000});
+  if(my!==opsNo)return;
+  const a=Array.isArray(data.alerts)?data.alerts:[];
+  const where=esc(ilce?ilce+' / '+il:il);
+  if(!a.length){
+   box.innerHTML='<div class="opsPanel opsOk"><div class="opsTitle">Aktif operasyon uyarısı bulunamadı</div><div class="opsText">'+where+' için eşleşen güncel uyarı bulunmadı.</div></div>';
+   $('opsMeta').textContent='Uyarı yok';
+   return;
+  }
+  const severe=a.some(x=>x.type==='MOTOSIKLET_YASAGI'||x.type==='YOL_KAPALI');
+  const safeUrl=u=>/^https:\/\//i.test(String(u||''))?u:'';
+  const items=a.slice(0,6).map(x=>'<div class="opsItem"><b>'+esc(x.title||x.label||x.type||'Operasyon uyarısı')+'</b>'+(x.summary?'<div>'+esc(x.summary)+'</div>':'')+(safeUrl(x.url)?'<a class="opsLink" target="_blank" rel="noopener noreferrer" href="'+esc(x.url)+'">Resmî kaynağı aç<span aria-hidden="true"> ↗</span>'+NEW_TAB+'</a>':'')+'</div>').join('');
+  box.innerHTML='<div class="opsPanel '+(severe?'opsDanger':'opsWarn')+'"><div class="opsTitle"><span aria-hidden="true">⚠ </span>'+(severe?'Ciddi operasyon uyarısı':'Operasyon uyarısı')+' – '+where+'</div><div class="opsText">'+items+'</div></div>';
+  $('opsMeta').textContent=a.length+' uyarı';
+  resultWarnings.ops=box.innerHTML;
+  updateResultWarnings();
+ }catch(e){
+  if(my!==opsNo)return;
+  // Hata durumunda "uyarı yok" DEMİYORUZ: kontrol yapılamadığını açıkça belirtiyoruz.
+  box.innerHTML='<div class="opsPanel opsWarn"><div class="opsTitle">Operasyon durumu kontrol edilemedi</div><div class="opsText">Resmî kaynaklara şu anda ulaşılamadı. Motokurye kısıtlaması veya yol kapanması olup olmadığını valilik ve KGM duyurularından teyit edin.</div></div>';
+  $('opsMeta').textContent='Kontrol edilemedi';
+ }
+}
+
+// ===================================================================
+// Hava durumu (MGM)
+// ===================================================================
+const WEATHER_NAMES={
+ 'A':'Açık','AB':'Az Bulutlu','PB':'Parçalı Bulutlu','CB':'Çok Bulutlu',
+ 'HY':'Hafif Yağmurlu','Y':'Yağmurlu','KY':'Kuvvetli Yağmurlu',
+ 'HSY':'Hafif Sağanak Yağışlı','SY':'Sağanak Yağışlı','KSY':'Kuvvetli Sağanak Yağışlı',
+ 'GSY':'Gök Gürültülü Sağanak Yağışlı','HGSY':'Hafif Gök Gürültülü Sağanak Yağışlı','KGY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı','KGSY':'Kuvvetli Gök Gürültülü Sağanak Yağışlı',
+ 'HKY':'Hafif Kar Yağışlı','K':'Kar Yağışlı','KKY':'Karla Karışık Yağmurlu','YKY':'Yoğun Kar Yağışlı',
+ 'S':'Sisli','SIS':'Sisli','P':'Puslu','PUS':'Puslu','D':'Dumanlı','R':'Rüzgarlı','GKR':'Güneyli Kuvvetli Rüzgar','KKR':'Kuzeyli Kuvvetli Rüzgar',
+ 'KF':'Kum Fırtınası','TF':'Toz veya Kum Fırtınası','DY':'Dolu','SGK':'Soğuk','SCK':'Sıcak'
+};
+// Kurye operasyonunu etkileyebilecek hadiseler (açık liste – önceki regex "HY" gibi hafif yağışları da yakalıyordu)
+const RISKY=new Set(['Y','KY','SY','KSY','GSY','HGSY','KGY','KGSY','K','HKY','YKY','KKY','KF','TF','DY','GKR','KKR']);
+const wCode=c=>String(c??'').toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+const weatherName=c=>WEATHER_NAMES[wCode(c)]||String(c||'—');
+const isRisky=c=>RISKY.has(wCode(c));
+const wIcon=(c,cls='')=>{const k=wCode(c);return k?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
+const pick=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!==-9999)return o[k];return null};
+const dotDate=s=>{const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('.'):String(s||'—')};
+
+let weatherNo=0;
+async function loadWeather(il,ilce){
+ const box=$('weatherBox'),my=++weatherNo,where=esc(ilce+' / '+il);
+ // Hava uyarıları arka planda yüklenir; ayrı sekme gösterilmez.
+ const head='<div class="weatherTitle">5 Günlük Hava Tahmini</div>';
+ box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • MGM verisi yükleniyor…</div></div>';
+ try{
+  const data=await apiJSON(OPS_API+'/weather?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce),{timeout:12000});
+  if(my!==weatherNo)return;
+  const rows=(Array.isArray(data.rows)?data.rows:[]).filter(r=>pick(r,['tarih','date']));
+  if(!rows.length)throw new Error(data.error||'Tahmin bulunamadı');
+
+  let html='';
+  const cur=data.current&&!data.current.error?data.current:null;
+  if(cur){
+   const cc=pick(cur,['hadise','hadiseKodu','weather']);
+   const val=(k,s='')=>{const v=pick(cur,k);return v===null?'—':esc(v)+s};
+   const obs=String(pick(cur,['tarih','veriZamani','date'])||'').replace('T',' ').replace(/(:\d{2})\.\d+/,'$1').replace('Z','');
+   html+='<div class="weatherToday"><div class="weatherTodayHead">'+wIcon(cc,'weatherTodayIcon')+'<div><div class="weatherTodayTitle">Bugün • '+esc(weatherName(cc))+'</div><div class="weatherTodayDesc">'+where+(obs?' • '+(cur.isForecast?'MGM saatlik tahmini':'Son ölçüm')+': '+esc(obs):'')+'</div></div></div>'+
+    '<div class="weatherTodayGrid"><div class="weatherMetric"><span>Sıcaklık</span><b>'+val(['sicaklik','temperature'],' °C')+'</b></div><div class="weatherMetric"><span>Nem</span><b>%'+val(['nem','humidity'])+'</b></div><div class="weatherMetric"><span>Rüzgâr</span><b>'+val(['ruzgarHiz','ruzgarHizi'],' km/sa')+'</b></div><div class="weatherMetric"><span>Rüzgâr yönü</span><b>'+val(['ruzgarYon','ruzgarYonu'],'°')+'</b></div></div></div>';
+  }
+  const todayISO=localISODate();
+  const todayRow=rows.find(r=>String(pick(r,['tarih','date'])).slice(0,10)===todayISO);
+  const todayCode=pick(cur,['hadise','hadiseKodu','weather'])??pick(todayRow,['hadise','hadiseKodu','weather']);
+  const todayLine=esc(dotDate(todayISO)+' – '+(todayCode?weatherName(todayCode):'Hava durumu bilgisi alınamadı'));
+  const futureAlerts=rows.filter(r=>String(pick(r,['tarih','date'])).slice(0,10)>todayISO&&isRisky(pick(r,['hadise','hadiseKodu','weather'])))
+   .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
+   .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
+  const alerts=isRisky(todayCode)?[todayLine,...futureAlerts]:futureAlerts;
+  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>':'';
+  resultWarnings.weather=warningHtml;
+  updateResultWarnings();
+
+  const five=rows.slice(0,5);
+  const temp=r=>{const lo=pick(r,['enDusuk']),hi=pick(r,['enYuksek']);return lo===null&&hi===null?'—':esc((lo??'—')+'° / '+(hi??'—')+'°')};
+  html+='<div class="weatherSimpleWrap" role="region" aria-label="5 günlük tahmin tablosu" tabindex="0"><table class="weatherSimple"><caption class="sr-only">'+where+' için 5 günlük hava tahmini</caption>'+
+   '<thead><tr><th scope="col">Tarih</th>'+five.map(r=>'<th scope="col" class="dateCell">'+esc(dotDate(pick(r,['tarih','date'])))+'</th>').join('')+'</tr></thead><tbody>'+
+   '<tr><th scope="row">Durum</th>'+five.map(r=>{const h=pick(r,['hadise','hadiseKodu','weather']);return '<td><div class="conditionInner">'+wIcon(h)+'<span class="conditionName">'+esc(weatherName(h))+'</span></div></td>'}).join('')+'</tr>'+
+   '<tr><th scope="row">Min / Maks</th>'+five.map(r=>'<td>'+temp(r)+'</td>').join('')+'</tr>'+
+   '</tbody></table></div>';
+
+  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+' • Meteoroloji Genel Müdürlüğü</div>'+html+'</div>';
+  $('weatherMeta').innerHTML=alerts.length?'<span aria-hidden="true">⚠ </span>'+alerts.length+' uyarı':'5 günlük';
+ }catch(e){
+  if(my!==weatherNo)return;
+  box.innerHTML='<div class="weatherPanel">'+head+'<div class="weatherSub">'+where+'</div><div class="weatherFallback">MGM hava verisi alınamadı. Dağıtım günü sorgusu çalışmaya devam ediyor. <a target="_blank" rel="noopener noreferrer" href="'+MGM_PAGE+'?il='+encodeURIComponent(il)+'&ilce='+encodeURIComponent(ilce)+'">MGM tahminlerini aç<span aria-hidden="true"> ↗</span>'+NEW_TAB+'</a></div></div>';
+  $('weatherMeta').textContent='5 günlük';
+ }
+}
+
+// ===================================================================
+// Hata / veri bildirimi → D1 (/api/oneri). Admin paneli buradan okur.
+// ===================================================================
+let feedbackOpener=null;
+const openFeedback=e=>{
+ feedbackOpener=e&&e.currentTarget||null;
+ const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
+ s.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});
+ setTimeout(()=>$('fbName').focus({preventScroll:true}),reduceMotion()?0:300);
+};
+const closeFeedback=()=>{
+ const s=$('feedbackSection');setAccordion(s,false);s.classList.remove('hasContent');
+ // Gizlenen bölümde odak kaybolmasın: formu açan butona (yoksa "Hata / Veri Bildir"e) dön
+ (feedbackOpener&&document.body.contains(feedbackOpener)?feedbackOpener:$('feedbackLaunch')).focus();
+};
+$('feedbackLaunch').addEventListener('click',openFeedback);
+$('contactBtn').addEventListener('click',openFeedback);
+$('feedbackClose').addEventListener('click',closeFeedback);
+$('feedbackSection').addEventListener('keydown',e=>{if(e.key==='Escape'&&$('feedbackSection').classList.contains('open')){e.preventDefault();closeFeedback()}});
+// "Kopyala" butonu: hazır cümleyi panoya kopyalar
+$('results').addEventListener('click',async e=>{
+ const b=e.target.closest('.copyBtn');if(!b)return;
+ const t=b.dataset.copy;let ok=false;
+ try{await navigator.clipboard.writeText(t);ok=true}catch(_){
+  try{const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();ok=document.execCommand('copy');ta.remove()}catch(__){}
+ }
+ b.textContent=ok?'Kopyalandı':'Kopyalanamadı';announce(ok?'Cümle panoya kopyalandı.':'Kopyalanamadı.');
+ setTimeout(()=>{b.textContent='Kopyala'},2000);
+});
+// Personel iletişim bilgileri bu cihazda hatırlanır (yalnızca kolaylık; erişilemezse sessizce yok sayılır)
+const CONTACT_KEY='dk_bildirim_iletisim';
+try{const c=JSON.parse(localStorage.getItem(CONTACT_KEY)||'{}');if(c.name)$('fbName').value=c.name;if(c.phone)$('fbPhone').value=c.phone;if(c.email)$('fbEmail').value=c.email}catch(_){}
+const FB_FIELDS=['fbName','fbPhone','fbEmail','fbMessage'];
+function setFieldError(id,msg){
+ const el=$(id),err=$(id+'Err');
+ err.textContent=msg||'';
+ if(msg)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');
+}
+FB_FIELDS.forEach(id=>$(id).addEventListener('input',()=>{if($(id).getAttribute('aria-invalid'))setFieldError(id,'')}));
+$('feedbackForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const form=e.currentTarget,st=$('feedbackStatus'),btn=form.querySelector('.feedbackSend');
+ // Hata mesajları role=alert ile hemen, diğerleri role=status ile sırayla okunur
+ const show=(msg,cls='')=>{st.setAttribute('role',cls==='err'?'alert':'status');st.style.display='block';st.className='feedbackStatus '+cls;st.textContent=msg};
+ const payload={
+  ad_soyad:$('fbName').value.trim(),gsm:$('fbPhone').value.trim(),
+  email:$('fbEmail').value.trim(),aciklama:$('fbMessage').value.trim(),
+  website:$('fbWebsite').value
+ };
+ const digits=payload.gsm.replace(/\D/g,'');
+ const errors={
+  fbName:payload.ad_soyad?'':'Ad Soyad alanını doldurun.',
+  fbPhone:!payload.gsm?'GSM alanını doldurun.':(digits.length<10||digits.length>13?'Geçerli bir GSM numarası girin (örn. 05xx xxx xx xx).':''),
+  fbEmail:!payload.email?'E-posta alanını doldurun.':(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)?'Geçerli bir e-posta adresi girin (örn. ad@ornek.com).':''),
+  fbMessage:payload.aciklama?'':'Açıklama alanını doldurun.'
+ };
+ FB_FIELDS.forEach(id=>setFieldError(id,errors[id]));
+ const bad=FB_FIELDS.filter(id=>errors[id]);
+ if(bad.length){
+  show(bad.length===1?'1 alanda hata var: '+errors[bad[0]]:bad.length+' alanda hata var. Lütfen işaretli alanları düzeltin.','err');
+  $(bad[0]).focus();
+  return;
+ }
+ // Son sorgunun bilgisini ekle (backend sınırı 3000 karakter)
+ if(lastQuery){const ctx='\n\n--- Son sorgu ---\n'+lastQuery;payload.aciklama=payload.aciklama.slice(0,3000-ctx.length)+ctx}
+ show('Gönderiliyor…');btn.disabled=true;
+ try{
+  const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
+  show('Bildiriminiz alındı. Teşekkürler.','ok');
+  try{localStorage.setItem(CONTACT_KEY,JSON.stringify({name:payload.ad_soyad,phone:payload.gsm,email:payload.email}))}catch(_){}
+  $('fbMessage').value='';
+  if(typeof gtag==='function')gtag('event','oneri_gonder');
+ }catch(err){
+  show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');
+ }finally{btn.disabled=false}
+});
+
+// ===================================================================
+// Service worker (yalnızca uygulama kabuğunu önbelleğe alır, API verisini değil)
+// ===================================================================
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+ window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}));
+}
+
+LIVE_ON=true;
+loadOperationalAlerts=async()=>{};loadWeather=async()=>{};
+$('q').value='Bostancı, Kadıköy, İstanbul';
+function showMapPreview(){
+ const title=$('q').value.trim();
+ if(!title){renderRecords([],{emptyMsg:'Haritada aramak için adres yazın.'});return}
+ renderRecords([{title,days:[1,1,1,1,1,0,0],kaynak:'live',note:'Ziyaret bilgisi yalnızca bu önizleme için örnektir. Harita düğmesi yazdığınız adresi Google’da arar; eşleşmeyi kontrol edin.'}]);
+}
+$('btn').replaceWith($('btn').cloneNode(true));$('btn').onclick=showMapPreview;
+q.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();showMapPreview()}},true);
+window.fetch=async()=>({ok:true,json:async()=>({rows:[]})});
+$('contactBtn').disabled=true;
+showMapPreview();
+})();
+</script>
+</body>
+</html>
+
+
