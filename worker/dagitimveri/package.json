@@ -1,0 +1,7 @@
+{
+  "name": "dagitimveri-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/attachments.test.mjs" },
+  "devDependencies": { "miniflare": "5.20261104.0-beta" }
+}
