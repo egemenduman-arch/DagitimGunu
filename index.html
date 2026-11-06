@@ -651,6 +651,13 @@ function withLive(rec,live){
  return out;
 }
 
+// Seçili kayıt mahalle listesinden gelir; canlı adres eşleşmemesi kaydı geçersiz kılmaz.
+function withSelectedRecord(rec,live){
+ const out=withLive(rec,live);
+ if(live&&live.error)out.note='Canlı teyit alınamadı; seçtiğiniz mahalleye ait kayıtlı ziyaret planı gösteriliyor.';
+ return out;
+}
+
 function fillSelect(el,items,placeholder){
  el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+items.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
  el.disabled=!items.length;
@@ -671,10 +678,9 @@ async function run(){
     liveLookup(mahalleAddress(base))
    ]);
    if(my!==runNo)return;
-   if(live&&live.notFound)renderAddressRejection(live);
-   else if(live&&!live.error)renderRecords([withLive(tab[0]||base,live)]);
-   else if(tab.length)renderRecords([withLive(tab[0],live)]);
-   else throw new Error('Mahalle bulunamadı');
+   if(live&&!live.error)renderRecords([withSelectedRecord(tab[0]||base,live)]);
+   else if(tab.length)renderRecords([withSelectedRecord(tab[0],live)]);
+   else throw new Error('Seçilen mahalle kaydı alınamadı. Lütfen yeniden sorgulayın.');
    return;
   }
   if(norm(text).length>=3){
@@ -746,8 +752,7 @@ async function selectSuggestion(i){
  announce('Adres doğrulanıyor…');
  const live=await liveLookup(mahalleAddress(r));
  if(my!==runNo)return;
- if(live&&live.notFound)renderAddressRejection(live);
- else renderRecords([withLive(r,live)]);
+ renderRecords([withSelectedRecord(r,live)]);
  // Sonuç hazır olduğunda mobil klavyeyi kapat ve odağı başlığa taşı.
  const resHead=$('deliverySection').querySelector('.accHead');if(resHead)resHead.focus();
  // Filtreleri yalnızca hâlâ geçerli olan seçilen kayda göre doldur.
