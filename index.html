@@ -88,6 +88,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var
 .accordion.open>.accH .accChevron{transform:rotate(180deg)}
 .accBody{display:none;padding:0 16px 16px}
 .accordion.open>.accBody{display:block}
+#deliverySection{scroll-margin-top:16px}
 #deliverySection,#opsSection,#weatherSection,#feedbackSection{display:none}
 #deliverySection.hasContent,#opsSection.hasContent,#weatherSection.hasContent,#feedbackSection.hasContent{display:block}
 
@@ -449,7 +450,32 @@ function setAccordion(section,open){
  const b=section.querySelector(':scope > .accH > .accHead');
  if(b)b.setAttribute('aria-expanded',open?'true':'false');
 }
-function showSection(id,open){const s=$(id);s.classList.add('hasContent');if(open!==undefined)setAccordion(s,open)}
+function showSection(id,open){const s=$(id);s.classList.add('hasContent');if(open!==undefined)setAccordion(s,open);if(id==='deliverySection'&&open)revealDeliveryOnMobile()}
+let deliveryScrollTimer=null,deliveryResizeTimer=null,deliveryResizeHandler=null;
+function cancelDeliveryReveal(){
+ clearTimeout(deliveryScrollTimer);clearTimeout(deliveryResizeTimer);
+ if(deliveryResizeHandler&&window.visualViewport)window.visualViewport.removeEventListener('resize',deliveryResizeHandler);
+ deliveryResizeHandler=null;
+}
+function revealDeliveryOnMobile(){
+ if(!window.matchMedia||!window.matchMedia('(max-width:700px)').matches)return;
+ cancelDeliveryReveal();
+ const section=$('deliverySection'),query=runNo;
+ const scroll=()=>{
+  if(query!==runNo||!section.classList.contains('hasContent')||document.querySelector('dialog[open]'))return;
+  // Sonuç başlığına odaklanmak mobil klavyeyi kapatır; odak kendi başına kaydırmaz.
+  section.querySelector('.accHead').focus({preventScroll:true});
+  section.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});
+ };
+ const schedule=()=>{clearTimeout(deliveryScrollTimer);deliveryScrollTimer=setTimeout(scroll,100)};
+ schedule();
+ // iOS/Android klavyesi kapanırken değişen görünür alana yeniden hizala.
+ if(window.visualViewport){
+  deliveryResizeHandler=schedule;
+  window.visualViewport.addEventListener('resize',deliveryResizeHandler);
+  deliveryResizeTimer=setTimeout(()=>{if(deliveryResizeHandler)window.visualViewport.removeEventListener('resize',deliveryResizeHandler);deliveryResizeHandler=null},1000);
+ }
+}
 function hideSection(id){const s=$(id);s.classList.remove('hasContent');setAccordion(s,false)}
 document.querySelectorAll('.accordion > .accH > .accHead').forEach(b=>{
  b.addEventListener('click',()=>{const s=b.closest('.accordion');setAccordion(s,!s.classList.contains('open'))});
@@ -535,7 +561,7 @@ $('results').addEventListener('click',e=>{
  if(!resultWarnings[kind])return;
  $('alertDialogTitle').textContent=kind==='weather'?'Hava durumu uyarısı':'Operasyon kısıtlaması';
  $('alertDialogContent').innerHTML=resultWarnings[kind];
- alertDialog.showModal();
+ cancelDeliveryReveal();alertDialog.showModal();
 });
 function mapAreaAddress(r){
  // Harita yalnızca sonuç kaydındaki tam il / ilçe / mahalle eşleşmesini kullanır.
@@ -584,7 +610,7 @@ $('results').addEventListener('click',e=>{
  $('mapExternal').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
  const params=new URLSearchParams({key:MAPS_EMBED_KEY,q:address,language:'tr',region:'TR'});
  mapFrame.src='https://www.google.com/maps/embed/v1/place?'+params.toString();
- mapDialog.showModal();
+ cancelDeliveryReveal();mapDialog.showModal();
 });
 
 let currentRecords=[];
@@ -739,6 +765,7 @@ async function run(){
   q.focus();
  }catch(e){
   if(my!==runNo)return;
+  showSection('deliverySection',true);
   box.innerHTML='<div class="error" role="alert">Sorgu yapılamadı: '+esc(e.message)+'</div>';
  }
 }
@@ -826,6 +853,7 @@ $('btn').addEventListener('click',run);
 
 // ---- İl / İlçe / Mahalle filtreleri ----
 function clearResults(){
+ cancelDeliveryReveal();
  ++opsNo;++weatherNo;
  currentRecords=[];lastQuery='';
  resultWarnings.weather='';resultWarnings.ops='';
@@ -997,6 +1025,7 @@ async function loadWeather(il,ilce){
 // ===================================================================
 let feedbackOpener=null;
 const openFeedback=e=>{
+ cancelDeliveryReveal();
  feedbackOpener=e&&e.currentTarget||null;
  const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
  s.scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'});
