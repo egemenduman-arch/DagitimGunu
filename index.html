@@ -893,9 +893,11 @@ const WEATHER_NAMES={
 // Kurye operasyonunu etkileyebilecek hadiseler (açık liste – önceki regex "HY" gibi hafif yağışları da yakalıyordu)
 const RISKY=new Set(['Y','KY','SY','KSY','GSY','HGSY','KGY','KGSY','K','HKY','YKY','KKY','KF','TF','DY','GKR','KKR']);
 const wCode=c=>String(c??'').toUpperCase().replace(/[^A-Z0-9_-]/g,'');
-const weatherName=c=>WEATHER_NAMES[wCode(c)]||String(c||'—');
+// Teknik kodları kullanıcıya gösterme; doğrulanmamış koda anlam uydurma.
+const knownWeather=c=>Object.prototype.hasOwnProperty.call(WEATHER_NAMES,wCode(c));
+const weatherName=c=>knownWeather(c)?WEATHER_NAMES[wCode(c)]:'Hava koşulu açıklaması alınamadı';
 const isRisky=c=>RISKY.has(wCode(c));
-const wIcon=(c,cls='')=>{const k=wCode(c);return k?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
+const wIcon=(c,cls='')=>{const k=wCode(c);return knownWeather(c)?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
 const pick=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!==-9999)return o[k];return null};
 const dotDate=s=>{const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('.'):String(s||'—')};
 
@@ -922,8 +924,11 @@ async function loadWeather(il,ilce){
   }
   const todayISO=localISODate();
   const todayRow=rows.find(r=>String(pick(r,['tarih','date'])).slice(0,10)===todayISO);
-  const todayCode=pick(cur,['hadise','hadiseKodu','weather'])??pick(todayRow,['hadise','hadiseKodu','weather']);
-  const todayLine=esc(dotDate(todayISO)+' – '+(todayCode?weatherName(todayCode):'Hava durumu bilgisi alınamadı'));
+  const observedCode=pick(cur,['hadise','hadiseKodu','weather']);
+  const forecastCode=pick(todayRow,['hadise','hadiseKodu','weather']);
+  const fromForecast=!knownWeather(observedCode)&&knownWeather(forecastCode);
+  const todayCode=knownWeather(observedCode)?observedCode:forecastCode;
+  const todayLine=esc(dotDate(todayISO)+' – '+weatherName(todayCode)+(fromForecast?' (günlük tahmin)':''));
   const futureAlerts=rows.filter(r=>String(pick(r,['tarih','date'])).slice(0,10)>todayISO&&isRisky(pick(r,['hadise','hadiseKodu','weather'])))
    .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
    .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
