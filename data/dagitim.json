@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "updated": "2026-11-06T01:57:04.752349+00:00",
+  "source": "workZone (3).xlsx",
+  "sourceSha256": "91b5da9b2dc33904a7945180226c00ab7bf09c825e9b7ac0b7f00b107b060260",
+  "count": 59621,
+  "provinces": [
+    {
+      "il": "Adana",
+      "file": "plan-01.json",
+      "count": 835
+    },
+    {
+      "il": "Adıyaman",
+      "file": "plan-02.json",
+      "count": 632
+    },
+    {
+      "il": "Afyonkarahisar",
+      "file": "plan-03.json",
+      "count": 889
+    },
+    {
+      "il": "Aksaray",
+      "file": "plan-04.json",
+      "count": 336
+    },
+    {
+      "il": "Amasya",
+      "file": "plan-05.json",
+      "count": 508
+    },
+    {
+      "il": "Ankara",
+      "file": "plan-06.json",
+      "count": 1436
+    },
+    {
+      "il": "Antalya",
+      "file": "plan-07.json",
+      "count": 951
+    },
+    {
+      "il": "Ardahan",
+      "file": "plan-08.json",
+      "count": 289
+    },
+    {
+      "il": "Artvin",
+      "file": "plan-09.json",
+      "count": 1838
+    },
+    {
+      "il": "Aydın",
+      "file": "plan-10.json",
+      "count": 683
+    },
+    {
+      "il": "Ağrı",
+      "file": "plan-11.json",
+      "count": 744
+    },
+    {
+      "il": "Balıkesir",
+      "file": "plan-12.json",
+      "count": 1170
+    },
+    {
+      "il": "Bartın",
+      "file": "plan-13.json",
+      "count": 565
+    },
+    {
+      "il": "Batman",
+      "file": "plan-14.json",
+      "count": 548
+    },
+    {
+      "il": "Bayburt",
+      "file": "plan-15.json",
+      "count": 236
+    },
+    {
+      "il": "Bilecik",
+      "file": "plan-16.json",
+      "count": 313
+    },
+    {
+      "il": "Bingöl",
+      "file": "plan-17.json",
+      "count": 565
+    },
+    {
+      "il": "Bitlis",
+      "file": "plan-18.json",
+      "count": 564
+    },
+    {
+      "il": "Bolu",
+      "file": "plan-19.json",
+      "count": 949
+    },
+    {
+      "il": "Burdur",
+      "file": "plan-20.json",
+      "count": 322
+    },
+    {
+      "il": "Bursa",
+      "file": "plan-21.json",
+      "count": 1075
+    },
+    {
+      "il": "Denizli",
+      "file": "plan-22.json",
+      "count": 620
+    },
+    {
+      "il": "Diyarbakır",
+      "file": "plan-23.json",
+      "count": 1053
+    },
+    {
+      "il": "Düzce",
+      "file": "plan-24.json",
+      "count": 402
+    },
+    {
+      "il": "Edirne",
+      "file": "plan-25.json",
+      "count": 371
+    },
+    {
+      "il": "Elazığ",
+      "file": "plan-26.json",
+      "count": 1178
+    },
+    {
+      "il": "Erzincan",
+      "file": "plan-27.json",
+      "count": 855
+    },
+    {
+      "il": "Erzurum",
+      "file": "plan-28.json",
+      "count": 1190
+    },
+    {
+      "il": "Eskişehir",
+      "file": "plan-29.json",
+      "count": 542
+    },
+    {
+      "il": "Gaziantep",
+      "file": "plan-30.json",
+      "count": 789
+    },
+    {
+      "il": "Giresun",
+      "file": "plan-31.json",
+      "count": 1222
+    },
+    {
+      "il": "Gümüşhane",
+      "file": "plan-32.json",
+      "count": 772
+    },
+    {
+      "il": "Hakkari",
+      "file": "plan-33.json",
+      "count": 244
+    },
+    {
+      "il": "Hatay",
+      "file": "plan-34.json",
+      "count": 598
+    },
+    {
+      "il": "Isparta",
+      "file": "plan-35.json",
+      "count": 430
+    },
+    {
+      "il": "Iğdır",
+      "file": "plan-36.json",
+      "count": 200
+    },
+    {
+      "il": "Kahramanmaraş",
+      "file": "plan-37.json",
+      "count": 723
+    },
+    {
+      "il": "Karabük",
+      "file": "plan-38.json",
+      "count": 482
+    },
+    {
+      "il": "Karaman",
+      "file": "plan-39.json",
+      "count": 294
+    },
+    {
+      "il": "Kars",
+      "file": "plan-40.json",
+      "count": 505
+    },
+    {
+      "il": "Kastamonu",
+      "file": "plan-41.json",
+      "count": 3232
+    },
+    {
+      "il": "Kayseri",
+      "file": "plan-42.json",
+      "count": 719
+    },
+    {
+      "il": "Kilis",
+      "file": "plan-43.json",
+      "count": 228
+    },
+    {
+      "il": "Kocaeli",
+      "file": "plan-44.json",
+      "count": 490
+    },
+    {
+      "il": "Konya",
+      "file": "plan-45.json",
+      "count": 1161
+    },
+    {
+      "il": "Kütahya",
+      "file": "plan-46.json",
+      "count": 813
+    },
+    {
+      "il": "Kırklareli",
+      "file": "plan-47.json",
+      "count": 287
+    },
+    {
+      "il": "Kırıkkale",
+      "file": "plan-48.json",
+      "count": 275
+    },
+    {
+      "il": "Kırşehir",
+      "file": "plan-49.json",
+      "count": 320
+    },
+    {
+      "il": "Malatya",
+      "file": "plan-50.json",
+      "count": 722
+    },
+    {
+      "il": "Manisa",
+      "file": "plan-51.json",
+      "count": 1093
+    },
+    {
+      "il": "Mardin",
+      "file": "plan-52.json",
+      "count": 708
+    },
+    {
+      "il": "Mersin",
+      "file": "plan-53.json",
+      "count": 819
+    },
+    {
+      "il": "Muğla",
+      "file": "plan-54.json",
+      "count": 677
+    },
+    {
+      "il": "Muş",
+      "file": "plan-55.json",
+      "count": 579
+    },
+    {
+      "il": "Nevşehir",
+      "file": "plan-56.json",
+      "count": 276
+    },
+    {
+      "il": "Niğde",
+      "file": "plan-57.json",
+      "count": 286
+    },
+    {
+      "il": "Ordu",
+      "file": "plan-58.json",
+      "count": 774
+    },
+    {
+      "il": "Osmaniye",
+      "file": "plan-59.json",
+      "count": 297
+    },
+    {
+      "il": "Rize",
+      "file": "plan-60.json",
+      "count": 659
+    },
+    {
+      "il": "Sakarya",
+      "file": "plan-61.json",
+      "count": 676
+    },
+    {
+      "il": "Samsun",
+      "file": "plan-62.json",
+      "count": 1259
+    },
+    {
+      "il": "Siirt",
+      "file": "plan-63.json",
+      "count": 382
+    },
+    {
+      "il": "Sinop",
+      "file": "plan-64.json",
+      "count": 929
+    },
+    {
+      "il": "Sivas",
+      "file": "plan-65.json",
+      "count": 1490
+    },
+    {
+      "il": "Tekirdağ",
+      "file": "plan-66.json",
+      "count": 388
+    },
+    {
+      "il": "Tokat",
+      "file": "plan-67.json",
+      "count": 976
+    },
+    {
+      "il": "Trabzon",
+      "file": "plan-68.json",
+      "count": 715
+    },
+    {
+      "il": "Tunceli",
+      "file": "plan-69.json",
+      "count": 761
+    },
+    {
+      "il": "Uşak",
+      "file": "plan-70.json",
+      "count": 323
+    },
+    {
+      "il": "Van",
+      "file": "plan-71.json",
+      "count": 700
+    },
+    {
+      "il": "Yalova",
+      "file": "plan-72.json",
+      "count": 94
+    },
+    {
+      "il": "Yozgat",
+      "file": "plan-73.json",
+      "count": 792
+    },
+    {
+      "il": "Zonguldak",
+      "file": "plan-74.json",
+      "count": 1358
+    },
+    {
+      "il": "Çanakkale",
+      "file": "plan-75.json",
+      "count": 688
+    },
+    {
+      "il": "Çankırı",
+      "file": "plan-76.json",
+      "count": 472
+    },
+    {
+      "il": "Çorum",
+      "file": "plan-77.json",
+      "count": 1138
+    },
+    {
+      "il": "İstanbul",
+      "file": "plan-78.json",
+      "count": 985
+    },
+    {
+      "il": "İzmir",
+      "file": "plan-79.json",
+      "count": 1367
+    },
+    {
+      "il": "Şanlıurfa",
+      "file": "plan-80.json",
+      "count": 1454
+    },
+    {
+      "il": "Şırnak",
+      "file": "plan-81.json",
+      "count": 341
+    }
+  ]
+}

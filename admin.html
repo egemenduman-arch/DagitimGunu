@@ -70,7 +70,9 @@ pre#apiRaw{background:var(--dk-black)!important;color:#E7E7E7!important;border-r
 <div id="dataPanel" class="panel active" role="tabpanel" aria-labelledby="tabData" tabindex="0">
 <div id="metaInfo" class="small" style="margin-top:4px"></div>
 <label for="file">Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv">
-<button id="upload" type="button">Veriyi Güncelle</button>
+<p><a href="veri-hazirla.html" target="_blank" rel="noopener">Excel’den D1 kullanmadan yeni plan dosyaları hazırla</a></p>
+<div class="small">Sorgu ekranı artık sitede yayınlanan JSON planını kullanır. Aşağıdaki D1 güncellemesi site dosyalarını değiştirmez.</div>
+<button id="upload" type="button">Eski D1 tablosunu güncelle</button>
 <progress id="prog" value="0" max="100" style="display:none" aria-label="Yükleme ilerlemesi"></progress>
 <div id="status" class="status" role="status">Dosya seçip güncellemeyi başlatın.</div>
 <div class="small">Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR.</div>
@@ -129,7 +131,8 @@ async function adminLogin(){
 async function loadMeta(){
  const el=document.getElementById('metaInfo');
  try{const r=await fetch(API+'/api/meta',{cache:'no-store'});const j=await r.json();const m=j.meta||{};
-  el.textContent='Mevcut veri: '+Number(m.kayit_sayisi||0).toLocaleString('tr-TR')+' kayıt • Son güncelleme: '+(m.guncelleme_tarihi?new Date(m.guncelleme_tarihi).toLocaleString('tr-TR'):'—');
+  if(!j.meta){el.textContent='Eski D1 tablosunun bilgisi şu anda alınamıyor. Sorgu ekranı sitedeki plan dosyalarını kullanır.';return}
+  el.textContent='Eski D1 tablosu: '+Number(m.kayit_sayisi||0).toLocaleString('tr-TR')+' kayıt • Son güncelleme: '+(m.guncelleme_tarihi?new Date(m.guncelleme_tarihi).toLocaleString('tr-TR'):'—');
  }catch(e){el.textContent='Mevcut veri bilgisi alınamadı.'}
 }
 loginBtn.addEventListener('click',adminLogin);
@@ -171,7 +174,7 @@ document.getElementById('upload').onclick=async()=>{
    const data=parseRows(rows);
    const seen=new Set();let dup=0;for(const r of data){const k=norm(r[0])+'|'+norm(r[1])+'|'+norm(r[2]);if(seen.has(k))dup++;else seen.add(k)}
    if(dup&&!confirm(dup+' adet tekrarlı İl/İlçe/Mahalle satırı bulundu. Tekrarlarda dosyadaki son satır geçerli olacak. Devam edilsin mi?')){st('Yükleme iptal edildi.');return}
-   if(!confirm(data.length.toLocaleString('tr-TR')+' kayıt mevcut dağıtım verisinin YERİNE yüklenecek. Onaylıyor musunuz?')){st('Yükleme iptal edildi.');return}
+   if(!confirm(data.length.toLocaleString('tr-TR')+' kayıt eski D1 tablosunun YERİNE yüklenecek. Onaylıyor musunuz?')){st('Yükleme iptal edildi.');return}
    st(data.length.toLocaleString('tr-TR')+' kayıt hazırlandı. Yükleme başlıyor…');
    await call('/admin/start',pw);
    const size=200;
@@ -181,7 +184,7 @@ document.getElementById('upload').onclick=async()=>{
      st('Yükleniyor… '+Math.min(i+size,data.length).toLocaleString('tr-TR')+' / '+data.length.toLocaleString('tr-TR'));
    }
    const done=await call('/admin/finish',pw); prog.value=100;
-   st('Güncelleme tamamlandı • '+done.count.toLocaleString('tr-TR')+' kayıt • '+new Date(done.updated).toLocaleString('tr-TR'),'ok');
+   st('Eski D1 tablosu güncellendi (site plan dosyaları değişmedi) • '+done.count.toLocaleString('tr-TR')+' kayıt • '+new Date(done.updated).toLocaleString('tr-TR'),'ok');
    loadMeta();
  }catch(e){st('Güncelleme başarısız: '+e.message,'err')}
  finally{btn.disabled=false}
@@ -262,3 +265,4 @@ document.getElementById('upload').onclick=async()=>{
 })();
 </script>
 </body></html>
+

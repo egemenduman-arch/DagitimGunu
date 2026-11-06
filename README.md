@@ -12,6 +12,30 @@ Mahalle veya açık adrese göre en erken dağıtım gününü gösteren PWA.
 | `worker/dagitimveri/` | Veri API'si (Cloudflare Worker + D1) |
 | `worker/dagitimuyari/` | Operasyon uyarıları + MGM hava durumu worker'ı |
 
+## D1 bağımsız sorgulama
+
+- Canlı adres sorgusu: tarayıcı → Worker `/api/adres-gun` → Optymus. Token sunucuda kalır; bu uç normal sorguda D1'a dokunmaz.
+- İl/ilçe/mahalle, öneriler ve kayıtlı ziyaret planı: `plan-data.js` üzerinden sitedeki `data/dagitim.json` manifesti ve `data/plan-*.json` dosyaları. Liste açılışında yalnızca küçük manifest; seçimde ilgili ilin dosyası yüklenir. İl belirtilmeyen öneri aramasında diğer iller en fazla altı paralel istekle alınır; oturum içinde bellekte tutulur.
+- Canlı sorguyu etkinleştiren `/api/capabilities` D1 kullanmaz. Liste yükleme ve özellik kontrolü birbirinden bağımsızdır. Eski Worker'da bu uç yoksa canlı sorgu yine denenir. `/api/meta` da D1 kesilince canlı özellik bilgisini döndürür.
+- Canlı sonuç önceliklidir. Listeden seçilmiş kayıt canlıda eşleşmezse dosyadaki plan açık kaynak notuyla gösterilir. Elle girilen adres canlıda açıkça reddedilirse kayıtlı tarih teslimat sonucu olarak gösterilmez. Konum doğrulanamazsa tahmini mahalle veya ziyaret tarihi üretilmez.
+- D1 yalnızca bildirimler, ekler ve eski admin/veri uçlarında tutulur. Bu işlemler D1 kotasından hâlâ etkilenebilir; sorgu ekranı bu uçlara bağımlı değildir.
+- `data/` dosyaları service worker önbelleğine alınmaz; manifest ve il dosyalarının sürümü eşleşmezse sonuç kullanılmaz.
+
+### Plan güncelleme
+
+`veri-hazirla.html` Excel/CSV'yi tarayıcıda JSON dosyalarına dönüştürür; giriş veya D1 bağlantısı istemez ve canlıya yazmaz. Hazırlanan **bütün dosyalar** `data/` klasörüne aynı PR içinde konur; inceleme ve yayın onayından sonra Pages yayını yeni planı kullanır. `admin.html` içindeki eski D1 yükleme düğmesi sorgu ekranının planını güncellemez; panelde bu ayrım belirtilir.
+
+İlk dosyalar kullanıcının sağladığı `workZone (3).xlsx` dosyasından hazırlanmıştır: 81 il, 59.621 benzersiz kayıt. Tekrar kuralları ve üç çelişkili kayıt `data/README.md` içinde açıklanır. Manifest tarihi dosyanın **hazırlanma** zamanıdır; kaynak planın yürürlük/güncelleme tarihi olduğu iddia edilmez.
+
+Yayın sırası: bu PR'ın Worker dosyası onayla yayınlanır; ardından frontend, `plan-data.js` ve `data/` dosyaları birlikte onayla birleştirilir. Worker güncellemesi gecikse bile statik listeler ve canlı sorgu denemesi çalışır; dosya ekleme özelliği yeni capabilities desteği görülene kadar kapalı kalır. D1 binding'i veya mevcut veri silinmez. Ücretli plana geçiş gerekmez; Optymus'un kendi erişim/kapasite şartları geçerlidir.
+
+```bash
+node tests/plan-data.test.cjs
+node tests/prepare-data.test.cjs
+node tests/worker-without-d1.test.cjs
+node tests/browser.cjs # Playwright + Chromium gerektirir
+```
+
 ## Worker dağıtımı
 
 ```bash
@@ -33,12 +57,16 @@ kendiliğinden ekler.
 
 ## API uçları (`dagitimveri`)
 
+İl/ilçe/mahalle ve arama uçları eski istemciler için korunur; yeni sorgu ekranı bunları Worker’dan çağırmaz.
+
+
 | Uç | Açıklama |
 |---|---|
 | `GET /api/iller`, `/api/ilceler?il=`, `/api/mahalleler?il=&ilce=` | Filtre listeleri |
 | `GET /api/mahalle?il=&ilce=&mahalle=` | Tek mahallenin günleri |
 | `GET /api/ara?q=` | Türkçe karakter duyarsız mahalle/adres araması |
 | `GET /api/adres-gun?adres=` | Optymus üzerinden tam adrese göre çalışma günleri |
+| `GET /api/capabilities` | D1 gerektirmeyen canlı sorgu ve dosya eki özellikleri |
 | `GET /api/meta` | Son güncelleme tarihi, kayıt sayısı |
 | `POST /api/oneri` | Öneri / talep kaydı (IP başına saatte 5) |
 | `POST /admin/*` | `X-Admin-Password` ile; 15 dk'da 10 hatalı denemede kilitlenir |
@@ -56,7 +84,7 @@ Kaynak: `docs/optymus-work-days.postman_collection.json`
 - Yanıt: `{"days":[1,4],"errors":[]}` — `days`: 0=Pazar … 6=Cumartesi
 - `errors` doluysa adrese randevu verilemez (Optymus yine HTTP 200 döner);
   worker bunu `422 {ok:false, adresHatasi:true, error}` olarak iletir.
-- Canlı sorguda en erken teslimat hesabı **ertesi günden** başlar.
+- Canlı sorguda en erken teslimat hesabı **bugünden** başlar.
   Ekranda “En erken teslimat” gösterilir; teknik tarih alanı kullanıcıya gösterilmez.
 
 
@@ -73,7 +101,7 @@ Kaynak: `docs/optymus-work-days.postman_collection.json`
 
 1. Kullanıcı onayından sonra veri Worker'ının yeni sürümü yayınlanır. Mevcut `ensureSchema`, `oneri_ekleri` tablosunu veri kaybı olmadan oluşturur; bildirim tablosu değiştirilmez.
 2. Yerel testlerden sonra izinli ortamda dosyasız bildirim, ekli bildirim ve yetkili indirme doğrulanır. Gerçek kullanıcı verisi yerine test kaydı kullanılır.
-3. Frontend/admin PR'ı onayla birleştirilir; GitHub Pages yayını tetiklenir. Ön yüz dosya alanını yalnızca `/api/meta` yanıtındaki `attachments: true` özelliğini gördüğünde açar. Böylece eski Worker ile yeni ön yüz dosyasız çalışmaya devam eder. Meta yanıtı en fazla 5 dakika önbellekte kalabilir.
+3. Frontend/admin PR'ı onayla birleştirilir; GitHub Pages yayını tetiklenir. Ön yüz dosya alanını yalnızca D1 kullanmayan `/api/capabilities` yanıtındaki `attachments: true` özelliğini gördüğünde açar. Böylece eski Worker ile yeni ön yüz dosyasız çalışmaya devam eder. Özellik kontrolü önbelleksiz yapılır.
 
 Bu geliştirme kapsamında canlı Worker, veritabanı veya Pages yayını değiştirilmez. Worker yayını ve frontend merge/yayın için ayrı açık onay gerekir.
 
@@ -86,3 +114,4 @@ npm test
 ```
 
 Testler Miniflare ve geçici yerel D1 kullanır; canlı servislere veya veritabanına bağlanmaz. Eski JSON, Excel/görsel birlikte gönderim, yetkisiz indirme, dosya sınırları, dosya imzaları, batch geri alma ve eşzamanlı bildirimler kapsanır. Test Excel'i `tests/fixtures/sample.xlsx.base64` içinde küçük bir OOXML çalışma kitabıdır.
+
