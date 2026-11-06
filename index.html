@@ -20,6 +20,7 @@
  <div class="alertDialogHead"><h2 id="alertDialogTitle"></h2><button type="button" id="alertDialogClose" aria-label="Uyarı penceresini kapat">Kapat</button></div>
  <div id="alertDialogContent"></div>
 </dialog>
+<script src="plan-data.js"></script>
 <script>
 window.dataLayer=window.dataLayer||[];
 function gtag(){dataLayer.push(arguments);}
@@ -429,7 +430,19 @@ async function apiJSON(url,{signal,timeout=12000}={}){
   throw e;
  }finally{clearTimeout(timer)}
 }
-const dataApi=(path,opts)=>apiJSON(DATA_API+path,opts);
+let planPromise=null;
+function loadPlan(){
+ if(!planPromise)planPromise=apiJSON('data/dagitim.json',{timeout:15000}).then(j=>PlanData.loader(j,file=>apiJSON('data/'+file+'?v='+encodeURIComponent(j.updated),{timeout:15000}))).catch(()=>{throw PlanData.unavailable()});
+ return planPromise;
+}
+const PLAN_ROUTES=new Set(['/api/iller','/api/ilceler','/api/mahalleler','/api/mahalle','/api/ara']);
+async function dataApi(path,opts={}){
+ if(!PLAN_ROUTES.has(path.split('?')[0]))return apiJSON(DATA_API+path,opts);
+ if(opts.signal?.aborted)throw new DOMException('İptal edildi','AbortError');
+ const plan=await loadPlan();
+ if(opts.signal?.aborted)throw new DOMException('İptal edildi','AbortError');
+ return plan.query(path);
+}
 const apiRows=j=>Array.isArray(j)?j:(Array.isArray(j?.rows)?j.rows:(Array.isArray(j?.data)?j.data:[]));
 function toRecord(x){
  if(Array.isArray(x))return {il:x[0],ilce:x[1],mahalle:x[2],days:x[3].map(Number)};
@@ -617,8 +630,9 @@ let currentRecords=[];
 function renderRecords(records,{emptyMsg='Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'}={}){
  const locationMissing=records.some(r=>!r.similar&&!mapAreaAddress(r));
  if(locationMissing){
+  const liveVerified=records.some(r=>!r.similar&&r.kaynak==='live');
   records=[];
-  emptyMsg='Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.';
+  emptyMsg=liveVerified?'Canlı servis ziyaret günlerini döndürdü ancak il / ilçe / mahalle bilgisi doğrulanamadı. Lütfen bölge listesinden seçim yapın; konum netleşmeden tarih paylaşmayın.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.';
   $('queryBody').querySelector('.filtersToggle').open=true;
  }
  currentRecords=records;
@@ -682,7 +696,7 @@ function renderRecords(records,{emptyMsg='Adres bulunamadı. Lütfen listeden il
 // ===================================================================
 const q=$('q'),sugBox=$('suggestions'),selIl=$('il'),selIlce=$('ilce'),selMah=$('mah');
 let SUGGESTIONS=[],activeSug=-1,suggestTimer=null,sugCtrl=null,runNo=0;
-let LIVE_ON=false,TABLE_DATE='';
+let LIVE_ON=true,TABLE_DATE='';
 
 // ---- Optymus (canlı) – worker üzerinden; token tarayıcıya hiç gelmez ----
 function mahalleAddress(r){
@@ -699,7 +713,7 @@ async function liveLookup(address){
 function renderAddressRejection(live){
  renderRecords([],{emptyMsg:'Adres doğrulanamadı veya bu adres için ziyaret planlanamıyor: '+live.error+'. Adresi kontrol edin; hizmet durumunu teyit etmeden teslimat tarihi paylaşmayın.'});
 }
-function tableNote(){return 'Kayıtlı tablo'+(TABLE_DATE?' • güncelleme '+TABLE_DATE:'')}
+function tableNote(){return 'Kayıtlı plan'+(TABLE_DATE?' • dosya hazırlanma: '+TABLE_DATE:'')}
 function withLive(rec,live){
  if(live&&!live.error)return {...rec,days:live.days.map(Number),kaynak:'live',bolge:live.bolge||''};
  const out={...rec,kaynak:'tablo'};
@@ -741,8 +755,9 @@ async function run(){
   }
   if(norm(text).length>=3){
    showSection('deliverySection',true);box.innerHTML='<div class="loading">Adres aranıyor…</div>';announce('Adres aranıyor…');
+   let planFailed=false;
    const [tab,live]=await Promise.all([
-    dataApi('/api/ara?q='+encodeURIComponent(text)).then(j=>apiRows(j).map(toRecord)).catch(()=>[]),
+    dataApi('/api/ara?q='+encodeURIComponent(text)).then(j=>apiRows(j).map(toRecord)).catch(()=>{planFailed=true;return []}),
     norm(text).length>=8?liveLookup(text):Promise.resolve(null)
    ]);
    if(my!==runNo)return;
@@ -756,7 +771,7 @@ async function run(){
    }
    const recs=tab.map(r=>({...r,kaynak:'tablo',manualMapAddress:text}));
    if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
-   renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'});
+   renderRecords(recs,{emptyMsg:planFailed?'Kayıtlı bölge listesine ulaşılamıyor. Canlı sorgudan doğrulanmış bir sonuç alınamadı. Lütfen yeniden deneyin; ziyaret tarihi paylaşmayın.':live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'});
    return;
   }
   showSection('deliverySection',true);
@@ -893,21 +908,23 @@ selMah.addEventListener('change',()=>{
 });
 
 async function init(){
- setInfo('Merkezi veriye bağlanılıyor…');
+ setInfo('Tam adresle canlı sorgu yapabilirsiniz. Bölge listesi yükleniyor…');
+ const capabilities=dataApi('/api/capabilities').then(meta=>{
+  LIVE_ON=meta.optymus!==false;
+  const enabled=!!meta.attachments;
+  $('fbAttachmentField').hidden=!enabled;
+  $('fbDescription').classList.toggle('full',!enabled);
+ }).catch(()=>{/* Eski Worker: canlı sorguyu denemeyi engelleme; ekleri açma. */});
  try{
-  const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);
-  fillSelect(selIl,iller,'Tüm iller');
-  const attachmentsEnabled=!!(meta&&meta.attachments);
-  $('fbAttachmentField').hidden=!attachmentsEnabled;
-  $('fbDescription').classList.toggle('full',!attachmentsEnabled);
-  const m=meta&&meta.meta;
-  LIVE_ON=!!(meta&&meta.optymus);
-  if(m&&m.guncelleme_tarihi)TABLE_DATE=new Date(m.guncelleme_tarihi).toLocaleDateString('tr-TR');
-  let msg='Merkezi veri hazır • '+iller.length+' il';
-  if(m&&m.kayit_sayisi)msg+=' • '+Number(m.kayit_sayisi).toLocaleString('tr-TR')+' mahalle';
-  msg+=LIVE_ON?' • Canlı adres sorgusu aktif':(TABLE_DATE?' • Tablo güncelleme: '+TABLE_DATE:'');
-  setInfo(msg);
- }catch(e){setInfo('Merkezi bağlantı kurulamadı: '+e.message,false)}
+  const plan=await loadPlan();
+  fillSelect(selIl,(await plan.query('/api/iller')).rows,'Tüm iller');
+  TABLE_DATE=new Date(plan.snapshot.updated).toLocaleDateString('tr-TR');
+  setInfo('Bölge listesi hazır • Plan dosyası hazırlanma: '+TABLE_DATE);
+ }catch(e){
+  fillSelect(selIl,[],'Bölge listesi kullanılamıyor');
+  setInfo('Bölge listesi şu anda kullanılamıyor. Tam adres yazarak canlı sorgu yapabilirsiniz.',false);
+ }
+ await capabilities;
 }
 
 // ===================================================================
@@ -1154,3 +1171,4 @@ init();
 </script>
 </body>
 </html>
+

@@ -1,0 +1,38 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Plan dosyası hazırla</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;color:#111;background:#f1f1f1;margin:0;padding:24px}main{max-width:760px;margin:auto;background:white;border-radius:24px;padding:28px}h1{font-size:24px}label{display:block;margin-top:20px}input,button{font:inherit;max-width:100%;box-sizing:border-box}input{margin:12px 0}button{min-height:44px;border:1px solid #536b14;border-radius:12px;background:#8eaf25;padding:8px 20px;cursor:pointer}#status{white-space:pre-wrap}a{color:#455d0d}li{margin:8px 0}</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script><script src="plan-data.js"></script></head><body><main>
+<h1>Excel’den plan dosyası hazırla</h1><p>Dosya tarayıcınızda işlenir. D1 bağlantısı, admin girişi veya sunucuya dosya yükleme gerekmez. Bu ekran canlı veriyi değiştirmez.</p>
+<label for="file">Excel / CSV dosyası</label><input id="file" type="file" accept=".xlsx,.xls,.csv"><br><button id="prepare" type="button">Dosyaları hazırla</button><p id="status" role="status"></p><div id="downloads"></div>
+<p>Beklenen sütunlar: İl, İlçe, Mahalle, PZT, SAL, CRS, PRS, CUM, CTS, PZR. Gün hücreleri AÇIK / KAPALI olmalıdır.</p>
+<p>Hazırlanan dosyaların tamamını depodaki <b>data/</b> klasörüne aynı PR içinde ekleyin. Önce PR’ı inceleyip onaylayın; yayınlanan site yeni dosyaları kullanır. Aynı il/ilçe/mahalle tekrarlanırsa mevcut içe aktarma kuralındaki gibi son satır geçerlidir.</p><a href="index.html">Sorgu ekranına dön</a>
+</main><script>
+const $=id=>document.getElementById(id);let urls=[];
+$('prepare').onclick=async()=>{
+ urls.forEach(URL.revokeObjectURL);urls=[];$('downloads').replaceChildren();const file=$('file').files[0];
+ if(!file){$('status').textContent='Lütfen Excel veya CSV dosyası seçin.';return}
+ $('prepare').disabled=true;
+ try{
+  if(typeof XLSX==='undefined')throw Error('Excel okuyucu yüklenemedi. İnternet bağlantısını kontrol edin.');
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array'}),rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+  const expected=['il','ilce','mahalle','pzt','sal','crs','prs','cum','cts','pzr'];
+  const headerKey=v=>String(v??'').trim().toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i');
+  if(expected.some((v,i)=>headerKey(rows[0]?.[i])!==v))throw Error('Sütun başlıkları beklenen biçimde değil.');
+  const unique=new Map();let duplicates=0,conflicts=0;
+  for(let i=1;i<rows.length;i++){
+   const r=rows[i];if(r.every(v=>v===''||v===null))continue;
+   if(r.slice(0,3).length!==3||r.slice(0,3).some(v=>typeof v!=='string'||!v.trim()))throw Error((i+1)+'. satırda il/ilçe/mahalle eksik.');
+   const days=Array.from({length:7},(_,j)=>{const v=PlanData.key(r[j+3]);if(!['acik','kapali'].includes(v))throw Error((i+1)+'. satırda tanınmayan gün değeri.');return v==='acik'?1:0});
+   const row=[...r.slice(0,3).map(v=>v.trim()),days],key=JSON.stringify(row.slice(0,3));
+   if(unique.has(key)){duplicates++;if(JSON.stringify(unique.get(key)[3])!==JSON.stringify(days))conflicts++}unique.set(key,row);
+  }
+  const updated=new Date().toISOString(),snapshot=PlanData.validate({schema:1,updated,rows:[...unique.values()]}),groups=new Map();
+  for(const r of snapshot.rows){if(!groups.has(r[0]))groups.set(r[0],[]);groups.get(r[0]).push(r)}
+  const manifest={schema:1,updated,source:file.name,count:snapshot.rows.length,provinces:[]},files=[];
+  [...groups].sort(([a],[b])=>a<b?-1:a>b?1:0).forEach(([il,rows],i)=>{const name='plan-'+String(i+1).padStart(2,'0')+'.json';manifest.provinces.push({il,file:name,count:rows.length});files.push([name,{schema:1,updated,rows}])});
+  files.unshift(['dagitim.json',manifest]);
+  const list=document.createElement('ul');
+  for(const [name,data] of files){const url=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));urls.push(url);const a=document.createElement('a');a.href=url;a.download=name;a.textContent=name;const li=document.createElement('li');li.append(a);list.append(li)}
+  $('downloads').append(list);$('status').textContent=snapshot.rows.length.toLocaleString('tr-TR')+' kayıt, '+groups.size+' il hazırlandı. '+duplicates+' tekrarın '+conflicts+' tanesinde günler farklıydı; son satır kullanıldı.\nDosyaları indirip data/ klasörüne birlikte ekleyin. Henüz yayın yapılmadı.';
+ }catch(e){$('status').textContent=e.message}finally{$('prepare').disabled=false}
+};
+</script></body></html>

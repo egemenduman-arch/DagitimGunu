@@ -633,9 +633,15 @@ export default {
         return json({ ok: db, db, optymus: optymusConfigured(env) }, db ? 200 : 503);
       }
 
+      // Canlı sorgu ve arayüz özellikleri D1'dan bağımsızdır.
+      if (u.pathname === "/api/capabilities" && req.method === "GET") {
+        return json({ok:true,optymus:optymusConfigured(env),attachments:true,planSource:"static"},200,{"Cache-Control":"no-store"});
+      }
+
       // ---------------- META ----------------
       if (u.pathname === "/api/meta" && req.method === "GET") {
-        const meta = await env.DB.prepare(`SELECT guncelleme_tarihi, kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
+        let meta=null;
+        try { meta=await env.DB.prepare(`SELECT guncelleme_tarihi, kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first(); } catch { /* Eski istemcilerde de D1 kesintisi canlı sorguyu kapatmasın. */ }
         return json({ ok: true, meta: meta || null, optymus: optymusConfigured(env), attachments: true }, 200, { "Cache-Control": "public, max-age=300" });
       }
 
@@ -868,10 +874,11 @@ export default {
 
       return json({ error: "Not found" }, 404);
     } catch (e) {
-      return json({ ok: false, error: String(e?.message || e) }, e.httpStatus || 500);
+      return json({ ok: false, error: e.httpStatus ? String(e.message) : "Bu işlem şu anda tamamlanamıyor. Lütfen daha sonra yeniden deneyin." }, e.httpStatus || 503);
     }
   }
 };
 
 // Testler için dışa aktarım
 export { extractDays, trKey, timingSafeEqual };
+

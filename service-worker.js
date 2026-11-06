@@ -2,7 +2,7 @@
 // - Sayfa (HTML): önce ağ, ağ yoksa önbellek → yeni sürümler hemen görünür.
 // - Aynı origin'deki statik dosyalar: önbellek, arkada güncelle.
 // - Başka origin'ler (API, MGM, analytics): HİÇ önbelleğe alınmaz → dağıtım verisi hep güncel.
-const CACHE = 'dagitim-gunu-v7';
+const CACHE = 'dagitim-gunu-v8';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './dijitalkurye_logo.svg', './icons/favicon.svg', './icons/favicon-32.png', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -22,7 +22,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // API ve 3. taraf istekleri tarayıcıya bırak
-  if (url.pathname.endsWith('/admin.html')) return; // admin paneli önbelleğe alınmaz
+  if (url.pathname.endsWith('/admin.html') || url.pathname.endsWith('/veri-hazirla.html') || url.pathname.includes('/data/')) return; // admin paneli önbelleğe alınmaz
 
   if (req.mode === 'navigate') {
     e.respondWith(
@@ -47,3 +47,4 @@ self.addEventListener('fetch', e => {
     })
   );
 });
+
