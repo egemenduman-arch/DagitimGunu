@@ -217,8 +217,25 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .feedbackGrid .req{color:var(--dk-error-dark)}
 .fieldErr{font-size:12px;line-height:16px;color:var(--dk-error-dark);margin-top:6px}
 .fieldErr:empty{display:none}
-.feedbackGrid textarea{width:100%;border:1px solid var(--dk-border);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:110px;resize:vertical;font-size:16px}
+.feedbackGrid textarea{width:100%;border:1px solid var(--dk-border);border-radius:var(--dk-radius-12);padding:14px 16px;background:var(--dk-white);color:var(--dk-black);min-height:160px;resize:vertical;font-size:16px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+/* Bildirime isteğe bağlı Excel / görsel ekleme */
+.feedbackGrid>*{min-width:0}
+.feedbackGrid .attachmentDrop{min-height:160px;margin:0;border:1px dashed var(--dk-border);border-radius:var(--dk-radius-12);background:var(--dk-white);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:18px;text-align:center;cursor:pointer;color:var(--dk-black);font-size:14px;font-weight:500}
+.attachmentDrop svg{width:26px;height:26px;fill:none;stroke:var(--dk-primary-ink);stroke-width:1.7}
+.attachmentDrop small{font-size:12px;line-height:18px;color:var(--dk-grey-600);font-weight:400}
+.attachmentInput:disabled+.attachmentDrop{opacity:.6;cursor:default}
+.attachmentDrop.dragOver,.attachmentDrop:hover{border-color:var(--dk-primary-ink);background:var(--dk-primary-soft)}
+.attachmentInput:focus-visible+.attachmentDrop{outline:2px solid var(--dk-primary-ink);outline-offset:2px}
+.attachmentList{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}
+.attachmentList:empty{display:none}
+.attachmentItem{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--dk-white);border-radius:10px;min-width:0}
+.attachmentThumb{width:36px;height:36px;object-fit:cover;border-radius:6px;flex:0 0 auto}
+.attachmentFileIcon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--dk-primary-soft);color:var(--dk-primary-ink);border-radius:6px;font-size:10px;font-weight:700;flex:0 0 auto}
+.attachmentName{min-width:0;flex:1;font-size:12px;line-height:18px;overflow-wrap:anywhere}.attachmentName small{display:block;color:var(--dk-grey-600);font-size:11px}
+.attachmentRemove{height:44px;min-width:44px;padding:0 8px;background:transparent;color:var(--dk-grey-600);font-size:22px;flex:0 0 auto}
+.attachmentOptional{font-weight:400;color:var(--dk-grey-600)}
+
 .feedbackActions{display:flex;gap:8px;margin-top:12px}
 .feedbackActions button{flex:1;height:48px}
 .feedbackClose{background:var(--dk-white);color:var(--dk-black);border:1px solid var(--dk-border)!important}
@@ -343,7 +360,14 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
       <div><label for="fbName">Adınız Soyadınız <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
       <div><label for="fbPhone">Telefon (GSM) <span class="req" aria-hidden="true">*</span></label><input id="fbPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="05xx xxx xx xx" required aria-describedby="fbPhoneErr"><div id="fbPhoneErr" class="fieldErr"></div></div>
       <div class="full"><label for="fbEmail">E-posta <span class="req" aria-hidden="true">*</span></label><input id="fbEmail" name="email" type="email" autocomplete="email" maxlength="180" required aria-describedby="fbEmailErr"><div id="fbEmailErr" class="fieldErr"></div></div>
-      <div class="full"><label for="fbMessage">Sorun açıklaması <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Örn: Rumeli Cad. için Salı günü de dağıtım var, tabloda görünmüyor." required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
+      <div id="fbDescription" class="full"><label for="fbMessage">Sorun açıklaması <span class="req" aria-hidden="true">*</span></label><textarea id="fbMessage" name="message" maxlength="3000" placeholder="Örn: Rumeli Cad. için Salı günü de dağıtım var, tabloda görünmüyor." required aria-describedby="fbMessageErr"></textarea><div id="fbMessageErr" class="fieldErr"></div></div>
+      <div id="fbAttachmentField" class="attachmentField" hidden>
+       <label for="fbFiles">Dosya eki <span class="attachmentOptional">(isteğe bağlı)</span></label>
+       <input class="sr-only attachmentInput" id="fbFiles" type="file" accept=".xlsx,.xls,.jpg,.jpeg,.png,.webp" multiple aria-describedby="fbFilesHelp fbFilesErr">
+       <label id="fbDrop" class="attachmentDrop" for="fbFiles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span>Dosya seçin veya sürükleyin</span><small id="fbFilesHelp">Excel veya JPG, PNG, WEBP<br>En fazla 3 dosya · Dosya başına 1 MB</small></label>
+       <ul id="fbFileList" class="attachmentList" aria-label="Eklenen dosyalar"></ul>
+       <div id="fbFilesErr" class="fieldErr" role="alert"></div>
+      </div>
       <div class="hp" aria-hidden="true"><label for="fbWebsite">Web sitesi</label><input id="fbWebsite" name="website" tabindex="-1" autocomplete="off"></div>
      </div>
      <div class="feedbackActions"><button class="feedbackSend" type="submit">Gönder</button><button class="feedbackClose" id="feedbackClose" type="button">Kapat</button></div>
@@ -845,6 +869,9 @@ async function init(){
  try{
   const [iller,meta]=await Promise.all([apiList('/api/iller','il'),dataApi('/api/meta').catch(()=>null)]);
   fillSelect(selIl,iller,'Tüm iller');
+  const attachmentsEnabled=!!(meta&&meta.attachments);
+  $('fbAttachmentField').hidden=!attachmentsEnabled;
+  $('fbDescription').classList.toggle('full',!attachmentsEnabled);
   const m=meta&&meta.meta;
   LIVE_ON=!!(meta&&meta.optymus);
   if(m&&m.guncelleme_tarihi)TABLE_DATE=new Date(m.guncelleme_tarihi).toLocaleDateString('tr-TR');
@@ -1004,8 +1031,43 @@ function setFieldError(id,msg){
  if(msg)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid');
 }
 FB_FIELDS.forEach(id=>$(id).addEventListener('input',()=>{if($(id).getAttribute('aria-invalid'))setFieldError(id,'')}));
+let feedbackFiles=[],filePreviewUrls=[],feedbackSending=false;
+const FEEDBACK_FILE_LIMIT=1024*1024;
+const fileExt=f=>(f.name.split('.').pop()||'').toLowerCase();
+function renderFeedbackFiles(){
+ filePreviewUrls.forEach(url=>URL.revokeObjectURL(url));filePreviewUrls=[];
+ $('fbFileList').innerHTML=feedbackFiles.map((file,i)=>{
+  const ext=fileExt(file);let icon='<span class="attachmentFileIcon" aria-hidden="true">'+esc(ext.toUpperCase())+'</span>';
+  if(['jpg','jpeg','png','webp'].includes(ext)){const url=URL.createObjectURL(file);filePreviewUrls.push(url);icon='<img class="attachmentThumb" src="'+url+'" alt="">'}
+  return '<li class="attachmentItem">'+icon+'<span class="attachmentName">'+esc(file.name)+'<small>'+Math.max(1,Math.ceil(file.size/1024))+' KB</small></span><button type="button" class="attachmentRemove" data-file-index="'+i+'" aria-label="'+esc(file.name)+' dosyasını kaldır"'+(feedbackSending?' disabled':'')+'>×</button></li>';
+ }).join('');
+}
+function feedbackFileError(message){
+ $('fbFilesErr').textContent=message;
+ if(message)$('fbFiles').setAttribute('aria-invalid','true');else $('fbFiles').removeAttribute('aria-invalid');
+}
+function addFeedbackFiles(files){
+ if(feedbackSending)return;
+ const next=[...feedbackFiles];
+ for(const file of files){
+  if(!['xlsx','xls','jpg','jpeg','png','webp'].includes(fileExt(file))){feedbackFileError('Yalnızca Excel veya JPG, PNG, WEBP görseli ekleyebilirsiniz.');return}
+  if(!file.size||file.size>FEEDBACK_FILE_LIMIT){feedbackFileError('Her dosya boş olmamalı ve en fazla 1 MB olmalıdır.');return}
+  if(!next.some(f=>f.name===file.name&&f.size===file.size&&f.lastModified===file.lastModified))next.push(file);
+ }
+ if(next.length>3){feedbackFileError('En fazla 3 dosya ekleyebilirsiniz.');return}
+ feedbackFiles=next;feedbackFileError('');renderFeedbackFiles();
+}
+$('fbFiles').addEventListener('change',e=>{addFeedbackFiles([...e.target.files]);e.target.value=''});
+$('fbFileList').addEventListener('click',e=>{
+ const b=e.target.closest('[data-file-index]');if(!b||feedbackSending)return;
+ const i=Number(b.dataset.fileIndex);feedbackFiles.splice(i,1);feedbackFileError('');renderFeedbackFiles();
+ const buttons=$('fbFileList').querySelectorAll('button');(buttons[Math.min(i,buttons.length-1)]||$('fbFiles')).focus();
+});
+for(const event of ['dragenter','dragover'])$('fbDrop').addEventListener(event,e=>{e.preventDefault();if(!feedbackSending)$('fbDrop').classList.add('dragOver')});
+for(const event of ['dragleave','drop'])$('fbDrop').addEventListener(event,e=>{e.preventDefault();$('fbDrop').classList.remove('dragOver');if(event==='drop')addFeedbackFiles([...e.dataTransfer.files])});
 $('feedbackForm').addEventListener('submit',async e=>{
  e.preventDefault();
+ if(feedbackSending)return;
  const form=e.currentTarget,st=$('feedbackStatus'),btn=form.querySelector('.feedbackSend');
  // Hata mesajları role=alert ile hemen, diğerleri role=status ile sırayla okunur
  const show=(msg,cls='')=>{st.setAttribute('role',cls==='err'?'alert':'status');st.style.display='block';st.className='feedbackStatus '+cls;st.textContent=msg};
@@ -1030,18 +1092,25 @@ $('feedbackForm').addEventListener('submit',async e=>{
  }
  // Son sorgunun bilgisini ekle (backend sınırı 3000 karakter)
  if(lastQuery){const ctx='\n\n--- Son sorgu ---\n'+lastQuery;payload.aciklama=payload.aciklama.slice(0,3000-ctx.length)+ctx}
- show('Gönderiliyor…');btn.disabled=true;
+ show('Gönderiliyor…');btn.disabled=true;feedbackSending=true;
+ const controls=[...form.querySelectorAll('input,textarea,.attachmentRemove')];controls.forEach(el=>el.disabled=true);
  try{
-  const r=await fetch(DATA_API+'/api/oneri',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  let request={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)};
+  if(feedbackFiles.length){
+   const data=new FormData();data.append('payload',JSON.stringify(payload));
+   feedbackFiles.forEach(file=>data.append('attachments',file));
+   request={method:'POST',body:data};
+  }
+  const r=await fetch(DATA_API+'/api/oneri',request);
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
   show('Bildiriminiz alındı. Teşekkürler.','ok');
   try{localStorage.setItem(CONTACT_KEY,JSON.stringify({name:payload.ad_soyad,phone:payload.gsm,email:payload.email}))}catch(_){}
-  $('fbMessage').value='';
+  $('fbMessage').value='';feedbackFiles=[];feedbackFileError('');renderFeedbackFiles();
   if(typeof gtag==='function')gtag('event','oneri_gonder');
  }catch(err){
   show(err.message&&err.message!=='Failed to fetch'?err.message:'Gönderilemedi. Lütfen daha sonra tekrar deneyin.','err');
- }finally{btn.disabled=false}
+ }finally{btn.disabled=false;feedbackSending=false;controls.forEach(el=>el.disabled=false);renderFeedbackFiles()}
 });
 
 // ===================================================================
