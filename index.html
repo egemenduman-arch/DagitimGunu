@@ -228,9 +228,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
 /* Mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
-.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:14px;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
+.resultActions{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.top>div:first-child{min-width:0}
+.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:0;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
 .mapButton:hover{background:var(--dk-primary-soft);filter:none}
-.mapButton svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex:0 0 auto}
+.mapButton img{width:24px;height:24px;object-fit:contain;flex:0 0 auto}
 .mapDialog{width:min(960px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:24px;overflow:auto;background:var(--dk-white);color:var(--dk-black);box-shadow:var(--dk-shadow)}
 .mapDialog::backdrop{background:rgba(0,0,0,.5)}
 .mapHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 16px}
@@ -260,7 +262,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  .weatherSimple{font-size:13px;min-width:560px}
  .script{flex-direction:column;align-items:stretch}
  .copyBtn{align-self:flex-end}
- .mapButton{width:100%}
+ .top{grid-template-columns:minmax(0,1fr)}
+ .resultActions{justify-content:space-between;flex-wrap:wrap;gap:8px}
+ .mapButton{width:auto}
  .mapDialog{width:calc(100% - 24px);max-height:calc(100dvh - 24px);border-radius:20px}
  .mapHead{padding:18px 16px 14px;gap:10px}.mapHead h2{font-size:18px;line-height:24px}
  .mapFrameWrap{margin:0 12px}.mapFrame{height:clamp(220px,45dvh,400px)}
@@ -528,8 +532,8 @@ function resolveLiveLocation(live,records){
 }
 function addressMapButton(r){
  const address=mapAreaAddress(r);
- if(!address)return '<p class="hint">Harita için il / ilçe / mahalle listesinden seçim yapabilirsiniz.</p>';
- return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Mahalleyi haritada aç</button>';
+ if(!address)return '';
+ return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><img src="icons/google-maps.svg" alt="" width="24" height="24">Sokak Görünümü</button>';
 }
 const mapDialog=$('mapDialog'),mapFrame=$('mapFrame');
 function closeMap(){if(mapDialog.open)mapDialog.close();mapFrame.removeAttribute('src')}
@@ -554,7 +558,13 @@ $('results').addEventListener('click',e=>{
 });
 
 let currentRecords=[];
-function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
+function renderRecords(records,{emptyMsg='Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'}={}){
+ const locationMissing=records.some(r=>!r.similar&&!mapAreaAddress(r));
+ if(locationMissing){
+  records=[];
+  emptyMsg='Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.';
+  $('queryBody').querySelector('.filtersToggle').open=true;
+ }
  currentRecords=records;
  ++opsNo;++weatherNo;
  resultWarnings.weather='';resultWarnings.ops='';
@@ -565,7 +575,8 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  const todayIdx=(new Date().getDay()+6)%7;
  showSection('deliverySection',true);
  if(!records.length){
-  box.innerHTML='<div class="empty">'+esc(emptyMsg)+'</div>';
+  $('queryBody').querySelector('.filtersToggle').open=true;
+  box.innerHTML='<div class="note" role="alert">'+esc(emptyMsg)+'</div>';
   $('deliveryMeta').textContent='';
   announce(emptyMsg);
   hideSection('opsSection');hideSection('weatherSection');
@@ -574,7 +585,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  const card=r=>{
   const n=nextOpen(r.days,isoDate);
   return '<div class="result"><div class="top"><div><div class="place">'+esc(r.mahalle||'Ziyaret planı')+'</div><div class="small">'+esc([r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
-   '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
+   '<div class="resultActions">'+addressMapButton(r)+'<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
    '<div class="small">Bölgenin ziyaret günleri</div><div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
      const lbl=d+(j===todayIdx?' (bugün)':'')+': '+(r.days[j]?'dağıtım var':'dağıtım yok')+(n&&n.idx===j?', ilk uygun gün':'');
@@ -582,16 +593,16 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
-   (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+addressMapButton(r)+'</div>';
+   (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+
+   (!mapAreaAddress(r)?'<p class="hint">Harita için il / ilçe / mahalle listesinden seçim yapabilirsiniz.</p>':'')+'</div>';
  };
- const visible=records.slice(0,30),primary=visible.filter(r=>!r.similar),similar=visible.filter(r=>r.similar);
- box.innerHTML=primary.map((r,i)=>(r.group&&(i===0||primary[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('')+
-  (similar.length?'<details class="filtersToggle"><summary>Diğer mahalle eşleşmeleri ('+similar.length+')</summary>'+similar.map(card).join('')+'</details>':'');
+ const primary=records.filter(r=>!r.similar).slice(0,30);
+ box.innerHTML=primary.map(r=>card(r)).join('');
  const first=records[0];
  setAccordion($('querySection'),false);
  const label=first.mahalle||'Ziyaret planı';
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
- $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
+ $('deliveryMeta').textContent=primary.length>1?primary.length+' sonuç':label;
  {
   const fd=nextOpen(first.days,isoDate);
   lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
@@ -601,7 +612,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  }
  {
   const fn=nextOpen(first.days,isoDate);
-  announce((records.length>1?records.length+' sonuç bulundu. ':'')+[first.mahalle||'Ziyaret planı',first.ilce,first.il].filter(Boolean).join(' / ')+': '+
+  announce((primary.length>1?primary.length+' sonuç bulundu. ':'')+[first.mahalle||'Ziyaret planı',first.ilce,first.il].filter(Boolean).join(' / ')+': '+
    (fn?(first.kaynak==='live'?'en erken teslimat ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
  }
  const geo=records.find(r=>r.il&&r.ilce);
@@ -677,13 +688,13 @@ async function run(){
    if(live&&!live.error){
     // Canlı günler korunur; konum yalnızca açık veya tek uyumlu mahalle eşleşmesinden alınır.
     const geo=resolveLiveLocation(live,tab);
-    const rec={...withLive({...geo,title:text},live),group:mapAreaAddress(geo)?'Eşleşen mahalleye göre':'Adresin ziyaret planı'};
+    const rec=withLive({...geo,title:text},live);
     renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
     return;
    }
    const recs=tab.map(r=>({...r,kaynak:'tablo'}));
    if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
-   renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Eşleşen mahalle bulunamadı.'});
+   renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'});
    return;
   }
   showSection('deliverySection',true);
