@@ -141,7 +141,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 /* Müşteriye okunacak hazır cümle */
 .script{margin-top:16px;padding:18px 20px;border:1px solid #DCE5C6;border-radius:16px;background:#F6F8EF;display:flex;gap:16px;align-items:flex-start}
 .scriptBody{flex:1;min-width:0}
-.scriptText{font-size:15px;line-height:25px;font-weight:400;color:#24291D;margin:0;overflow-wrap:anywhere}
+.scriptText{font-size:14px;line-height:20px;font-weight:400;color:#000000;margin:0;overflow-wrap:anywhere}
 .copyBtn{flex:0 0 auto;position:relative;min-width:76px;height:36px;padding:0 12px;border-radius:999px;background:var(--dk-white);border:1px solid #AFBE91;color:var(--dk-primary-ink);font-size:13px;font-weight:500}
 .copyBtn:after{content:'';position:absolute;inset:-4px 0}
 .copyBtn:hover{filter:none;background:var(--dk-grey-100)}
@@ -482,7 +482,7 @@ function customerSentence(r,n){
   return 'Bölgeniz için mevcut planda '+days+' ziyaret görünüyor. Adresinize özel güncel ziyaret tarihini ayrıca teyit etmemiz gerekiyor.';
  }
  const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
- return 'Bölgenizde '+days+' ziyaret gerçekleştiriyoruz. Mevcut plana göre en yakın ziyaret günümüz '+when+'. Ziyaretinizin kesin tarihini ayrıca teyit etmemiz gerekiyor.';
+ return 'Bölgenizde '+days+' ziyaret gerçekleştiriyoruz. Mevcut plana göre en yakın ziyaret günümüz '+when+'.';
 }
 
 let lastQuery='';
