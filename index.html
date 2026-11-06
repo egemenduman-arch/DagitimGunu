@@ -187,6 +187,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .weatherNotice{position:relative;margin:0 0 12px;padding:12px 14px 12px 46px;border-radius:var(--dk-radius-12);background:var(--dk-white);box-shadow:var(--dk-shadow);font-size:14px;line-height:20px;color:var(--dk-black-60)}
 .weatherNotice:before{content:'!';content:'!' / '';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
 .weatherNotice strong{display:block;font-size:14px;margin-bottom:2px;color:var(--dk-black)}
+.weatherNotice .weatherImpact{margin-top:6px;margin-bottom:0;text-decoration:underline;text-underline-offset:3px}
 .weatherToday{margin:0 0 12px;padding:14px;border-radius:var(--dk-radius-12);background:var(--dk-grey-200)}
 .weatherTodayHead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .weatherTodayIcon{width:44px;height:44px;object-fit:contain}
@@ -943,7 +944,7 @@ async function loadWeather(il,ilce){
    .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
    .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
   const alerts=isRisky(todayCode)?[todayLine,...futureAlerts]:futureAlerts;
-  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'<br>Bu koşullar kurye saha operasyonunu etkileyebilir.</div>':'';
+  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'<strong class="weatherImpact">Bu koşullar kurye saha operasyonunu etkileyebilir.</strong></div>':'';
   resultWarnings.weather=warningHtml;
   updateResultWarnings();
 
