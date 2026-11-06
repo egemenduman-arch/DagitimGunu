@@ -227,7 +227,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
-/* Sokak / mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
+/* Mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
 .mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:14px;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
 .mapButton:hover{background:var(--dk-primary-soft);filter:none}
 .mapButton svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex:0 0 auto}
@@ -350,9 +350,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 </div>
 
 <dialog id="mapDialog" class="mapDialog" aria-labelledby="mapDialogTitle" aria-describedby="mapAddress mapHelp">
- <div class="mapHead"><div><h2 id="mapDialogTitle">Sokak / mahalle haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
- <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Sokak ve mahalle haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
- <div class="mapFoot"><p id="mapHelp">Kapı, daire ve kat bilgileri harita aramasına dahil edilmez. Harita sokak / mahalle çevresini gösterir; bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
+ <div class="mapHead"><div><h2 id="mapDialogTitle">Mahalle haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
+ <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Mahalle haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+ <div class="mapFoot"><p id="mapHelp">Harita, sorgu sonucundaki mahalle / ilçe / il bilgisine göre açılır. Yazılan sokak ve kapı numarası kullanılmaz; bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
 </dialog>
 
 <script>
@@ -508,24 +508,28 @@ $('results').addEventListener('click',e=>{
  alertDialog.showModal();
 });
 function mapAreaAddress(r){
- // Yalnızca harita hedefini sadeleştir; ziyaret sorgusundaki adresi değiştirme.
- const raw=String(r.title||r.mahalle||'');
- const area=raw
-  .replace(/\b(?:no|numara|numarası|kapi|kapı)\.?\s*[:：#-]?\s*\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,' ')
-  .replace(/\b(?:daire|d|kat|blok|bina|iç\s*kapı|ic\s*kapi)\.?\s*[:：#-]?\s*(?:-?\d+[a-zçğıöşü]?|[a-z])\b/giu,' ')
-  .replace(/((?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?)[ \t]+\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,'$1 ')
-  .replace(/\s+/g,' ').replace(/\s*[,;]\s*/g,', ').replace(/^[\s,;]+|[\s,;]+$/g,'').trim();
- const street=area.match(/^.*\b(?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?(?=\s|[,;]|$)/iu);
- const parts=[street&&r.ilce&&r.il?street[0]:area];
- for(const location of [r.mahalle,r.ilce,r.il]){
-  if(location&&!(' '+norm(parts.join(' '))+' ').includes(' '+norm(location)+' '))parts.push(location);
+ // Harita yalnızca sonuç kaydındaki tam il / ilçe / mahalle eşleşmesini kullanır.
+ const parts=[r.mahalle,r.ilce,r.il].map(v=>String(v||'').trim());
+ return parts.every(Boolean)?parts.join(', '):'';
+}
+function resolveLiveLocation(live,records){
+ const geo={il:live.il||'',ilce:live.ilce||'',mahalle:live.mahalle||''};
+ const candidates=records.filter(r=>r.il&&r.ilce&&r.mahalle&&
+  ['il','ilce','mahalle'].every(k=>!geo[k]||norm(geo[k])===norm(r[k])));
+ const distinct=new Map(candidates.map(r=>[
+  ['il','ilce','mahalle'].map(k=>norm(r[k])).join('|'),r
+ ]));
+ // İlk benzer mahalleyi tahminen seçme; yalnızca tek uyumlu eşleşmeden tamamla.
+ if(distinct.size===1){
+  const match=distinct.values().next().value;
+  for(const k of ['il','ilce','mahalle'])if(!geo[k])geo[k]=match[k];
  }
- return parts.filter(Boolean).join(', ');
+ return geo;
 }
 function addressMapButton(r){
  const address=mapAreaAddress(r);
  if(!address)return '';
- return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Sokak / mahalleyi haritada aç</button>';
+ return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Mahalleyi haritada aç</button>';
 }
 const mapDialog=$('mapDialog'),mapFrame=$('mapFrame');
 function closeMap(){if(mapDialog.open)mapDialog.close();mapFrame.removeAttribute('src')}
@@ -542,7 +546,7 @@ $('results').addEventListener('click',e=>{
  if(!button)return;
  const address=button.dataset.mapAddress;
  $('mapAddress').textContent=address;
- mapFrame.title=address+' — sokak / mahalle haritası';
+ mapFrame.title=address+' — mahalle haritası';
  $('mapExternal').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
  const params=new URLSearchParams({key:MAPS_EMBED_KEY,q:address,language:'tr',region:'TR'});
  mapFrame.src='https://www.google.com/maps/embed/v1/place?'+params.toString();
@@ -569,7 +573,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  }
  const card=r=>{
   const n=nextOpen(r.days,isoDate);
-  return '<div class="result"><div class="top"><div><div class="place">'+esc(r.title||r.mahalle)+'</div><div class="small">'+esc([r.title&&r.mahalle?r.mahalle:'',r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
+  return '<div class="result"><div class="top"><div><div class="place">'+esc(r.mahalle||'Mahalle eşleşmesi doğrulanamadı')+'</div><div class="small">'+esc([r.ilce,r.il].filter(Boolean).join(' / '))+'</div></div>'+
    '<div class="badge '+(n?'':'closed')+'">'+esc(r.kaynak==='live'&&n?relText(n.date):badgeText(n,isoDate))+'</div></div>'+
    (n?'<div class="small"><b>'+(r.kaynak==='live'?'En erken teslimat':'İlk uygun gün')+':</b> '+esc(fmtDate(n.date))+'</div>':'')+
    '<div class="small">Bölgenin ziyaret günleri</div><div class="days" role="list" aria-label="Haftalık dağıtım günleri">'+DAY_NAMES.map((d,j)=>{
@@ -585,19 +589,19 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
   (similar.length?'<details class="filtersToggle"><summary>Diğer mahalle eşleşmeleri ('+similar.length+')</summary>'+similar.map(card).join('')+'</details>':'');
  const first=records[0];
  setAccordion($('querySection'),false);
- const label=first.mahalle||first.title||'';
+ const label=first.mahalle||'Mahalle eşleşmesi doğrulanamadı';
  $('queryMeta').textContent=[label,first.ilce].filter(Boolean).join(' • ');
  $('deliveryMeta').textContent=records.length>1?records.length+' sonuç':label;
  {
   const fd=nextOpen(first.days,isoDate);
   lastQuery=['Sorgu: '+(q.value.trim()||[first.mahalle,first.ilce,first.il].filter(Boolean).join(' / ')),
    'Sorgu tarihi: '+isoDate,
-   'Sonuç: '+[first.mahalle||first.title,first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
+   'Sonuç: '+[first.mahalle||'Mahalle eşleşmesi doğrulanamadı',first.ilce,first.il].filter(Boolean).join(' / ')+' • Kaynak: '+(first.kaynak==='live'?'canlı':'tablo'),
    'Günler: '+(DAY_SHORT.filter((_,j)=>first.days[j]).join(', ')||'yok')+' • İlk uygun gün: '+(fd?isoOf(fd.date):'yok')].join('\n');
  }
  {
   const fn=nextOpen(first.days,isoDate);
-  announce((records.length>1?records.length+' sonuç bulundu. ':'')+(first.title||first.mahalle||'')+': '+
+  announce((records.length>1?records.length+' sonuç bulundu. ':'')+[first.mahalle||'Mahalle eşleşmesi doğrulanamadı',first.ilce,first.il].filter(Boolean).join(' / ')+': '+
    (fn?(first.kaynak==='live'?'en erken teslimat ':'ilk uygun gün ')+fmtDate(fn.date)+'.':'dağıtım günü yok.'));
  }
  const geo=records.find(r=>r.il&&r.ilce);
@@ -671,9 +675,9 @@ async function run(){
    if(my!==runNo)return;
    if(live&&live.notFound){renderAddressRejection(live);return}
    if(live&&!live.error){
-    // Canlı sonuç: yazılan tam adrese göre. Konum bilgisi yoksa en iyi tablo eşleşmesinden alınır.
-    const geo=live.il&&live.ilce?{il:live.il,ilce:live.ilce,mahalle:live.mahalle||''}:(tab[0]?{il:tab[0].il,ilce:tab[0].ilce,mahalle:''}:{});
-    const rec={...withLive({...geo,title:text},live),group:'Girilen adrese göre'};
+    // Canlı günler korunur; konum yalnızca açık veya tek uyumlu mahalle eşleşmesinden alınır.
+    const geo=resolveLiveLocation(live,tab);
+    const rec={...withLive({...geo,title:text},live),group:mapAreaAddress(geo)?'Eşleşen mahalleye göre':'Konum eşleşmesi doğrulanamadı'};
     renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
     return;
    }
