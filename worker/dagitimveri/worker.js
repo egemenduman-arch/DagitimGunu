@@ -106,7 +106,14 @@ async function ensureSchema(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS admin_deneme (ip TEXT NOT NULL, ts INTEGER NOT NULL)`),
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_admin_deneme ON admin_deneme(ip, ts)`),
     db.prepare(`CREATE TABLE IF NOT EXISTS oneri_limit (ip TEXT NOT NULL, ts INTEGER NOT NULL)`),
-    db.prepare(`CREATE INDEX IF NOT EXISTS idx_oneri_limit ON oneri_limit(ip, ts)`)
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_oneri_limit ON oneri_limit(ip, ts)`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS oneri_ekleri (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      oneri_id INTEGER NOT NULL REFERENCES oneriler(id) ON DELETE CASCADE,
+      dosya_adi TEXT NOT NULL, mime TEXT NOT NULL,
+      boyut INTEGER NOT NULL CHECK (boyut > 0 AND boyut <= 1048576),
+      icerik BLOB NOT NULL)`),
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_oneri_ekleri_oneri ON oneri_ekleri(oneri_id)`)
   ]);
   // Arama anahtarı sütunu (Türkçe karakter duyarsız arama için)
   try {
@@ -488,6 +495,68 @@ async function handleAdresGun(req, env, u, json, ctx) {
   return json(out, out.ok ? 200 : (out.adresHatasi ? 422 : 502));
 }
 
+// Küçük bildirim ekleri mevcut D1 içinde tutulur; yalnızca yetkili admin indirebilir.
+const ATTACHMENT_MAX_COUNT=3,ATTACHMENT_MAX_BYTES=1024*1024;
+const ATTACHMENT_TYPES={xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',xls:'application/vnd.ms-excel',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp'};
+function inputError(message,status=400){const e=new Error(message);e.httpStatus=status;return e}
+async function boundedBody(req,max){
+ if(Number(req.headers.get('Content-Length'))>max)throw inputError('Gönderilen içerik çok büyük.',413);
+ if(!req.body)return new Uint8Array();
+ const reader=req.body.getReader(),chunks=[];let total=0;
+ try{
+  while(true){const {done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>max){await reader.cancel();throw inputError('Gönderilen içerik çok büyük.',413)}chunks.push(value)}
+ }finally{reader.releaseLock()}
+ const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}return bytes;
+}
+async function feedbackInput(req){
+ const multipart=(req.headers.get('Content-Type')||'').toLowerCase().startsWith('multipart/form-data');
+ const bytes=await boundedBody(req,multipart?4*1024*1024:64*1024);
+ let body,files=[];
+ try{
+  if(multipart){
+   const copy=new Request(req.url,{method:'POST',headers:req.headers,body:bytes});
+   const form=await copy.formData(),payload=form.get('payload');
+   if(typeof payload!=='string'||payload.length>20000)throw inputError('Bildirim bilgileri geçersiz.');
+   body=JSON.parse(payload);files=form.getAll('attachments');
+  }else body=JSON.parse(new TextDecoder().decode(bytes));
+ }catch(e){if(e.httpStatus)throw e;throw inputError('Bildirim içeriği okunamadı.')}
+ if(!body||typeof body!=='object'||Array.isArray(body))throw inputError('Bildirim bilgileri geçersiz.');
+ if(files.length>ATTACHMENT_MAX_COUNT)throw inputError('En fazla 3 dosya ekleyebilirsiniz.',413);
+ return {body,files};
+}
+function isXlsx(bytes){
+ // ZIP açmadan merkez dizinini doğrula; normal ZIP'i Excel diye kabul etme.
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ let end=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--){if(view.getUint32(i,true)===0x06054b50){end=i;break}}
+ if(end<0)return false;
+ const count=view.getUint16(end+10,true),start=view.getUint32(end+16,true),size=view.getUint32(end+12,true);
+ if(start+size>end)return false;
+ let at=start;const names=new Set();
+ for(let i=0;i<count;i++){
+  if(at+46>end||view.getUint32(at,true)!==0x02014b50)return false;
+  const n=view.getUint16(at+28,true),extra=view.getUint16(at+30,true),comment=view.getUint16(at+32,true);
+  if(at+46+n+extra+comment>end)return false;
+  names.add(new TextDecoder().decode(bytes.subarray(at+46,at+46+n)));at+=46+n+extra+comment;
+ }
+ return names.has('[Content_Types].xml')&&names.has('xl/workbook.xml');
+}
+async function validateAttachments(files){
+ const out=[];
+ for(const file of files){
+  if(!file||typeof file==='string'||typeof file.arrayBuffer!=='function')throw inputError('Dosya eki geçersiz.');
+  const name=String(file.name||'').split(/[\\/]/).pop().replace(/[\u0000-\u001f\u007f]/g,'');
+  const ext=(name.split('.').pop()||'').toLowerCase(),mime=ATTACHMENT_TYPES[ext];
+  if(!mime)throw inputError('Yalnızca Excel veya JPG, PNG, WEBP görseli ekleyebilirsiniz.');
+  if(!file.size||file.size>ATTACHMENT_MAX_BYTES)throw inputError('Her dosya boş olmamalı ve en fazla 1 MB olmalıdır.',413);
+  const data=await file.arrayBuffer(),bytes=new Uint8Array(data);
+  const starts=values=>values.every((x,i)=>bytes[i]===x);
+  const valid=ext==='xlsx'?isXlsx(bytes):ext==='xls'?starts([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]):ext==='png'?starts([137,80,78,71,13,10,26,10]):ext==='webp'?starts([82,73,70,70])&&new TextDecoder().decode(bytes.subarray(8,12))==='WEBP':starts([255,216,255]);
+  if(!valid)throw inputError('Dosya içeriği uzantısıyla eşleşmiyor veya dosya okunamıyor: '+name.slice(0,160));
+  out.push({name:name.slice(0,-ext.length-1).slice(0,140)+'.'+ext,mime,size:bytes.length,data});
+ }
+ return out;
+}
+
 // ---------------------------------------------------------------------------
 // Ana yönlendirici
 // ---------------------------------------------------------------------------
@@ -567,7 +636,7 @@ export default {
       // ---------------- META ----------------
       if (u.pathname === "/api/meta" && req.method === "GET") {
         const meta = await env.DB.prepare(`SELECT guncelleme_tarihi, kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
-        return json({ ok: true, meta: meta || null, optymus: optymusConfigured(env) }, 200, { "Cache-Control": "public, max-age=300" });
+        return json({ ok: true, meta: meta || null, optymus: optymusConfigured(env), attachments: true }, 200, { "Cache-Control": "public, max-age=300" });
       }
 
       // ---------------- OPTYMUS: TAM ADRES → GÜNLER ----------------
@@ -665,7 +734,7 @@ export default {
       // ---------------- ÖNERİ / TALEP GÖNDER ----------------
       if (u.pathname === "/api/oneri" && req.method === "POST") {
         await ensureSchema(env.DB);
-        const body = await req.json().catch(() => ({}));
+        const {body,files} = await feedbackInput(req);
         // Bot tuzağı: görünmez alan doluysa sessizce kabul et
         if (String(body.website || "").trim()) return json({ ok: true });
 
@@ -690,10 +759,14 @@ export default {
           return json({ ok: false, error: "Çok fazla gönderim yaptınız. Lütfen daha sonra tekrar deneyin." }, 429);
         }
 
+        const attachments=await validateAttachments(files);
         const tarih = new Date().toISOString();
         const res = await env.DB.batch([
           env.DB.prepare(`INSERT INTO oneriler (ad_soyad, gsm, email, aciklama, tarih, durum) VALUES (?, ?, ?, ?, ?, 'Yeni')`)
             .bind(adSoyad, gsm, email, aciklama, tarih),
+          // D1 batch atomiktir; bu işlemde eklenen en son bildirim bütün eklerin sahibidir.
+          ...attachments.map(file=>env.DB.prepare(`INSERT INTO oneri_ekleri (oneri_id,dosya_adi,mime,boyut,icerik)
+            VALUES ((SELECT MAX(id) FROM oneriler),?,?,?,?)`).bind(file.name,file.mime,file.size,file.data)),
           env.DB.prepare(`INSERT INTO oneri_limit (ip, ts) VALUES (?, ?)`).bind(ip, Date.now()),
           env.DB.prepare(`DELETE FROM oneri_limit WHERE ts < ?`).bind(hourAgo)
         ]);
@@ -714,7 +787,22 @@ export default {
           const r = await env.DB.prepare(`
             SELECT id, ad_soyad, gsm, email, aciklama, tarih, durum
             FROM oneriler ORDER BY id DESC LIMIT 500`).all();
-          return json({ ok: true, rows: r.results || [] });
+          const attachments=await env.DB.prepare(`SELECT id,oneri_id,dosya_adi,mime,boyut FROM oneri_ekleri
+            WHERE oneri_id IN (SELECT id FROM oneriler ORDER BY id DESC LIMIT 500) ORDER BY id`).all();
+          const grouped=new Map();
+          for(const file of attachments.results||[]){if(!grouped.has(file.oneri_id))grouped.set(file.oneri_id,[]);grouped.get(file.oneri_id).push(file)}
+          return json({ ok: true, rows: (r.results||[]).map(row=>({...row,ekler:grouped.get(row.id)||[]})) });
+        }
+
+        if(u.pathname==='/admin/oneri-ek'&&req.method==='GET'){
+          const id=Number(u.searchParams.get('id'));
+          if(!Number.isSafeInteger(id)||id<1)return json({error:'Dosya kimliği geçersiz.'},400);
+          const file=await env.DB.prepare(`SELECT dosya_adi,icerik FROM oneri_ekleri WHERE id=?`).bind(id).first();
+          if(!file)return json({error:'Dosya bulunamadı.'},404);
+          const name=encodeURIComponent(file.dosya_adi).replace(/['()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase());
+          return new Response(Array.isArray(file.icerik)?new Uint8Array(file.icerik):file.icerik,{headers:{...cors,
+            'Content-Type':'application/octet-stream','Content-Disposition':"attachment; filename*=UTF-8''"+name,
+            'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
         }
 
         if (u.pathname === "/admin/oneri-durum" && req.method === "POST") {
@@ -780,7 +868,7 @@ export default {
 
       return json({ error: "Not found" }, 404);
     } catch (e) {
-      return json({ ok: false, error: String(e?.message || e) }, 500);
+      return json({ ok: false, error: String(e?.message || e) }, e.httpStatus || 500);
     }
   }
 };

@@ -43,6 +43,7 @@ progress{width:100%;height:8px;margin-top:14px;accent-color:var(--dk-primary);bo
 .badge{font-size:12px;line-height:16px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-grey-300)}
 .reqmeta{font-size:12px;color:var(--dk-grey-600);line-height:18px;margin-top:6px}.reqmeta a{color:var(--dk-black)}
 .reqmsg{margin-top:10px;white-space:pre-wrap;line-height:20px}
+.reqAttachments{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.reqAttachment{width:auto;max-width:100%;min-height:44px;margin:0;padding:8px 12px;border:1px solid var(--dk-border);border-radius:10px;background:var(--dk-white);color:var(--dk-black);font-size:13px;font-weight:500;text-align:left;overflow-wrap:anywhere}
 .req select{width:100%;min-height:44px;border:1px solid var(--dk-border);border-radius:12px;padding:6px 12px;margin-top:12px;background:var(--dk-white);font:inherit}
 .loginScreen{position:fixed;inset:0;background:var(--dk-grey-200);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
 .loginScreen .brand{margin:0 0 20px}
@@ -231,6 +232,7 @@ document.getElementById('upload').onclick=async()=>{
        <div class="reqtop"><b>${esc(x.ad_soyad)}</b><span class="badge">${esc(x.durum)}</span></div>
        <div class="reqmeta"><a href="tel:${esc(String(x.gsm).replace(/[^\d+]/g,''))}">${esc(x.gsm)}</a> • <a href="mailto:${esc(x.email)}">${esc(x.email)}</a><br>${esc(new Date(x.tarih).toLocaleString('tr-TR'))}</div>
        <div class="reqmsg">${esc(x.aciklama)}</div>
+       ${(x.ekler||[]).length?`<div class="reqAttachments" aria-label="Bildirim ekleri">${x.ekler.map(f=>`<button type="button" class="reqAttachment" data-attachment-id="${Number(f.id)}" data-file-name="${esc(f.dosya_adi)}">İndir: ${esc(f.dosya_adi)} (${Math.max(1,Math.ceil(f.boyut/1024))} KB)</button>`).join('')}</div>`:''}
        <label class="sr-only" for="durum-${x.id}">Durum: ${esc(x.ad_soyad)}</label>
        <select id="durum-${x.id}" data-id="${x.id}">
          ${['Yeni','İnceleniyor','Tamamlandı'].map(d=>`<option ${d===x.durum?'selected':''}>${d}</option>`).join('')}
@@ -245,6 +247,17 @@ document.getElementById('upload').onclick=async()=>{
      if(focusId){const f=document.getElementById('durum-'+focusId);if(f)f.focus()}
    }catch(e){st.className='status err';st.textContent='Hata: '+e.message;}
  }
+ document.getElementById('reqList').addEventListener('click',async e=>{
+   const button=e.target.closest('[data-attachment-id]');if(!button)return;
+   const oldText=button.textContent,st=document.getElementById('reqStatus');button.disabled=true;button.textContent='İndiriliyor…';
+   try{
+     const r=await fetch(API+'/admin/oneri-ek?id='+encodeURIComponent(button.dataset.attachmentId),{headers:{'X-Admin-Password':ADMIN_PW},cache:'no-store'});
+     if(!r.ok){const j=await r.json().catch(()=>({}));throw new Error(j.error||'Dosya indirilemedi.')}
+     const url=URL.createObjectURL(await r.blob()),a=document.createElement('a');a.href=url;a.download=button.dataset.fileName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+     st.className='status';st.textContent='Dosya indirme işlemi başlatıldı.';
+   }catch(err){st.className='status err';st.textContent=err.message||'Dosya indirilemedi.'}
+   finally{button.disabled=false;button.textContent=oldText}
+ });
  document.getElementById('loadReq').onclick=()=>getReq();
 })();
 </script>
