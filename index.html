@@ -139,11 +139,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
 .src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
 /* Müşteriye okunacak hazır cümle */
-.script{margin-top:12px;padding:12px 12px 12px 14px;border-radius:var(--dk-radius-12);background:var(--dk-primary-soft);display:flex;gap:12px;align-items:center}
+.script{margin-top:16px;padding:18px 20px;border:1px solid #DCE5C6;border-radius:16px;background:#F6F8EF;display:flex;gap:16px;align-items:flex-start}
 .scriptBody{flex:1;min-width:0}
-.scriptLabel{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--dk-primary-ink);margin-bottom:2px}
-.scriptText{font-size:15px;line-height:22px;font-weight:500;color:var(--dk-black);margin:0}
-.copyBtn{flex:0 0 auto;height:44px;padding:0 14px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-primary-ink);color:var(--dk-black);font-size:14px;font-weight:600}
+.scriptText{font-size:15px;line-height:25px;font-weight:400;color:#24291D;margin:0;overflow-wrap:anywhere}
+.copyBtn{flex:0 0 auto;position:relative;min-width:76px;height:36px;padding:0 12px;border-radius:999px;background:var(--dk-white);border:1px solid #AFBE91;color:var(--dk-primary-ink);font-size:13px;font-weight:500}
+.copyBtn:after{content:'';position:absolute;inset:-4px 0}
 .copyBtn:hover{filter:none;background:var(--dk-grey-100)}
 .note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
 .groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
@@ -262,7 +262,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  .weatherPanel{padding:12px}.weatherTitle{font-size:16px}
  .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
  .weatherSimple{font-size:13px;min-width:560px}
- .script{flex-direction:column;align-items:stretch}
+ .script{flex-direction:column;align-items:stretch;padding:16px;gap:12px}
  .copyBtn{align-self:flex-end}
  .top{grid-template-columns:minmax(0,1fr)}
  .resultActions{justify-content:space-between;flex-wrap:wrap;gap:8px}
@@ -476,16 +476,15 @@ const joinTr=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' ve '+a[a.length
 const fmtDayMonth=d=>d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
 function customerSentence(r,n){
  const open=DAY_NAMES.filter((_,j)=>r.days[j]);
- if(r.kaynak==='tablo'){
-  if(!n||!open.length)return 'Kayıtlı bölge planında bu mahalle için ziyaret günü bulunmuyor. Adresinize özel hizmet durumu ayrıca teyit edilmelidir.';
-  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
-  return 'Kayıtlı bölge planına göre '+days+' ziyaret gerçekleştiriyoruz. Adresinize özel ziyaret tarihi ayrıca teyit edilmelidir.';
- }
- if(!n||!open.length)return 'Bu adrese şu anda tanımlı bir dağıtım günümüz bulunmuyor.';
+ if(!n||!open.length)return 'Bölgeniz için şu anda tanımlı bir ziyaret günü görüntüleyemiyorum. Size doğru bilgi verebilmek için hizmet durumunu ayrıca teyit etmemiz gerekiyor.';
  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+ if(r.kaynak==='tablo'){
+  return 'Bölgeniz için mevcut planda '+days+' ziyaret görünüyor. Adresinize özel güncel ziyaret tarihini ayrıca teyit etmemiz gerekiyor.';
+ }
  const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
- return 'Bölgenize '+days+' dağıtım yapıyoruz. Size en erken '+when+' günü gelebiliriz.';
+ return 'Bölgenizde '+days+' ziyaret gerçekleştiriyoruz. Mevcut plana göre en yakın ziyaret günümüz '+when+'. Ziyaretinizin kesin tarihini ayrıca teyit etmemiz gerekiyor.';
 }
+
 let lastQuery='';
 
 // Yalnızca mevcut sorguya ait uyarıları göster; yeni sorguda eski yanıtları geçersiz kıl.
@@ -598,7 +597,7 @@ function renderRecords(records,{emptyMsg='Adres bulunamadı. Lütfen listeden il
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(j===todayIdx?' today':'')+'"'+(j===todayIdx?' aria-current="date"':'')+' title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
-   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
+   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><p class="scriptText">“'+esc(t)+'”</p></div><button type="button" class="copyBtn" aria-label="Okunacak metni kopyala" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+
    (!mapAreaAddress(r)?'<p class="hint">Harita için il / ilçe / mahalle listesinden seçim yapabilirsiniz.</p>':'')+'</div>';
  };
