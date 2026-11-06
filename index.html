@@ -139,11 +139,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
 .src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
 /* Müşteriye okunacak hazır cümle */
-.script{margin-top:12px;padding:12px 12px 12px 14px;border-radius:var(--dk-radius-12);background:var(--dk-primary-soft);display:flex;gap:12px;align-items:center}
+.script{margin-top:16px;padding:18px 20px;border:1px solid #DCE5C6;border-radius:16px;background:#F6F8EF;display:flex;gap:16px;align-items:flex-start}
 .scriptBody{flex:1;min-width:0}
-.scriptLabel{display:block;font-size:12px;line-height:16px;font-weight:600;color:var(--dk-primary-ink);margin-bottom:2px}
-.scriptText{font-size:15px;line-height:22px;font-weight:500;color:var(--dk-black);margin:0}
-.copyBtn{flex:0 0 auto;height:44px;padding:0 14px;border-radius:999px;background:var(--dk-white);border:1px solid var(--dk-primary-ink);color:var(--dk-black);font-size:14px;font-weight:600}
+.scriptText{font-size:15px;line-height:25px;font-weight:400;color:#24291D;margin:0;overflow-wrap:anywhere}
+.copyBtn{flex:0 0 auto;position:relative;min-width:76px;height:36px;padding:0 12px;border-radius:999px;background:var(--dk-white);border:1px solid #AFBE91;color:var(--dk-primary-ink);font-size:13px;font-weight:500}
+.copyBtn:after{content:'';position:absolute;inset:-4px 0}
 .copyBtn:hover{filter:none;background:var(--dk-grey-100)}
 .note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
 .groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
@@ -227,12 +227,14 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
-/* Mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
-.resultActions{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+/* Konum haritası: yalnızca düğmeye basıldığında yüklenir. */
+.resultActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.resultActions .badge{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:4px 10px}
 .top>div:first-child{min-width:0}
-.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:0;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
+.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;height:36px;margin-top:0;padding:0 12px;border:1px solid var(--dk-primary-ink);border-radius:999px;color:var(--dk-primary-ink);background:var(--dk-white);font-size:13px;font-weight:500;position:relative;white-space:nowrap}
+.mapButton:after{content:'';position:absolute;inset:-4px 0}
 .mapButton:hover{background:var(--dk-primary-soft);filter:none}
-.mapButton img{width:24px;height:24px;object-fit:contain;flex:0 0 auto}
+.mapButton img{width:18px;height:18px;object-fit:contain;flex:0 0 auto}
 .mapDialog{width:min(960px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:24px;overflow:auto;background:var(--dk-white);color:var(--dk-black);box-shadow:var(--dk-shadow)}
 .mapDialog::backdrop{background:rgba(0,0,0,.5)}
 .mapHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 16px}
@@ -260,7 +262,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  .weatherPanel{padding:12px}.weatherTitle{font-size:16px}
  .weatherTodayGrid{grid-template-columns:repeat(2,1fr)}
  .weatherSimple{font-size:13px;min-width:560px}
- .script{flex-direction:column;align-items:stretch}
+ .script{flex-direction:column;align-items:stretch;padding:16px;gap:12px}
  .copyBtn{align-self:flex-end}
  .top{grid-template-columns:minmax(0,1fr)}
  .resultActions{justify-content:space-between;flex-wrap:wrap;gap:8px}
@@ -354,9 +356,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 </div>
 
 <dialog id="mapDialog" class="mapDialog" aria-labelledby="mapDialogTitle" aria-describedby="mapAddress mapHelp">
- <div class="mapHead"><div><h2 id="mapDialogTitle">Mahalle haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
- <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Mahalle haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
- <div class="mapFoot"><p id="mapHelp">Harita, sorgu sonucundaki mahalle / ilçe / il bilgisine göre açılır. Yazılan sokak ve kapı numarası kullanılmaz; bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
+ <div class="mapHead"><div><h2 id="mapDialogTitle">Konum haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
+ <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Konum haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+ <div class="mapFoot"><p id="mapHelp">Harita, elle yazılan adresi; listeden seçimde mahalle / ilçe / il bilgisini kullanır. Google’daki eşleşmeyi kontrol edin; harita bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
 </dialog>
 
 <script>
@@ -474,16 +476,15 @@ const joinTr=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' ve '+a[a.length
 const fmtDayMonth=d=>d.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'});
 function customerSentence(r,n){
  const open=DAY_NAMES.filter((_,j)=>r.days[j]);
- if(r.kaynak==='tablo'){
-  if(!n||!open.length)return 'Kayıtlı bölge planında bu mahalle için ziyaret günü bulunmuyor. Adresinize özel hizmet durumu ayrıca teyit edilmelidir.';
-  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
-  return 'Kayıtlı bölge planına göre '+days+' ziyaret gerçekleştiriyoruz. Adresinize özel ziyaret tarihi ayrıca teyit edilmelidir.';
- }
- if(!n||!open.length)return 'Bu adrese şu anda tanımlı bir dağıtım günümüz bulunmuyor.';
+ if(!n||!open.length)return 'Bölgeniz için şu anda tanımlı bir ziyaret günü görüntüleyemiyorum. Size doğru bilgi verebilmek için hizmet durumunu ayrıca teyit etmemiz gerekiyor.';
  const days=open.length===7?'haftanın her günü':joinTr(open)+' günleri';
+ if(r.kaynak==='tablo'){
+  return 'Bölgeniz için mevcut planda '+days+' ziyaret görünüyor. Adresinize özel güncel ziyaret tarihini ayrıca teyit etmemiz gerekiyor.';
+ }
  const rel=relText(n.date),when=(rel==='Bugün'?'bugün, ':rel==='Yarın'?'yarın, ':'')+fmtDayMonth(n.date);
- return 'Bölgenize '+days+' dağıtım yapıyoruz. Size en erken '+when+' günü gelebiliriz.';
+ return 'Bölgenizde '+days+' ziyaret gerçekleştiriyoruz. Mevcut plana göre en yakın ziyaret günümüz '+when+'. Ziyaretinizin kesin tarihini ayrıca teyit etmemiz gerekiyor.';
 }
+
 let lastQuery='';
 
 // Yalnızca mevcut sorguya ait uyarıları göster; yeni sorguda eski yanıtları geçersiz kıl.
@@ -530,10 +531,14 @@ function resolveLiveLocation(live,records){
  }
  return geo;
 }
+function mapTargetAddress(r){
+ // Sorgu anındaki elle yazılmış adresi kullan; listeden/öneriden seçimde konuma dön.
+ return String(r.manualMapAddress||'').trim()||mapAreaAddress(r);
+}
 function addressMapButton(r){
- const address=mapAreaAddress(r);
+ const address=mapTargetAddress(r);
  if(!address)return '';
- return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><img src="icons/google-maps.svg" alt="" width="24" height="24">Sokak Görünümü</button>';
+ return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><img src="icons/google-maps.svg" alt="" width="18" height="18">Sokak Görünümü</button>';
 }
 const mapDialog=$('mapDialog'),mapFrame=$('mapFrame');
 function closeMap(){if(mapDialog.open)mapDialog.close();mapFrame.removeAttribute('src')}
@@ -550,7 +555,7 @@ $('results').addEventListener('click',e=>{
  if(!button)return;
  const address=button.dataset.mapAddress;
  $('mapAddress').textContent=address;
- mapFrame.title=address+' — mahalle haritası';
+ mapFrame.title=address+' — konum haritası';
  $('mapExternal').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
  const params=new URLSearchParams({key:MAPS_EMBED_KEY,q:address,language:'tr',region:'TR'});
  mapFrame.src='https://www.google.com/maps/embed/v1/place?'+params.toString();
@@ -592,7 +597,7 @@ function renderRecords(records,{emptyMsg='Adres bulunamadı. Lütfen listeden il
      return '<span role="listitem" class="day'+(r.days[j]?' on':'')+(j===todayIdx?' today':'')+'"'+(j===todayIdx?' aria-current="date"':'')+' title="'+lbl+'" aria-label="'+lbl+'">'+DAY_SHORT[j]+'</span>';
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
-   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
+   (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><p class="scriptText">“'+esc(t)+'”</p></div><button type="button" class="copyBtn" aria-label="Okunacak metni kopyala" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
    (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+
    (!mapAreaAddress(r)?'<p class="hint">Harita için il / ilçe / mahalle listesinden seçim yapabilirsiniz.</p>':'')+'</div>';
  };
@@ -651,6 +656,13 @@ function withLive(rec,live){
  return out;
 }
 
+// Seçili kayıt mahalle listesinden gelir; canlı adres eşleşmemesi kaydı geçersiz kılmaz.
+function withSelectedRecord(rec,live){
+ const out=withLive(rec,live);
+ if(live&&live.error)out.note='Canlı teyit alınamadı; seçtiğiniz mahalleye ait kayıtlı ziyaret planı gösteriliyor.';
+ return out;
+}
+
 function fillSelect(el,items,placeholder){
  el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+items.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
  el.disabled=!items.length;
@@ -671,10 +683,9 @@ async function run(){
     liveLookup(mahalleAddress(base))
    ]);
    if(my!==runNo)return;
-   if(live&&live.notFound)renderAddressRejection(live);
-   else if(live&&!live.error)renderRecords([withLive(tab[0]||base,live)]);
-   else if(tab.length)renderRecords([withLive(tab[0],live)]);
-   else throw new Error('Mahalle bulunamadı');
+   if(live&&!live.error)renderRecords([withSelectedRecord(tab[0]||base,live)]);
+   else if(tab.length)renderRecords([withSelectedRecord(tab[0],live)]);
+   else throw new Error('Seçilen mahalle kaydı alınamadı. Lütfen yeniden sorgulayın.');
    return;
   }
   if(norm(text).length>=3){
@@ -688,11 +699,11 @@ async function run(){
    if(live&&!live.error){
     // Canlı günler korunur; konum yalnızca açık veya tek uyumlu mahalle eşleşmesinden alınır.
     const geo=resolveLiveLocation(live,tab);
-    const rec=withLive({...geo,title:text},live);
+    const rec=withLive({...geo,title:text,manualMapAddress:text},live);
     renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
     return;
    }
-   const recs=tab.map(r=>({...r,kaynak:'tablo'}));
+   const recs=tab.map(r=>({...r,kaynak:'tablo',manualMapAddress:text}));
    if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
    renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'});
    return;
@@ -746,8 +757,7 @@ async function selectSuggestion(i){
  announce('Adres doğrulanıyor…');
  const live=await liveLookup(mahalleAddress(r));
  if(my!==runNo)return;
- if(live&&live.notFound)renderAddressRejection(live);
- else renderRecords([withLive(r,live)]);
+ renderRecords([withSelectedRecord(r,live)]);
  // Sonuç hazır olduğunda mobil klavyeyi kapat ve odağı başlığa taşı.
  const resHead=$('deliverySection').querySelector('.accHead');if(resHead)resHead.focus();
  // Filtreleri yalnızca hâlâ geçerli olan seçilen kayda göre doldur.
@@ -893,9 +903,11 @@ const WEATHER_NAMES={
 // Kurye operasyonunu etkileyebilecek hadiseler (açık liste – önceki regex "HY" gibi hafif yağışları da yakalıyordu)
 const RISKY=new Set(['Y','KY','SY','KSY','GSY','HGSY','KGY','KGSY','K','HKY','YKY','KKY','KF','TF','DY','GKR','KKR']);
 const wCode=c=>String(c??'').toUpperCase().replace(/[^A-Z0-9_-]/g,'');
-const weatherName=c=>WEATHER_NAMES[wCode(c)]||String(c||'—');
+// Teknik kodları kullanıcıya gösterme; doğrulanmamış koda anlam uydurma.
+const knownWeather=c=>Object.prototype.hasOwnProperty.call(WEATHER_NAMES,wCode(c));
+const weatherName=c=>knownWeather(c)?WEATHER_NAMES[wCode(c)]:'Hava koşulu açıklaması alınamadı';
 const isRisky=c=>RISKY.has(wCode(c));
-const wIcon=(c,cls='')=>{const k=wCode(c);return k?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
+const wIcon=(c,cls='')=>{const k=wCode(c);return knownWeather(c)?'<img'+(cls?' class="'+cls+'"':'')+' alt="" loading="lazy" src="https://www.mgm.gov.tr/Images_Sys/hadiseler/'+encodeURIComponent(k)+'.svg">':''};
 const pick=(o,keys)=>{for(const k of keys)if(o&&o[k]!==undefined&&o[k]!==null&&o[k]!==-9999)return o[k];return null};
 const dotDate=s=>{const d=String(s||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.split('-').reverse().join('.'):String(s||'—')};
 
@@ -922,8 +934,11 @@ async function loadWeather(il,ilce){
   }
   const todayISO=localISODate();
   const todayRow=rows.find(r=>String(pick(r,['tarih','date'])).slice(0,10)===todayISO);
-  const todayCode=pick(cur,['hadise','hadiseKodu','weather'])??pick(todayRow,['hadise','hadiseKodu','weather']);
-  const todayLine=esc(dotDate(todayISO)+' – '+(todayCode?weatherName(todayCode):'Hava durumu bilgisi alınamadı'));
+  const observedCode=pick(cur,['hadise','hadiseKodu','weather']);
+  const forecastCode=pick(todayRow,['hadise','hadiseKodu','weather']);
+  const fromForecast=!knownWeather(observedCode)&&knownWeather(forecastCode);
+  const todayCode=knownWeather(observedCode)?observedCode:forecastCode;
+  const todayLine=esc(dotDate(todayISO)+' – '+weatherName(todayCode)+(fromForecast?' (günlük tahmin)':''));
   const futureAlerts=rows.filter(r=>String(pick(r,['tarih','date'])).slice(0,10)>todayISO&&isRisky(pick(r,['hadise','hadiseKodu','weather'])))
    .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
    .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
