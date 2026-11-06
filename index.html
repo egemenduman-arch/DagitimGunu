@@ -227,6 +227,21 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
+/* Sokak / mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
+.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:14px;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
+.mapButton:hover{background:var(--dk-primary-soft);filter:none}
+.mapButton svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;flex:0 0 auto}
+.mapDialog{width:min(960px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:24px;overflow:auto;background:var(--dk-white);color:var(--dk-black);box-shadow:var(--dk-shadow)}
+.mapDialog::backdrop{background:rgba(0,0,0,.5)}
+.mapHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 16px}
+.mapHead h2{font-size:20px;line-height:28px;margin:0 0 6px}.mapAddress{margin:0;font-size:14px;line-height:20px;color:var(--dk-grey-600);overflow-wrap:anywhere}
+.mapClose{height:44px;padding:0 16px;border:1px solid var(--dk-border);background:var(--dk-white);color:var(--dk-black);border-radius:999px;font-size:14px;flex:0 0 auto}
+.mapFrameWrap{margin:0 24px;background:var(--dk-grey-200);border-radius:12px;overflow:hidden}
+.mapFrame{display:block;width:100%;height:460px;border:0}
+.mapFoot{padding:16px 24px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.mapFoot p{font-size:12px;line-height:18px;margin:0;color:var(--dk-grey-600);max-width:570px}
+.mapExternal{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;border:1px solid var(--dk-border);border-radius:12px;color:var(--dk-black);text-decoration:none;font-size:14px;flex-shrink:0}
+
 @media(max-width:700px){
  .brandTop{padding:16px 0}
  .brandLogo{width:104px}
@@ -245,6 +260,11 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  .weatherSimple{font-size:13px;min-width:560px}
  .script{flex-direction:column;align-items:stretch}
  .copyBtn{align-self:flex-end}
+ .mapButton{width:100%}
+ .mapDialog{width:calc(100% - 24px);max-height:calc(100dvh - 24px);border-radius:20px}
+ .mapHead{padding:18px 16px 14px;gap:10px}.mapHead h2{font-size:18px;line-height:24px}
+ .mapFrameWrap{margin:0 12px}.mapFrame{height:clamp(220px,45dvh,400px)}
+ .mapFoot{padding:14px 16px 18px;display:block}.mapExternal{width:100%;margin-top:12px}
  .feedbackGrid{grid-template-columns:1fr}.feedbackGrid .full{grid-column:auto}
 }
 @media(max-width:380px){
@@ -329,6 +349,12 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
  </main>
 </div>
 
+<dialog id="mapDialog" class="mapDialog" aria-labelledby="mapDialogTitle" aria-describedby="mapAddress mapHelp">
+ <div class="mapHead"><div><h2 id="mapDialogTitle">Sokak / mahalle haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
+ <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Sokak ve mahalle haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+ <div class="mapFoot"><p id="mapHelp">Kapı, daire ve kat bilgileri harita aramasına dahil edilmez. Harita sokak / mahalle çevresini gösterir; bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
+</dialog>
+
 <script>
 (()=>{
 'use strict';
@@ -336,6 +362,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 // ===================================================================
 // Ayarlar
 // ===================================================================
+const MAPS_EMBED_KEY='AIzaSyAOHe-PLWWsfnUWZDJAQLki64mRvMRtaqo';
 const DATA_API='https://dagitimveri.egemenduman.workers.dev';
 const OPS_API='https://dagitimuyari.egemenduman.workers.dev';
 const MGM_PAGE='https://www.mgm.gov.tr/tahmin/il-ve-ilceler.aspx';
@@ -480,12 +507,55 @@ $('results').addEventListener('click',e=>{
  $('alertDialogContent').innerHTML=resultWarnings[kind];
  alertDialog.showModal();
 });
+function mapAreaAddress(r){
+ // Yalnızca harita hedefini sadeleştir; ziyaret sorgusundaki adresi değiştirme.
+ const raw=String(r.title||r.mahalle||'');
+ const area=raw
+  .replace(/\b(?:no|numara|numarası|kapi|kapı)\.?\s*[:：#-]?\s*\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,' ')
+  .replace(/\b(?:daire|d|kat|blok|bina|iç\s*kapı|ic\s*kapi)\.?\s*[:：#-]?\s*(?:-?\d+[a-zçğıöşü]?|[a-z])\b/giu,' ')
+  .replace(/((?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?)[ \t]+\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,'$1 ')
+  .replace(/\s+/g,' ').replace(/\s*[,;]\s*/g,', ').replace(/^[\s,;]+|[\s,;]+$/g,'').trim();
+ const street=area.match(/^.*\b(?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?(?=\s|[,;]|$)/iu);
+ const parts=[street&&r.ilce&&r.il?street[0]:area];
+ for(const location of [r.mahalle,r.ilce,r.il]){
+  if(location&&!(' '+norm(parts.join(' '))+' ').includes(' '+norm(location)+' '))parts.push(location);
+ }
+ return parts.filter(Boolean).join(', ');
+}
+function addressMapButton(r){
+ const address=mapAreaAddress(r);
+ if(!address)return '';
+ return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Sokak / mahalleyi haritada aç</button>';
+}
+const mapDialog=$('mapDialog'),mapFrame=$('mapFrame');
+function closeMap(){if(mapDialog.open)mapDialog.close();mapFrame.removeAttribute('src')}
+$('mapClose').addEventListener('click',closeMap);
+mapDialog.addEventListener('close',()=>mapFrame.removeAttribute('src'));
+mapDialog.addEventListener('cancel',()=>mapFrame.removeAttribute('src'));
+mapDialog.addEventListener('click',e=>{
+ if(e.target!==mapDialog)return;
+ const rect=mapDialog.getBoundingClientRect();
+ if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)closeMap();
+});
+$('results').addEventListener('click',e=>{
+ const button=e.target.closest('[data-map-address]');
+ if(!button)return;
+ const address=button.dataset.mapAddress;
+ $('mapAddress').textContent=address;
+ mapFrame.title=address+' — sokak / mahalle haritası';
+ $('mapExternal').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
+ const params=new URLSearchParams({key:MAPS_EMBED_KEY,q:address,language:'tr',region:'TR'});
+ mapFrame.src='https://www.google.com/maps/embed/v1/place?'+params.toString();
+ mapDialog.showModal();
+});
+
 let currentRecords=[];
 function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  currentRecords=records;
  ++opsNo;++weatherNo;
  resultWarnings.weather='';resultWarnings.ops='';
  if(alertDialog.open)alertDialog.close();
+ closeMap();
  const box=$('results');
  const isoDate=localISODate();
  const todayIdx=(new Date().getDay()+6)%7;
@@ -508,7 +578,7 @@ function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
    }).join('')+'</div><div class="resultAlerts" data-il="'+esc(r.il||'')+'" data-ilce="'+esc(r.ilce||'')+'"></div>'+
    (r.kaynak&&r.kaynak!=='live'?'<div class="srcLine"><span class="src">'+esc(tableNote())+'</span></div>':'')+
    (r.similar?'':(()=>{const t=customerSentence(r,n);return '<div class="script"><div class="scriptBody"><span class="scriptLabel">Müşteriye söylenecek</span><p class="scriptText">'+esc(t)+'</p></div><button type="button" class="copyBtn" data-copy="'+esc(t)+'">Kopyala</button></div>'})())+
-   (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+'</div>';
+   (r.note?'<div class="note">'+esc(r.note)+'</div>':'')+addressMapButton(r)+'</div>';
  };
  const visible=records.slice(0,30),primary=visible.filter(r=>!r.similar),similar=visible.filter(r=>r.similar);
  box.innerHTML=primary.map((r,i)=>(r.group&&(i===0||primary[i-1].group!==r.group)?'<div class="groupTitle">'+esc(r.group)+'</div>':'')+card(r)).join('')+
@@ -710,6 +780,7 @@ function clearResults(){
  currentRecords=[];lastQuery='';
  resultWarnings.weather='';resultWarnings.ops='';
  if(alertDialog.open)alertDialog.close();
+ closeMap();
  $('results').innerHTML='';
  $('deliveryMeta').textContent='';
  $('queryMeta').textContent='';
@@ -954,4 +1025,3 @@ init();
 </script>
 </body>
 </html>
-
