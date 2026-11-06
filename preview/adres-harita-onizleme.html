@@ -486,11 +486,26 @@ $('results').addEventListener('click',e=>{
 });
 let currentRecords=[];
 // Harita, yalnızca seçilen kartın adresiyle ve personel tıklayınca açılır.
+function mapAreaAddress(r){
+ // Yalnızca harita hedefini sadeleştir; ziyaret sorgusundaki adresi değiştirme.
+ const raw=String(r.title||r.mahalle||'');
+ const area=raw
+  .replace(/\b(?:no|numara|numarası|kapi|kapı)\.?\s*[:：#-]?\s*\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,' ')
+  .replace(/\b(?:daire|d|kat|blok|bina|iç\s*kapı|ic\s*kapi)\.?\s*[:：#-]?\s*(?:-?\d+[a-zçğıöşü]?|[a-z])\b/giu,' ')
+  .replace(/((?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?)[ \t]+\d+[a-zçğıöşü]?(?:\s*[/\\-]\s*\d*[a-zçğıöşü]?)*/giu,'$1 ')
+  .replace(/\s+/g,' ').replace(/\s*[,;]\s*/g,', ').replace(/^[\s,;]+|[\s,;]+$/g,'').trim();
+ const street=area.match(/^.*\b(?:cad(?:desi)?|sok(?:ak|ağı)?|sk|bulvarı|blv)\.?(?=\s|[,;]|$)/iu);
+ const parts=[street&&r.ilce&&r.il?street[0]:area];
+ for(const location of [r.mahalle,r.ilce,r.il]){
+  if(location&&!(' '+norm(parts.join(' '))+' ').includes(' '+norm(location)+' '))parts.push(location);
+ }
+ return parts.filter(Boolean).join(', ');
+}
 function addressMapLink(r){
- const address=String(r.title||[r.mahalle,r.ilce,r.il].filter(Boolean).join(', ')).trim();
+ const address=mapAreaAddress(r);
  if(!address)return '';
  const url='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
- return '<a class="mapLink" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Adresi haritada aç<span class="sr-only"> (Google Haritalar, yeni sekmede açılır)</span></a>';
+ return '<a class="mapLink" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Sokak / mahalleyi haritada aç<span class="sr-only"> (Google Haritalar, yeni sekmede açılır)</span></a>';
 }
 function renderRecords(records,{emptyMsg='Eşleşen mahalle bulunamadı.'}={}){
  currentRecords=records;
