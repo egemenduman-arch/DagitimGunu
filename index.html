@@ -227,12 +227,14 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 .footNote{text-align:center;font-size:12px;color:var(--dk-grey-600);margin-top:20px}
 
-/* Mahalle haritası: yalnızca düğmeye basıldığında yüklenir. */
-.resultActions{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+/* Konum haritası: yalnızca düğmeye basıldığında yüklenir. */
+.resultActions{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.resultActions .badge{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:4px 10px}
 .top>div:first-child{min-width:0}
-.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;height:auto;margin-top:0;padding:10px 14px;border:1px solid var(--dk-primary-ink);border-radius:var(--dk-radius-12);color:var(--dk-primary-ink);background:var(--dk-white);font-size:14px;font-weight:600}
+.mapButton{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;height:36px;margin-top:0;padding:0 12px;border:1px solid var(--dk-primary-ink);border-radius:999px;color:var(--dk-primary-ink);background:var(--dk-white);font-size:13px;font-weight:500;position:relative;white-space:nowrap}
+.mapButton:after{content:'';position:absolute;inset:-4px 0}
 .mapButton:hover{background:var(--dk-primary-soft);filter:none}
-.mapButton img{width:24px;height:24px;object-fit:contain;flex:0 0 auto}
+.mapButton img{width:18px;height:18px;object-fit:contain;flex:0 0 auto}
 .mapDialog{width:min(960px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:24px;overflow:auto;background:var(--dk-white);color:var(--dk-black);box-shadow:var(--dk-shadow)}
 .mapDialog::backdrop{background:rgba(0,0,0,.5)}
 .mapHead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 24px 16px}
@@ -354,9 +356,9 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 </div>
 
 <dialog id="mapDialog" class="mapDialog" aria-labelledby="mapDialogTitle" aria-describedby="mapAddress mapHelp">
- <div class="mapHead"><div><h2 id="mapDialogTitle">Mahalle haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
- <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Mahalle haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
- <div class="mapFoot"><p id="mapHelp">Harita, sorgu sonucundaki mahalle / ilçe / il bilgisine göre açılır. Yazılan sokak ve kapı numarası kullanılmaz; bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
+ <div class="mapHead"><div><h2 id="mapDialogTitle">Konum haritası</h2><p id="mapAddress" class="mapAddress"></p></div><button type="button" id="mapClose" class="mapClose">Kapat</button></div>
+ <div class="mapFrameWrap"><iframe id="mapFrame" class="mapFrame" title="Konum haritası" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>
+ <div class="mapFoot"><p id="mapHelp">Harita, elle yazılan adresi; listeden seçimde mahalle / ilçe / il bilgisini kullanır. Google’daki eşleşmeyi kontrol edin; harita bina veya adres teyidi değildir. Harita görünmezse Google Haritalar’da açabilirsiniz.</p><a id="mapExternal" class="mapExternal" target="_blank" rel="noopener noreferrer">Google Haritalar’da aç<span class="sr-only"> (yeni sekmede açılır)</span></a></div>
 </dialog>
 
 <script>
@@ -530,10 +532,14 @@ function resolveLiveLocation(live,records){
  }
  return geo;
 }
+function mapTargetAddress(r){
+ // Sorgu anındaki elle yazılmış adresi kullan; listeden/öneriden seçimde konuma dön.
+ return String(r.manualMapAddress||'').trim()||mapAreaAddress(r);
+}
 function addressMapButton(r){
- const address=mapAreaAddress(r);
+ const address=mapTargetAddress(r);
  if(!address)return '';
- return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><img src="icons/google-maps.svg" alt="" width="24" height="24">Sokak Görünümü</button>';
+ return '<button type="button" class="mapButton" data-map-address="'+esc(address)+'" aria-haspopup="dialog" aria-controls="mapDialog"><img src="icons/google-maps.svg" alt="" width="18" height="18">Sokak Görünümü</button>';
 }
 const mapDialog=$('mapDialog'),mapFrame=$('mapFrame');
 function closeMap(){if(mapDialog.open)mapDialog.close();mapFrame.removeAttribute('src')}
@@ -550,7 +556,7 @@ $('results').addEventListener('click',e=>{
  if(!button)return;
  const address=button.dataset.mapAddress;
  $('mapAddress').textContent=address;
- mapFrame.title=address+' — mahalle haritası';
+ mapFrame.title=address+' — konum haritası';
  $('mapExternal').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address);
  const params=new URLSearchParams({key:MAPS_EMBED_KEY,q:address,language:'tr',region:'TR'});
  mapFrame.src='https://www.google.com/maps/embed/v1/place?'+params.toString();
@@ -688,11 +694,11 @@ async function run(){
    if(live&&!live.error){
     // Canlı günler korunur; konum yalnızca açık veya tek uyumlu mahalle eşleşmesinden alınır.
     const geo=resolveLiveLocation(live,tab);
-    const rec=withLive({...geo,title:text},live);
+    const rec=withLive({...geo,title:text,manualMapAddress:text},live);
     renderRecords([rec,...tab.slice(0,10).map(r=>({...r,kaynak:'tablo',similar:true,group:'Kayıtlı tablodaki benzer mahalleler'}))]);
     return;
    }
-   const recs=tab.map(r=>({...r,kaynak:'tablo'}));
+   const recs=tab.map(r=>({...r,kaynak:'tablo',manualMapAddress:text}));
    if(recs.length&&LIVE_ON&&live&&live.error)recs[0].note=live.notFound?'Canlı servis: '+live.error+'. Kayıtlı tablodaki eşleşmeler gösteriliyor. Adresi “Mahalle, Cadde/Sokak, No, İlçe/İl” biçiminde yazmayı deneyin.':'Canlı servis şu anda yanıt vermedi; kayıtlı tablodaki eşleşmeler gösteriliyor.';
    renderRecords(recs,{emptyMsg:live&&live.error?'Adres doğrulanamadı; canlı servise şu anda ulaşılamıyor. Yeniden sorgulayın veya hizmet durumunu teyit edin.':'Adres bulunamadı. Lütfen listeden il / ilçe / mahalle seçin.'});
    return;
