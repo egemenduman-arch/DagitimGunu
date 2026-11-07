@@ -366,6 +366,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
    <h2 class="accH"><button type="button" class="accHead" aria-expanded="false" aria-controls="feedbackBody"><span class="accTitle"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 5h16v11H9l-5 4z"/></svg></span>Hata / Veri Bildirimi</span><svg class="accChevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></button></h2>
    <div class="accBody" id="feedbackBody">
     <form id="feedbackForm" novalidate aria-describedby="fbReqNote">
+     <p class="feedbackNote">Sorgu kaydı otomatik eklenir. Yaşadığınız sorunu açıklama alanına yazmanız yeterlidir.</p>
      <p class="feedbackNote" id="fbReqNote" style="margin:0 0 12px">Yanlış dağıtım günü, eksik mahalle veya hatalı uyarı gördüyseniz bildirin.</p>
      <div class="feedbackGrid">
       <div><label for="fbName">Adınız Soyadınız <span class="req" aria-hidden="true">*</span></label><input id="fbName" name="name" autocomplete="name" maxlength="120" required aria-describedby="fbNameErr"><div id="fbNameErr" class="fieldErr"></div></div>
@@ -1055,8 +1056,33 @@ async function loadWeather(il,ilce){
 // ===================================================================
 // Hata / veri bildirimi → D1 (/api/oneri). Admin paneli buradan okur.
 // ===================================================================
-let feedbackOpener=null;
+let feedbackOpener=null,feedbackDiagnostic=null;
+function captureFeedbackDiagnostic(){
+ const text=id=>($(id)?.innerText||'').trim();
+ const warningText=html=>{const box=document.createElement('div');box.innerHTML=html;return (box.textContent||'').trim()};
+ const report=[
+  'Dijital Kurye — Otomatik sorgu kaydı',
+  'Kayıt zamanı: '+new Date().toISOString(),
+  'Saat dilimi: '+Intl.DateTimeFormat().resolvedOptions().timeZone,
+  'Sayfa: '+location.origin+location.pathname,
+  'Tarayıcı: '+navigator.userAgent,
+  'Ekran: '+innerWidth+' × '+innerHeight+' / ölçek '+devicePixelRatio,
+  'Sorgu: '+(q.value.trim()||'(boş)'),
+  'Seçili filtreler: '+[selIl.value,selIlce.value,selMah.value].filter(Boolean).join(' / '),
+  'Son sorgu özeti:\n'+(lastQuery||'(tamamlanmış sorgu yok)'),
+  'Görünen sonuç:\n'+(text('results')||'(sonuç yok)'),
+  'Kaynak / teyit bilgisi:\n'+currentRecords.slice(0,30).map(r=>[r.kaynak||'',r.note||''].filter(Boolean).join(' • ')).join('\n'),
+  'Hava kontrol durumu: '+text('weatherMeta'),
+  'Operasyon kontrol durumu: '+text('opsMeta'),
+  'Bağlantı / hata bilgisi:\n'+text('dataBar'),
+  'Hava uyarısı:\n'+warningText(resultWarnings.weather),
+  'Operasyon uyarısı:\n'+warningText(resultWarnings.ops)
+ ].join('\n\n');
+ // Yalnızca bu sorgunun bilgileri; form, saklanan iletişim bilgileri ve çerezler alınmaz.
+ return new File([report.length>16000?report.slice(0,15950)+'\n[Kayıt boyut sınırında kısaltıldı]':report],'sorgu-kaydi.txt',{type:'text/plain;charset=utf-8'});
+}
 const openFeedback=e=>{
+ feedbackDiagnostic=captureFeedbackDiagnostic();
  cancelDeliveryReveal();
  feedbackOpener=e&&e.currentTarget||null;
  const s=$('feedbackSection');s.classList.add('hasContent');setAccordion(s,true);
@@ -1151,17 +1177,13 @@ $('feedbackForm').addEventListener('submit',async e=>{
   $(bad[0]).focus();
   return;
  }
- // Son sorgunun bilgisini ekle (backend sınırı 3000 karakter)
- if(lastQuery){const ctx='\n\n--- Son sorgu ---\n'+lastQuery;payload.aciklama=payload.aciklama.slice(0,3000-ctx.length)+ctx}
  show('Gönderiliyor…');btn.disabled=true;feedbackSending=true;
  const controls=[...form.querySelectorAll('input,textarea,.attachmentRemove')];controls.forEach(el=>el.disabled=true);
  try{
-  let request={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)};
-  if(feedbackFiles.length){
-   const data=new FormData();data.append('payload',JSON.stringify(payload));
-   feedbackFiles.forEach(file=>data.append('attachments',file));
-   request={method:'POST',body:data};
-  }
+  const data=new FormData();data.append('payload',JSON.stringify(payload));
+  feedbackFiles.forEach(file=>data.append('attachments',file));
+  data.append('diagnostics',feedbackDiagnostic||captureFeedbackDiagnostic());
+  const request={method:'POST',body:data};
   const r=await fetch(DATA_API+'/api/oneri',request);
   const j=await r.json().catch(()=>({}));
   if(!r.ok||!j.ok)throw new Error(j.error||'Gönderim başarısız.');
