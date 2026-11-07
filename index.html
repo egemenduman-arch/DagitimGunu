@@ -141,7 +141,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .day{font-size:12px;line-height:16px;font-weight:500;padding:8px 10px;border-radius:999px;background:var(--dk-grey-200);color:var(--dk-grey-600);min-width:44px;text-align:center;text-decoration:line-through}
 .day.on{background:var(--dk-primary-soft);color:var(--dk-primary-ink);text-decoration:none;box-shadow:inset 0 0 0 1px var(--dk-primary-ink)}
 .day.today{background:var(--dk-warning);color:var(--dk-warning-ink);box-shadow:inset 0 0 0 1px var(--dk-warning-ink)}
-.srcLine{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
+.srcLine{display:none;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--dk-grey-600)}
 .src{font-size:12px;line-height:16px;font-weight:500;padding:3px 10px;border-radius:999px;border:1px solid var(--dk-grey-300);background:var(--dk-white);color:var(--dk-grey-600)}
 .src.live{border-color:var(--dk-success);color:var(--dk-success-ink)}
 /* Müşteriye okunacak hazır cümle */
@@ -151,7 +151,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .copyBtn{flex:0 0 auto;position:relative;min-width:76px;height:36px;padding:0 12px;border-radius:999px;background:var(--dk-white);border:1px solid #AFBE91;color:var(--dk-primary-ink);font-size:13px;font-weight:500}
 .copyBtn:after{content:'';position:absolute;inset:-4px 0}
 .copyBtn:hover{filter:none;background:var(--dk-grey-100)}
-.note{margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
+.note{display:none;margin-top:12px;padding:10px 12px;border-radius:var(--dk-radius-12);background:var(--warn-soft);color:var(--dk-warning-ink);font-size:12px;line-height:16px}
 .groupTitle{margin:16px 0 8px;font-size:12px;font-weight:500;color:var(--dk-grey-600)}
 .groupTitle:first-child{margin-top:0}
 .empty,.loading,.error{padding:14px 16px;border-radius:var(--dk-radius-12);background:var(--dk-white);color:var(--dk-grey-600);font-size:14px}
