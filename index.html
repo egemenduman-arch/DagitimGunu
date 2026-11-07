@@ -102,7 +102,11 @@ input[type=date]{-webkit-appearance:none;appearance:none;display:block;max-width
 input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .searchwrap{position:relative}
 .searchwrap .inIco{position:absolute;left:16px;top:18px;width:20px;height:20px;stroke:var(--dk-black);fill:none;stroke-width:1.8;pointer-events:none}
-.searchwrap input{padding-left:48px}
+.searchwrap input{padding-left:48px;padding-right:52px}
+.queryClear{position:absolute;right:6px;top:6px;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--dk-black);display:none;align-items:center;justify-content:center}
+.searchwrap input:not(:placeholder-shown)~.queryClear{display:inline-flex}
+.queryClear svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.queryClear:hover{background:var(--dk-grey-200);filter:none}
 .suggestions{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);background:var(--dk-white);border-radius:var(--dk-radius-12);box-shadow:var(--dk-shadow);border:1px solid var(--dk-grey-300);max-height:330px;overflow:auto;display:none}
 .suggestion{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--dk-grey-300)}
 .suggestion:last-child{border-bottom:0}
@@ -324,6 +328,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
       <div class="searchwrap">
        <svg class="inIco" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
        <input id="q" autocomplete="off" autocapitalize="words" enterkeyhint="search" placeholder="Örn: Atatürk Cad. No:12 Bostancı/İSTANBUL" role="combobox" aria-autocomplete="list" aria-controls="suggestions" aria-expanded="false" aria-describedby="qHint">
+       <button type="button" id="queryClear" class="queryClear" aria-label="Sorguyu temizle" title="Sorguyu temizle"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
        <div id="suggestions" class="suggestions" role="listbox" aria-label="Mahalle önerileri"></div>
       </div>
      </div>
@@ -853,6 +858,11 @@ q.addEventListener('input',()=>{
  clearTimeout(suggestTimer);
  if(norm(q.value).length<3){closeSuggestions();return}
  suggestTimer=setTimeout(showSuggestions,300);
+});
+$('queryClear').addEventListener('click',()=>{
+ q.value='';
+ q.dispatchEvent(new Event('input',{bubbles:true}));
+ q.focus();
 });
 q.addEventListener('keydown',e=>{
  const els=[...sugBox.querySelectorAll('.suggestion')],open=sugBox.style.display==='block';
