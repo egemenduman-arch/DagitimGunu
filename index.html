@@ -1016,7 +1016,7 @@ async function loadWeather(il,ilce){
    .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
    .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
   const alerts=isRisky(todayCode)?[todayLine,...futureAlerts]:futureAlerts;
-  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'<strong class="weatherImpact">Bu koşullar kurye saha operasyonunu etkileyebilir.</strong></div>':'';
+  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'</div>':'';
   resultWarnings.weather=warningHtml;
   updateResultWarnings();
 
