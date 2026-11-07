@@ -1,0 +1,28 @@
+name: D1 read budget regression
+on:
+  pull_request:
+    paths: ['worker/dagitimveri/**', 'tests/**', '.github/workflows/d1-read-budget.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+        working-directory: worker/dagitimveri
+      - run: npm test
+        working-directory: worker/dagitimveri
+      - run: node --test --test-isolation=none tests/*.test.cjs
+      - run: npm install --prefix /tmp/dg-browser playwright@1.56.1
+      - run: /tmp/dg-browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Local browser fixtures only
+        run: |
+          CHROMIUM_BIN=$(node -e "console.log(require('/tmp/dg-browser/node_modules/playwright').chromium.executablePath())")
+          sudo ln -sf "$CHROMIUM_BIN" /usr/bin/chromium
+          NODE_PATH=/tmp/dg-browser/node_modules node tests/browser.cjs

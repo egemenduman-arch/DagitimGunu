@@ -95,8 +95,13 @@ function clientIp(req) {
 // ---------------------------------------------------------------------------
 
 let schemaReady = false;
+let schemaPending;
 async function ensureSchema(db) {
-  if (schemaReady) return;
+  if(schemaReady)return;
+  if(!schemaPending)schemaPending=initializeSchema(db).finally(()=>{schemaPending=null;});
+  return schemaPending;
+}
+async function initializeSchema(db) {
   await db.batch([
     db.prepare(`CREATE TABLE IF NOT EXISTS dagitim_yeni (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -616,6 +621,142 @@ async function reverseAddressMatch(db, key, limit = 10) {
 }
 
 
+// Legacy public plan reads only: no account, feedback or admin data is cached.
+const PLAN_READ_PATHS = new Set(['/api/iller','/api/ilceler','/api/mahalleler','/api/mahalle','/api/ara']);
+const planReadCaches = new WeakMap();
+function planState(db) {
+  let state=planReadCaches.get(db);
+  if(!state){state={values:new Map(),pending:new Map(),generation:0,indexReady:false,indexPending:null};planReadCaches.set(db,state);}
+  return state;
+}
+async function planLocationIndex(db) {
+  const state=planState(db);
+  if(state.indexReady)return;
+  if(!state.indexPending)state.indexPending=db.prepare('CREATE INDEX IF NOT EXISTS idx_dagitim_location ON dagitim(il,ilce,mahalle,id DESC)').run()
+    .then(()=>{state.indexReady=true;}).finally(()=>{state.indexPending=null;});
+  return state.indexPending;
+}
+function clearPlanReads(db) {
+  const state=planState(db);state.generation++;state.values.clear();state.pending.clear();
+}
+async function cachedPlanRead(req,env,u) {
+  const state=planState(env.DB),key=u.pathname+'?'+u.searchParams.toString();
+  const hit=state.values.get(key);
+  if(hit&&hit.expires>Date.now())return hit.value;
+  if(hit)state.values.delete(key);
+  if(state.pending.has(key))return state.pending.get(key);
+  // Bound both cached data and outstanding distinct queries. Over-capacity requests
+  // still work without being retained. A cold/new Worker has its own bounded cache.
+  if(key.length>2048||state.pending.size>=32)return legacyPlanRead(req,env,u);
+  const generation=state.generation;
+  const task=legacyPlanRead(req,env,u).then(value=>{
+    const bytes=JSON.stringify(value).length;
+    if(value.status===200&&bytes<=262144&&generation===state.generation){
+      const ttl=u.pathname==='/api/ara'?60000:600000;
+      state.values.delete(key);state.values.set(key,{value,expires:Date.now()+ttl});
+      while(state.values.size>64)state.values.delete(state.values.keys().next().value);
+    }
+    return value;
+  }).finally(()=>{if(state.pending.get(key)===task)state.pending.delete(key);});
+  state.pending.set(key,task);return task;
+}
+async function legacyPlanRead(req,env,u) {
+  const json=(data,status=200,extra={})=>({data,status,extra});
+      // ---------------- İLLER ----------------
+      if (u.pathname === "/api/iller" && req.method === "GET") {
+        await planLocationIndex(env.DB);
+        const r = await env.DB.prepare(`
+          SELECT DISTINCT il FROM dagitim
+          WHERE il IS NOT NULL AND TRIM(il) <> ''
+          ORDER BY il COLLATE NOCASE`).all();
+        return json({ rows: (r.results || []).map(x => x.il) }, 200, { "Cache-Control": "public, max-age=600" });
+      }
+
+      // ---------------- İLÇELER ----------------
+      if (u.pathname === "/api/ilceler" && req.method === "GET") {
+        const il = (u.searchParams.get("il") || "").trim();
+        if (!il) return json({ error: "il gerekli" }, 400);
+        await planLocationIndex(env.DB);
+        const r = await env.DB.prepare(`
+          SELECT DISTINCT ilce FROM dagitim
+          WHERE il = ? AND ilce IS NOT NULL AND TRIM(ilce) <> ''
+          ORDER BY ilce COLLATE NOCASE`).bind(il).all();
+        return json({ il, rows: (r.results || []).map(x => x.ilce) }, 200, { "Cache-Control": "public, max-age=600" });
+      }
+
+      // ---------------- MAHALLELER ----------------
+      if (u.pathname === "/api/mahalleler" && req.method === "GET") {
+        const il = (u.searchParams.get("il") || "").trim();
+        const ilce = (u.searchParams.get("ilce") || "").trim();
+        if (!il || !ilce) return json({ error: "il ve ilce gerekli" }, 400);
+        await planLocationIndex(env.DB);
+        const r = await env.DB.prepare(`
+          SELECT DISTINCT mahalle FROM dagitim
+          WHERE il = ? AND ilce = ?
+          ORDER BY mahalle COLLATE NOCASE`).bind(il, ilce).all();
+        return json({ il, ilce, rows: (r.results || []).map(x => x.mahalle) }, 200, { "Cache-Control": "public, max-age=600" });
+      }
+
+      // ---------------- TEK MAHALLE ----------------
+      if (u.pathname === "/api/mahalle" && req.method === "GET") {
+        const il = (u.searchParams.get("il") || "").trim();
+        const ilce = (u.searchParams.get("ilce") || "").trim();
+        const mahalle = (u.searchParams.get("mahalle") || "").trim();
+        if (!il || !ilce || !mahalle) return json({ error: "il, ilce ve mahalle gerekli" }, 400);
+        // Tekrarlı kayıtlarda en son yükleneni döndür
+        await planLocationIndex(env.DB);
+        const row = await env.DB.prepare(`
+          SELECT ${ROW_COLS} FROM dagitim
+          WHERE il = ? AND ilce = ? AND mahalle = ?
+          ORDER BY id DESC LIMIT 1`).bind(il, ilce, mahalle).first();
+        if (!row) return json({ error: "Mahalle bulunamadı" }, 404);
+        return json({ row });
+      }
+
+      // ---------------- ADRES / MAHALLE ARAMA ----------------
+      if (u.pathname === "/api/ara" && req.method === "GET") {
+        const q = (u.searchParams.get("q") || "").trim();
+        const key = trKey(q);
+        if (key.length < 3) return json({ rows: [] });
+        await ensureSchema(env.DB);
+
+        const toks = key.split(" ").filter(t => t.length >= 2);
+        if (!toks.length) return json({ rows: [] });
+
+        // Uzun / açık adres: önce adresin içinde geçen ilçe + mahalleyi bul.
+        if (toks.length >= 4) {
+          const rev = await reverseAddressMatch(env.DB, key);
+          if (rev.length) return json({ q, rows: rev, eslesme: "adres" });
+        }
+
+        // Kısa sorgu: her kelime kayıtta geçmeli; mahalle adı tam/önek eşleşmesi önce.
+        toks.splice(6);
+        const where = toks.map(() => `arama LIKE ?`).join(" AND ");
+        const binds = toks.map(t => `%${t}%`);
+        const mahKey = trKeySql("mahalle");
+        const first = toks[0];
+        await planLocationIndex(env.DB);
+        const r = await env.DB.prepare(`
+          SELECT ${ROW_COLS},
+            CASE
+              WHEN ${mahKey} = ? THEN 0
+              WHEN ${mahKey} LIKE ? THEN 1
+              WHEN ${mahKey} LIKE ? THEN 2
+              ELSE 3
+            END AS skor
+          FROM dagitim
+          WHERE ${where}
+          GROUP BY il, ilce, mahalle
+          ORDER BY skor, length(mahalle), il, ilce, mahalle
+          LIMIT 30`).bind(key, first + "%", "%" + first + "%", ...binds).all();
+        let rows = (r.results || []).map(({ skor, ...x }) => x);
+        if (!rows.length && toks.length < 4) rows = await reverseAddressMatch(env.DB, key);
+        return json({ q, rows });
+      }
+
+  return json({error:'Not found'},404);
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -650,91 +791,9 @@ export default {
         return await handleAdresGun(req, env, u, json, ctx);
       }
 
-      // ---------------- İLLER ----------------
-      if (u.pathname === "/api/iller" && req.method === "GET") {
-        const r = await env.DB.prepare(`
-          SELECT DISTINCT il FROM dagitim
-          WHERE il IS NOT NULL AND TRIM(il) <> ''
-          ORDER BY il COLLATE NOCASE`).all();
-        return json({ rows: (r.results || []).map(x => x.il) }, 200, { "Cache-Control": "public, max-age=600" });
-      }
-
-      // ---------------- İLÇELER ----------------
-      if (u.pathname === "/api/ilceler" && req.method === "GET") {
-        const il = (u.searchParams.get("il") || "").trim();
-        if (!il) return json({ error: "il gerekli" }, 400);
-        const r = await env.DB.prepare(`
-          SELECT DISTINCT ilce FROM dagitim
-          WHERE il = ? AND ilce IS NOT NULL AND TRIM(ilce) <> ''
-          ORDER BY ilce COLLATE NOCASE`).bind(il).all();
-        return json({ il, rows: (r.results || []).map(x => x.ilce) }, 200, { "Cache-Control": "public, max-age=600" });
-      }
-
-      // ---------------- MAHALLELER ----------------
-      if (u.pathname === "/api/mahalleler" && req.method === "GET") {
-        const il = (u.searchParams.get("il") || "").trim();
-        const ilce = (u.searchParams.get("ilce") || "").trim();
-        if (!il || !ilce) return json({ error: "il ve ilce gerekli" }, 400);
-        const r = await env.DB.prepare(`
-          SELECT DISTINCT mahalle FROM dagitim
-          WHERE il = ? AND ilce = ?
-          ORDER BY mahalle COLLATE NOCASE`).bind(il, ilce).all();
-        return json({ il, ilce, rows: (r.results || []).map(x => x.mahalle) }, 200, { "Cache-Control": "public, max-age=600" });
-      }
-
-      // ---------------- TEK MAHALLE ----------------
-      if (u.pathname === "/api/mahalle" && req.method === "GET") {
-        const il = (u.searchParams.get("il") || "").trim();
-        const ilce = (u.searchParams.get("ilce") || "").trim();
-        const mahalle = (u.searchParams.get("mahalle") || "").trim();
-        if (!il || !ilce || !mahalle) return json({ error: "il, ilce ve mahalle gerekli" }, 400);
-        // Tekrarlı kayıtlarda en son yükleneni döndür
-        const row = await env.DB.prepare(`
-          SELECT ${ROW_COLS} FROM dagitim
-          WHERE il = ? AND ilce = ? AND mahalle = ?
-          ORDER BY id DESC LIMIT 1`).bind(il, ilce, mahalle).first();
-        if (!row) return json({ error: "Mahalle bulunamadı" }, 404);
-        return json({ row });
-      }
-
-      // ---------------- ADRES / MAHALLE ARAMA ----------------
-      if (u.pathname === "/api/ara" && req.method === "GET") {
-        const q = (u.searchParams.get("q") || "").trim();
-        const key = trKey(q);
-        if (key.length < 3) return json({ rows: [] });
-        await ensureSchema(env.DB);
-
-        const toks = key.split(" ").filter(t => t.length >= 2);
-        if (!toks.length) return json({ rows: [] });
-
-        // Uzun / açık adres: önce adresin içinde geçen ilçe + mahalleyi bul.
-        if (toks.length >= 4) {
-          const rev = await reverseAddressMatch(env.DB, key);
-          if (rev.length) return json({ q, rows: rev, eslesme: "adres" });
-        }
-
-        // Kısa sorgu: her kelime kayıtta geçmeli; mahalle adı tam/önek eşleşmesi önce.
-        toks.splice(6);
-        const where = toks.map(() => `arama LIKE ?`).join(" AND ");
-        const binds = toks.map(t => `%${t}%`);
-        const mahKey = trKeySql("mahalle");
-        const first = toks[0];
-        const r = await env.DB.prepare(`
-          SELECT ${ROW_COLS},
-            CASE
-              WHEN ${mahKey} = ? THEN 0
-              WHEN ${mahKey} LIKE ? THEN 1
-              WHEN ${mahKey} LIKE ? THEN 2
-              ELSE 3
-            END AS skor
-          FROM dagitim
-          WHERE ${where}
-          GROUP BY il, ilce, mahalle
-          ORDER BY skor, length(mahalle), il, ilce, mahalle
-          LIMIT 30`).bind(key, first + "%", "%" + first + "%", ...binds).all();
-        let rows = (r.results || []).map(({ skor, ...x }) => x);
-        if (!rows.length && toks.length < 4) rows = await reverseAddressMatch(env.DB, key);
-        return json({ q, rows });
+      if(req.method==='GET'&&PLAN_READ_PATHS.has(u.pathname)){
+        const value=await cachedPlanRead(req,env,u);
+        return json(value.data,value.status,value.extra);
       }
 
       // ---------------- ÖNERİ / TALEP GÖNDER ----------------
@@ -865,6 +924,7 @@ export default {
             env.DB.prepare(`DELETE FROM dagitim_yeni`)
           ]);
           geoCache = null;
+          clearPlanReads(env.DB);
           const m = await env.DB.prepare(`SELECT kayit_sayisi FROM veri_bilgisi WHERE id = 1`).first();
           return json({ ok: true, count: Number(m?.kayit_sayisi || 0), updated: now });
         }
@@ -881,4 +941,5 @@ export default {
 
 // Testler için dışa aktarım
 export { extractDays, trKey, timingSafeEqual };
+
 
