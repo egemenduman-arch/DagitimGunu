@@ -516,18 +516,24 @@ async function boundedBody(req,max){
 async function feedbackInput(req){
  const multipart=(req.headers.get('Content-Type')||'').toLowerCase().startsWith('multipart/form-data');
  const bytes=await boundedBody(req,multipart?4*1024*1024:64*1024);
- let body,files=[];
+ let body,files=[],diagnostics=[];
  try{
   if(multipart){
    const copy=new Request(req.url,{method:'POST',headers:req.headers,body:bytes});
    const form=await copy.formData(),payload=form.get('payload');
    if(typeof payload!=='string'||payload.length>20000)throw inputError('Bildirim bilgileri geçersiz.');
-   body=JSON.parse(payload);files=form.getAll('attachments');
+   body=JSON.parse(payload);files=form.getAll('attachments');diagnostics=form.getAll('diagnostics');
   }else body=JSON.parse(new TextDecoder().decode(bytes));
  }catch(e){if(e.httpStatus)throw e;throw inputError('Bildirim içeriği okunamadı.')}
  if(!body||typeof body!=='object'||Array.isArray(body))throw inputError('Bildirim bilgileri geçersiz.');
  if(files.length>ATTACHMENT_MAX_COUNT)throw inputError('En fazla 3 dosya ekleyebilirsiniz.',413);
- return {body,files};
+ if(diagnostics.length>1)throw inputError('En fazla bir otomatik sorgu kaydı eklenebilir.');
+ if(files.some(file=>file?.name==='sorgu-kaydi.txt'))throw inputError('Sorgu kaydı otomatik ek alanında gönderilmelidir.');
+ if(diagnostics.length){
+  const file=diagnostics[0];
+  if(!file||typeof file==='string'||file.name!=='sorgu-kaydi.txt'||!file.size||file.size>64*1024)throw inputError('Otomatik sorgu kaydı geçersiz.');
+ }
+ return {body,files:[...files,...diagnostics]};
 }
 function isXlsx(bytes){
  // ZIP açmadan merkez dizinini doğrula; normal ZIP'i Excel diye kabul etme.
@@ -550,12 +556,16 @@ async function validateAttachments(files){
  for(const file of files){
   if(!file||typeof file==='string'||typeof file.arrayBuffer!=='function')throw inputError('Dosya eki geçersiz.');
   const name=String(file.name||'').split(/[\\/]/).pop().replace(/[\u0000-\u001f\u007f]/g,'');
-  const ext=(name.split('.').pop()||'').toLowerCase(),mime=ATTACHMENT_TYPES[ext];
+  const ext=(name.split('.').pop()||'').toLowerCase(),diagnostic=name==='sorgu-kaydi.txt',mime=diagnostic?'text/plain;charset=utf-8':ATTACHMENT_TYPES[ext];
   if(!mime)throw inputError('Yalnızca Excel veya JPG, PNG, WEBP görseli ekleyebilirsiniz.');
   if(!file.size||file.size>ATTACHMENT_MAX_BYTES)throw inputError('Her dosya boş olmamalı ve en fazla 1 MB olmalıdır.',413);
   const data=await file.arrayBuffer(),bytes=new Uint8Array(data);
   const starts=values=>values.every((x,i)=>bytes[i]===x);
-  const valid=ext==='xlsx'?isXlsx(bytes):ext==='xls'?starts([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]):ext==='png'?starts([137,80,78,71,13,10,26,10]):ext==='webp'?starts([82,73,70,70])&&new TextDecoder().decode(bytes.subarray(8,12))==='WEBP':starts([255,216,255]);
+  if(diagnostic){
+   if(bytes.length>64*1024)throw inputError('Otomatik sorgu kaydı çok büyük.',413);
+   try{const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);if(text.includes('\0'))throw new Error()}catch(_){throw inputError('Otomatik sorgu kaydı UTF-8 metin olmalıdır.')}
+  }
+  const valid=diagnostic?true:ext==='xlsx'?isXlsx(bytes):ext==='xls'?starts([0xd0,0xcf,0x11,0xe0,0xa1,0xb1,0x1a,0xe1]):ext==='png'?starts([137,80,78,71,13,10,26,10]):ext==='webp'?starts([82,73,70,70])&&new TextDecoder().decode(bytes.subarray(8,12))==='WEBP':starts([255,216,255]);
   if(!valid)throw inputError('Dosya içeriği uzantısıyla eşleşmiyor veya dosya okunamıyor: '+name.slice(0,160));
   out.push({name:name.slice(0,-ext.length-1).slice(0,140)+'.'+ext,mime,size:bytes.length,data});
  }
@@ -941,5 +951,3 @@ export default {
 
 // Testler için dışa aktarım
 export { extractDays, trKey, timingSafeEqual };
-
-
