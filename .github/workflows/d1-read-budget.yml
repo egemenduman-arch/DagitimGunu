@@ -20,9 +20,13 @@ jobs:
         working-directory: worker/dagitimveri
       - run: node --test --test-isolation=none tests/*.test.cjs
       - run: npm install --prefix /tmp/dg-browser playwright@1.56.1
-      - run: /tmp/dg-browser/node_modules/.bin/playwright install --with-deps chromium
       - name: Local browser fixtures only
         run: |
-          CHROMIUM_BIN=$(node -e "console.log(require('/tmp/dg-browser/node_modules/playwright').chromium.executablePath())")
-          sudo ln -sf "$CHROMIUM_BIN" /usr/bin/chromium
+          if command -v google-chrome >/dev/null; then
+            sudo ln -sf "$(command -v google-chrome)" /usr/bin/chromium
+          else
+            /tmp/dg-browser/node_modules/.bin/playwright install chromium
+            CHROMIUM_BIN=$(node -e "console.log(require('/tmp/dg-browser/node_modules/playwright').chromium.executablePath())")
+            sudo ln -sf "$CHROMIUM_BIN" /usr/bin/chromium
+          fi
           NODE_PATH=/tmp/dg-browser/node_modules node tests/browser.cjs
