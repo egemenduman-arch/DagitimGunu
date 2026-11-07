@@ -188,6 +188,10 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
 .weatherFallback a{font-weight:500;color:var(--dk-black)}
 .weatherNotice{position:relative;margin:0 0 12px;padding:12px 14px 12px 46px;border-radius:var(--dk-radius-12);background:var(--dk-white);box-shadow:var(--dk-shadow);font-size:14px;line-height:20px;color:var(--dk-black-60)}
 .weatherNotice:before{content:'!';content:'!' / '';position:absolute;left:14px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--dk-warning);color:var(--dk-black);font-size:12px;font-weight:700;line-height:20px;text-align:center}
+.weatherWarningRows{margin-left:-32px;display:grid;gap:4px}
+.weatherWarningRow{display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:12px}
+.weatherWarningIcon{width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.weatherWarningIcon img{width:20px;height:20px;object-fit:contain}
 .weatherNotice strong{display:block;font-size:14px;margin-bottom:2px;color:var(--dk-black)}
 .weatherNotice .weatherImpact{margin-top:6px;margin-bottom:0;text-decoration:underline;text-underline-offset:3px}
 .weatherToday{margin:0 0 12px;padding:14px;border-radius:var(--dk-radius-12);background:var(--dk-grey-200)}
@@ -1011,12 +1015,13 @@ async function loadWeather(il,ilce){
   const forecastCode=pick(todayRow,['hadise','hadiseKodu','weather']);
   const fromForecast=!knownWeather(observedCode)&&knownWeather(forecastCode);
   const todayCode=knownWeather(observedCode)?observedCode:forecastCode;
-  const todayLine=esc(dotDate(todayISO)+' – '+weatherName(todayCode)+(fromForecast?' (günlük tahmin)':''));
+  const warningRow=(date,code,suffix='')=>'<div class="weatherWarningRow"><span class="weatherWarningIcon" aria-hidden="true">'+wIcon(code)+'</span><span>'+esc(dotDate(date)+' – '+weatherName(code)+suffix)+'</span></div>';
+  const todayLine=warningRow(todayISO,todayCode,fromForecast?' (günlük tahmin)':'');
   const futureAlerts=rows.filter(r=>String(pick(r,['tarih','date'])).slice(0,10)>todayISO&&isRisky(pick(r,['hadise','hadiseKodu','weather'])))
    .sort((a,b)=>String(pick(a,['tarih','date'])).localeCompare(String(pick(b,['tarih','date']))))
-   .map(r=>esc(dotDate(pick(r,['tarih','date']))+' – '+weatherName(pick(r,['hadise','hadiseKodu','weather']))));
+   .map(r=>warningRow(pick(r,['tarih','date']),pick(r,['hadise','hadiseKodu','weather'])));
   const alerts=isRisky(todayCode)?[todayLine,...futureAlerts]:futureAlerts;
-  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong><span aria-hidden="true">⚠ </span>Hava durumu uyarısı – '+where+'</strong>'+[todayLine,...futureAlerts].join('<br>')+'</div>':'';
+  const warningHtml=alerts.length?'<div class="weatherNotice weatherRisk" role="note"><strong>Hava durumu uyarısı</strong><div class="weatherWarningRows">'+[todayLine,...futureAlerts].join('')+'</div></div>':'';
   resultWarnings.weather=warningHtml;
   updateResultWarnings();
 
@@ -1171,4 +1176,3 @@ init();
 </script>
 </body>
 </html>
-
